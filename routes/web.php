@@ -52,9 +52,11 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/catalog-references', [CatalogReferenceController::class, 'index'])->middleware('permission:categories.view|authors.view|locations.view')->name('catalog-references.index');
     Route::post('/categories', [CatalogReferenceController::class, 'storeCategory'])->middleware('permission:categories.create')->name('categories.store');
+    Route::delete('/categories/bulk', [CatalogReferenceController::class, 'destroyCategoriesBulk'])->middleware('permission:catalog.manage')->name('categories.destroy.bulk');
     Route::patch('/categories/{category}', [CatalogReferenceController::class, 'updateCategory'])->middleware('permission:categories.update')->name('categories.update');
     Route::delete('/categories/{category}', [CatalogReferenceController::class, 'destroyCategory'])->middleware('permission:catalog.manage')->name('categories.destroy');
     Route::post('/authors', [CatalogReferenceController::class, 'storeAuthor'])->middleware('permission:authors.create')->name('authors.store');
+    Route::delete('/authors/bulk', [CatalogReferenceController::class, 'destroyAuthorsBulk'])->middleware('permission:catalog.manage')->name('authors.destroy.bulk');
     Route::patch('/authors/{author}', [CatalogReferenceController::class, 'updateAuthor'])->middleware('permission:authors.update')->name('authors.update');
     Route::delete('/authors/{author}', [CatalogReferenceController::class, 'destroyAuthor'])->middleware('permission:catalog.manage')->name('authors.destroy');
     Route::post('/locations', [CatalogReferenceController::class, 'storeLocation'])->middleware('permission:locations.create')->name('locations.store');

@@ -8,6 +8,7 @@ use App\Models\Location;
 use App\Services\CategoryCodeService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -76,6 +77,21 @@ class CatalogReferenceController extends Controller
         return back()->with('success', 'Catégorie supprimée.');
     }
 
+    public function destroyCategoriesBulk(Request $request): RedirectResponse
+    {
+        $data = $request->validate(['ids' => ['required', 'array', 'min:1', 'max:100'], 'ids.*' => ['integer', 'distinct', 'exists:categories,id']]);
+        $categories = Category::query()->whereKey($data['ids'])->withCount(['books', 'children'])->get();
+        $protected = $categories->first(fn (Category $category) => $category->books_count > 0 || $category->children_count > 0);
+
+        if ($protected) {
+            return back()->withErrors(['category' => "La catégorie « {$protected->name} » est utilisée par des ouvrages ou des sous-catégories. La suppression groupée a été annulée."]);
+        }
+
+        DB::transaction(fn () => $categories->each->delete());
+
+        return back()->with('success', $categories->count().' catégorie(s) supprimée(s).');
+    }
+
     public function updateAuthor(Request $request, Author $author): RedirectResponse
     {
         $author->update($request->validate(['display_name' => ['required', 'string', 'max:255']]));
@@ -91,6 +107,21 @@ class CatalogReferenceController extends Controller
         $author->delete();
 
         return back()->with('success', 'Auteur supprimé.');
+    }
+
+    public function destroyAuthorsBulk(Request $request): RedirectResponse
+    {
+        $data = $request->validate(['ids' => ['required', 'array', 'min:1', 'max:100'], 'ids.*' => ['integer', 'distinct', 'exists:authors,id']]);
+        $authors = Author::query()->whereKey($data['ids'])->withCount('books')->get();
+        $protected = $authors->firstWhere('books_count', '>', 0);
+
+        if ($protected) {
+            return back()->withErrors(['author' => "L’auteur « {$protected->display_name} » est associé à des ouvrages. La suppression groupée a été annulée."]);
+        }
+
+        DB::transaction(fn () => $authors->each->delete());
+
+        return back()->with('success', $authors->count().' auteur(s) supprimé(s).');
     }
 
     public function updateLocation(Request $request, Location $location): RedirectResponse

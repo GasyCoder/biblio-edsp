@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\NumberType;
+use App\Models\Author;
 use App\Models\Book;
 use App\Models\Category;
 use App\Models\Copy;
@@ -159,4 +160,42 @@ it('cancels bulk book deletion when one selected book has copies', function () {
         ->assertSessionHasErrors('book');
 
     expect(Book::query()->count())->toBe(2);
+});
+
+it('bulk deletes unused categories and authors', function () {
+    $admin = User::factory()->create()->assignRole('superadmin');
+    $categories = collect([
+        Category::create(['name' => 'Catégorie A', 'slug' => 'categorie-a', 'inventory_code' => 'CA']),
+        Category::create(['name' => 'Catégorie B', 'slug' => 'categorie-b', 'inventory_code' => 'CB']),
+    ]);
+    $authors = collect([
+        Author::create(['display_name' => 'Auteur A']),
+        Author::create(['display_name' => 'Auteur B']),
+    ]);
+
+    $this->actingAs($admin)->delete(route('categories.destroy.bulk'), ['ids' => $categories->pluck('id')->all()])
+        ->assertSessionHasNoErrors();
+    $this->delete(route('authors.destroy.bulk'), ['ids' => $authors->pluck('id')->all()])
+        ->assertSessionHasNoErrors();
+
+    expect(Category::query()->count())->toBe(0)
+        ->and(Author::query()->count())->toBe(0);
+});
+
+it('cancels bulk reference deletion when a category or author is used', function () {
+    $admin = User::factory()->create()->assignRole('superadmin');
+    $category = Category::create(['name' => 'Catégorie utilisée', 'slug' => 'categorie-utilisee', 'inventory_code' => 'CU']);
+    $otherCategory = Category::create(['name' => 'Catégorie libre', 'slug' => 'categorie-libre', 'inventory_code' => 'CL']);
+    $author = Author::create(['display_name' => 'Auteur utilisé']);
+    $otherAuthor = Author::create(['display_name' => 'Auteur libre']);
+    $book = Book::factory()->create(['category_id' => $category->id]);
+    $book->authors()->attach($author->id, ['position' => 1]);
+
+    $this->actingAs($admin)->delete(route('categories.destroy.bulk'), ['ids' => [$category->id, $otherCategory->id]])
+        ->assertSessionHasErrors('category');
+    $this->delete(route('authors.destroy.bulk'), ['ids' => [$author->id, $otherAuthor->id]])
+        ->assertSessionHasErrors('author');
+
+    expect(Category::query()->count())->toBe(2)
+        ->and(Author::query()->count())->toBe(2);
 });
