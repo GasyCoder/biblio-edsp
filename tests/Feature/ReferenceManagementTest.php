@@ -103,3 +103,27 @@ it('updates books and prevents deletion while copies exist', function () {
     $this->delete(route('books.destroy', $book))->assertSessionHasErrors('book');
     expect(Book::query()->count())->toBe(1);
 });
+
+it('bulk deletes books only when none has copies', function () {
+    $admin = User::factory()->create()->assignRole('superadmin');
+    $first = Book::factory()->create();
+    $second = Book::factory()->create();
+
+    $this->actingAs($admin)->delete(route('books.destroy.bulk'), ['ids' => [$first->id, $second->id]])
+        ->assertRedirect(route('books.index'));
+
+    expect(Book::query()->count())->toBe(0)
+        ->and(Book::withTrashed()->count())->toBe(2);
+});
+
+it('cancels bulk book deletion when one selected book has copies', function () {
+    $admin = User::factory()->create()->assignRole('superadmin');
+    $protected = Book::factory()->create();
+    $deletable = Book::factory()->create();
+    app(CopyService::class)->create(['book_id' => $protected->id]);
+
+    $this->actingAs($admin)->delete(route('books.destroy.bulk'), ['ids' => [$protected->id, $deletable->id]])
+        ->assertSessionHasErrors('book');
+
+    expect(Book::query()->count())->toBe(2);
+});

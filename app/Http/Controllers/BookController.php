@@ -73,6 +73,21 @@ class BookController extends Controller
         return to_route('books.index')->with('success', "Ouvrage « {$title} » supprimé.");
     }
 
+    public function destroyBulk(Request $request): RedirectResponse
+    {
+        $data = $request->validate(['ids' => ['required', 'array', 'min:1', 'max:100'], 'ids.*' => ['integer', 'distinct', 'exists:books,id']]);
+        $books = Book::query()->whereKey($data['ids'])->withCount('copies')->get();
+        $protected = $books->firstWhere('copies_count', '>', 0);
+
+        if ($protected) {
+            return back()->withErrors(['book' => "L’ouvrage « {$protected->title} » possède encore des exemplaires. La suppression groupée a été annulée."]);
+        }
+
+        DB::transaction(fn () => $books->each->delete());
+
+        return to_route('books.index')->with('success', $books->count().' ouvrage(s) supprimé(s).');
+    }
+
     /** @return array<string, mixed> */
     private function validatedData(Request $request): array
     {

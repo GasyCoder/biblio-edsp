@@ -31,6 +31,7 @@ L’interface reprend le langage visuel du template Dashwind fourni localement d
 - import Excel des ouvrages avec reprise des catégories, auteurs multilignes et quantités ;
 - création automatique d’un exemplaire et d’un code unique pour chaque unité importée ;
 - sélection multiple des exemplaires avec impression unitaire en modale, planche de QR codes et suppression groupée sécurisée ;
+- sélection multiple des ouvrages avec suppression groupée transactionnelle des notices sans exemplaire ;
 - export Excel du catalogue et de ses numéros d’inventaire ;
 - numéros étudiants automatiques au format `ETU-AA-001` ;
 - création et consultation des ouvrages bibliographiques ;

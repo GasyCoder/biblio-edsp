@@ -38,6 +38,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/books', [BookController::class, 'index'])->middleware('permission:books.view|catalog.view')->name('books.index');
     Route::get('/books/create', [BookController::class, 'create'])->middleware('permission:books.create')->name('books.create');
     Route::post('/books', [BookController::class, 'store'])->middleware('permission:books.create')->name('books.store');
+    Route::delete('/books/bulk', [BookController::class, 'destroyBulk'])->middleware('permission:catalog.manage')->name('books.destroy.bulk');
     Route::get('/books/{book}/edit', [BookController::class, 'edit'])->middleware('permission:books.update')->name('books.edit');
     Route::patch('/books/{book}', [BookController::class, 'update'])->middleware('permission:books.update')->name('books.update');
     Route::delete('/books/{book}', [BookController::class, 'destroy'])->middleware('permission:catalog.manage')->name('books.destroy');
