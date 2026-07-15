@@ -93,6 +93,15 @@ class StudentCardController extends Controller
     {
         $card->load('student.academicLevel', 'student.academicProgram');
 
-        return view('print.student-card', ['card' => $card, 'codeSvg' => $card->symbology === BarcodeSymbology::Qr ? $barcodes->qrSvg($card->card_number, 220) : $barcodes->code128Svg($card->card_number)]);
+        return view('print.student-card', ['card' => $card, 'codeSvg' => $card->symbology === BarcodeSymbology::Qr ? $barcodes->qrSvg($card->card_number, 220) : $barcodes->code128Svg($card->card_number), 'embedded' => request()->boolean('embedded')]);
+    }
+
+    public function printBulk(Request $request, BarcodeService $barcodes): View
+    {
+        $data = $request->validate(['ids' => ['required', 'array', 'min:2', 'max:50'], 'ids.*' => ['integer', 'distinct', 'exists:student_cards,id']]);
+        $order = array_flip($data['ids']);
+        $cards = StudentCard::query()->whereKey($data['ids'])->with(['student.academicLevel', 'student.academicProgram'])->get()->sortBy(fn (StudentCard $card) => $order[$card->id])->values();
+
+        return view('print.student-cards', ['cards' => $cards, 'codes' => $cards->mapWithKeys(fn (StudentCard $card) => [$card->id => $barcodes->qrSvg($card->card_number, 220)])]);
     }
 }

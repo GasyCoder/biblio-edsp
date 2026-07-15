@@ -38,6 +38,7 @@ L’interface reprend le langage visuel du template Dashwind fourni localement d
 - sélection multiple des étudiants avec suppression groupée protégée par les cartes et historiques de bibliothèque ;
 - photos d’identité scannées et cartes de bibliothèque CR80 imprimables sur PVC ou papier A4 ;
 - modification, statuts et suppression individuelle ou groupée des cartes de bibliothèque ;
+- aperçu unitaire des cartes en modale et impression multiple sur une planche A4 ;
 - profils étudiants détaillés avec informations académiques, carte et activité récente ;
 - sélection multiple des catégories et auteurs avec suppression groupée protégée par leurs relations au catalogue ;
 - export Excel du catalogue et de ses numéros d’inventaire ;

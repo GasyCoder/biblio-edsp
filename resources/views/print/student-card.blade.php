@@ -9,7 +9,7 @@
     </style>
 </head>
 <body>
-<div class="toolbar"><button class="primary" onclick="printCard('pvc')">Imprimer sur carte PVC</button><button class="secondary" onclick="printCard('a4')">Imprimer sur papier A4</button></div>
+@unless($embedded)<div class="toolbar"><button class="primary" onclick="printCard('pvc')">Imprimer sur carte PVC</button><button class="secondary" onclick="printCard('a4')">Imprimer sur papier A4</button></div>@endunless
 <article class="card">
     <header class="top"><div class="school">BIBLIOTHÈQUE EDSP</div><div class="subtitle">Université de Mahajanga · Carte de bibliothèque</div></header>
     @if($card->student->photo_url)<img class="photo" src="{{ $card->student->photo_url }}" alt="Photo">@else<div class="photo-placeholder">PHOTO</div>@endif

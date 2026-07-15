@@ -116,6 +116,22 @@ it('updates and bulk deletes library cards', function () {
     expect(StudentCard::query()->count())->toBe(0);
 });
 
+it('prints multiple library cards in a new A4 sheet', function () {
+    $user = User::factory()->create()->assignRole('secretaire');
+    $students = Student::factory()->count(2)->create();
+    foreach ($students as $student) {
+        $this->actingAs($user)->post(route('cards.store'), ['student_id' => $student->id]);
+    }
+    $cards = StudentCard::query()->get();
+
+    $this->get(route('cards.print.bulk', ['ids' => $cards->pluck('id')->all()]))
+        ->assertOk()
+        ->assertSee('Imprimer 2 cartes')
+        ->assertSee($cards[0]->card_number)
+        ->assertSee($cards[1]->card_number)
+        ->assertSee('grid-template-columns:repeat(2,85.6mm)', false);
+});
+
 it('prevents students from managing copies cards and catalog references', function () {
     $user = User::factory()->create()->assignRole('etudiant');
 

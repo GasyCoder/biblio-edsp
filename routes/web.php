@@ -79,6 +79,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/cards', [StudentCardController::class, 'index'])->middleware('permission:cards.view')->name('cards.index');
     Route::get('/cards/create', [StudentCardController::class, 'create'])->middleware('permission:cards.create')->name('cards.create');
     Route::post('/cards', [StudentCardController::class, 'store'])->middleware('permission:cards.create')->name('cards.store');
+    Route::get('/cards-print/bulk', [StudentCardController::class, 'printBulk'])->middleware('permission:cards.print')->name('cards.print.bulk');
     Route::delete('/cards/bulk', [StudentCardController::class, 'destroyBulk'])->middleware('permission:cards.manage')->name('cards.destroy.bulk');
     Route::get('/cards/{card}/edit', [StudentCardController::class, 'edit'])->middleware('permission:cards.update')->name('cards.edit');
     Route::patch('/cards/{card}', [StudentCardController::class, 'update'])->middleware('permission:cards.update')->name('cards.update');
