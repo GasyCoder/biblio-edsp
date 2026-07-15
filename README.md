@@ -32,6 +32,7 @@ L’interface reprend le langage visuel du template Dashwind fourni localement d
 - création automatique d’un exemplaire et d’un code unique pour chaque unité importée ;
 - sélection multiple des exemplaires avec impression unitaire en modale, planche de QR codes et suppression groupée sécurisée ;
 - planches A4 économes de 24 étiquettes QR autocollantes au format 63,5 × 33,9 mm ;
+- téléchargement PDF des étiquettes QR sélectionnées en complément de l’impression directe ;
 - sélection multiple des ouvrages avec suppression groupée transactionnelle des notices sans exemplaire ;
 - sélection multiple des étudiants avec suppression groupée protégée par les cartes et historiques de bibliothèque ;
 - sélection multiple des catégories et auteurs avec suppression groupée protégée par leurs relations au catalogue ;

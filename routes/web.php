@@ -67,6 +67,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/copies/create', [CopyController::class, 'create'])->middleware('permission:copies.create')->name('copies.create');
     Route::post('/copies', [CopyController::class, 'store'])->middleware('permission:copies.create')->name('copies.store');
     Route::get('/copies-print/bulk', [CopyController::class, 'printBulk'])->middleware('permission:copies.print')->name('copies.print.bulk');
+    Route::get('/copies-print/pdf', [CopyController::class, 'downloadPdf'])->middleware('permission:copies.print')->name('copies.print.pdf');
     Route::delete('/copies/bulk', [CopyController::class, 'destroyBulk'])->middleware('permission:catalog.manage')->name('copies.destroy.bulk');
     Route::get('/copies/{copy}/edit', [CopyController::class, 'edit'])->middleware('permission:copies.update')->name('copies.edit');
     Route::patch('/copies/{copy}', [CopyController::class, 'update'])->middleware('permission:copies.update')->name('copies.update');

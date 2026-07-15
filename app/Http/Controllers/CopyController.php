@@ -10,6 +10,8 @@ use App\Models\Copy;
 use App\Models\Location;
 use App\Services\BarcodeService;
 use App\Services\CopyService;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,6 +19,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
 class CopyController extends Controller
 {
@@ -96,5 +99,24 @@ class CopyController extends Controller
         $copies = Copy::query()->whereKey($data['ids'])->with('book')->get()->sortBy(fn (Copy $copy) => $order[$copy->id])->values();
 
         return view('print.copy-labels', ['copies' => $copies, 'codes' => $copies->mapWithKeys(fn (Copy $copy) => [$copy->id => $barcodes->qrSvg($copy->barcode_value)])]);
+    }
+
+    public function downloadPdf(Request $request, BarcodeService $barcodes): HttpResponse
+    {
+        $data = $request->validate(['ids' => ['required', 'array', 'min:1', 'max:100'], 'ids.*' => ['integer', 'distinct', 'exists:copies,id']]);
+        $order = array_flip($data['ids']);
+        $copies = Copy::query()->whereKey($data['ids'])->with('book')->get()->sortBy(fn (Copy $copy) => $order[$copy->id])->values();
+        $html = view('print.copy-labels-pdf', ['copies' => $copies, 'codes' => $copies->mapWithKeys(fn (Copy $copy) => [$copy->id => $barcodes->qrPngDataUri($copy->barcode_value)])])->render();
+        $options = new Options;
+        $options->set('isRemoteEnabled', false);
+        $dompdf = new Dompdf($options);
+        $dompdf->loadHtml($html, 'UTF-8');
+        $dompdf->setPaper('a4', 'portrait');
+        $dompdf->render();
+
+        return response($dompdf->output(), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="etiquettes-qr-edsp-'.now()->format('Ymd-His').'.pdf"',
+        ]);
     }
 }

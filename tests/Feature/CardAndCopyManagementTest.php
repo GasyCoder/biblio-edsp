@@ -40,6 +40,20 @@ it('prints several selected copies as QR codes', function () {
         ->assertSee('<svg', false);
 });
 
+it('downloads selected copy labels as a real PDF', function () {
+    $user = User::factory()->create()->assignRole('secretaire');
+    $book = Book::factory()->create();
+    $copies = collect([
+        app(CopyService::class)->create(['book_id' => $book->id]),
+        app(CopyService::class)->create(['book_id' => $book->id]),
+    ]);
+
+    $response = $this->actingAs($user)->get(route('copies.print.pdf', ['ids' => $copies->pluck('id')->all()]));
+
+    $response->assertOk()->assertHeader('content-type', 'application/pdf');
+    expect($response->getContent())->toStartWith('%PDF');
+});
+
 it('bulk deletes only copies without operational history', function () {
     $admin = User::factory()->create()->assignRole('superadmin');
     $book = Book::factory()->create();

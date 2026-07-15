@@ -49,6 +49,11 @@ const printSelected = () => {
     }
 };
 
+const downloadPdf = (ids: number[]) => {
+    const query = new URLSearchParams(ids.map((id) => ['ids[]', String(id)]));
+    window.location.href = `${route('copies.print.pdf')}?${query}`;
+};
+
 const removeSelected = () => {
     if (!selected.value.length || !confirm(`Supprimer définitivement les ${selected.value.length} exemplaires sélectionnés ?`)) return;
     router.delete(route('copies.destroy.bulk'), {
@@ -83,6 +88,9 @@ const printPreview = () => (document.querySelector<HTMLIFrameElement>('#copy-qr-
             <span class="text-sm font-bold text-primary-700 dark:text-primary-300">{{ selected.length }} sélectionné(s)</span>
             <button v-if="canPrint" class="inline-flex h-9 items-center gap-2 rounded-md bg-primary-600 px-3 text-xs font-bold text-white" @click="printSelected">
                 <AppIcon name="print" class="h-4 w-4" /> QR code{{ selected.length > 1 ? 's' : '' }}
+            </button>
+            <button v-if="canPrint" class="inline-flex h-9 items-center gap-2 rounded-md border border-primary-300 bg-white px-3 text-xs font-bold text-primary-700 dark:border-primary-700 dark:bg-slate-900 dark:text-primary-300" @click="downloadPdf(selected)">
+                PDF
             </button>
             <button v-if="canDelete" class="inline-flex h-9 items-center gap-2 rounded-md bg-red-600 px-3 text-xs font-bold text-white" @click="removeSelected">
                 <AppIcon name="trash" class="h-4 w-4" /> Supprimer
@@ -125,7 +133,7 @@ const printPreview = () => (document.querySelector<HTMLIFrameElement>('#copy-qr-
                         <button class="inline-flex h-9 w-9 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Fermer" @click="previewCopy = null"><AppIcon name="close" class="h-5 w-5" /></button>
                     </div>
                     <div class="bg-slate-100 p-4 dark:bg-slate-950"><iframe id="copy-qr-preview" :src="previewUrl" class="h-[190px] w-full rounded-md bg-white" title="Aperçu de l’étiquette QR"></iframe><p class="mt-2 text-center text-xs text-slate-500">Étiquette autocollante 63,5 × 33,9 mm</p></div>
-                    <div class="flex justify-end gap-3 border-t border-slate-200 p-4 dark:border-slate-700"><button class="rounded-md border border-slate-300 px-4 py-2 text-sm font-bold text-slate-600" @click="previewCopy = null">Fermer</button><button class="inline-flex items-center gap-2 rounded-md bg-primary-600 px-4 py-2 text-sm font-bold text-white" @click="printPreview"><AppIcon name="print" class="h-4 w-4" /> Imprimer</button></div>
+                    <div class="flex flex-wrap justify-end gap-3 border-t border-slate-200 p-4 dark:border-slate-700"><button class="rounded-md border border-slate-300 px-4 py-2 text-sm font-bold text-slate-600" @click="previewCopy = null">Fermer</button><button class="rounded-md border border-primary-300 px-4 py-2 text-sm font-bold text-primary-700 dark:border-primary-700 dark:text-primary-300" @click="downloadPdf([previewCopy.id])">Télécharger PDF</button><button class="inline-flex items-center gap-2 rounded-md bg-primary-600 px-4 py-2 text-sm font-bold text-white" @click="printPreview"><AppIcon name="print" class="h-4 w-4" /> Imprimer</button></div>
                 </div>
             </div>
         </Teleport>
