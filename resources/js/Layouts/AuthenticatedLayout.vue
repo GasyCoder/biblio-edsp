@@ -21,7 +21,7 @@ const can = (permission?: string) => !permission || page.props.auth.permissions.
 const menuGroups = computed(() => [
     { label: 'Vue générale', items: [{ label: 'Tableau de bord', icon: 'dashboard', href: route('dashboard'), active: route().current('dashboard') }] },
     { label: 'Opérations', items: [
-        { label: 'Scanner une carte', icon: 'scan', href: null, permission: 'cards.scan' },
+        { label: 'Comptoir · Scanner', icon: 'scan', href: route('desk.index'), permission: 'cards.scan', active: route().current('desk.*') },
         { label: 'Cartes étudiantes', icon: 'scan', href: route('cards.index'), permission: 'cards.view', active: route().current('cards.*') },
         { label: 'Présences', icon: 'visits', href: null, permission: page.props.auth.roles.includes('etudiant') ? 'visits.view_own' : 'visits.view' },
         { label: 'Prêts et retours', icon: 'loans', href: null, permission: page.props.auth.roles.includes('etudiant') ? 'loans.view_own' : 'loans.view' },

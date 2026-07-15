@@ -31,9 +31,14 @@ L’interface reprend le langage visuel du template Dashwind fourni localement d
 - modèle séparant ouvrages et exemplaires physiques ;
 - numéros d’exemplaires automatiques au format `EDSP-LIV-000001` ;
 - codes scannables opaques et uniques ;
-- catégories, emplacements et cartes étudiants préparés dans le domaine.
+- gestion des catégories, auteurs, emplacements et cartes étudiantes ;
+- mode clair et sombre persistant ;
+- comptoir optimisé pour le scan des cartes et la recherche de secours ;
+- pointage des entrées et sorties avec une seule présence ouverte par étudiant ;
+- consultations sur place avec scan, restitution et suivi des exemplaires ;
+- verrouillage transactionnel empêchant les doubles scans et les sorties prématurées.
 
-Les modules de pointage, consultation sur place, prêts, import Excel et statistiques avancées seront ajoutés progressivement. Le plan complet est disponible dans [docs/audit-et-plan-technique.md](docs/audit-et-plan-technique.md).
+Les modules de prêts, import Excel et statistiques avancées seront ajoutés progressivement. Le plan complet est disponible dans [docs/audit-et-plan-technique.md](docs/audit-et-plan-technique.md).
 
 ## Prérequis
 
@@ -167,6 +172,8 @@ Formats actuellement actifs :
 
 - étudiant : `EDSP-ETU-AAAA-000001` ;
 - exemplaire : `EDSP-LIV-000001`.
+- pointage : `EDSP-PTG-AAAAMMJJ-000001` ;
+- consultation : `EDSP-CST-AAAAMMJJ-000001`.
 
 ## Fichiers sensibles et références locales
 

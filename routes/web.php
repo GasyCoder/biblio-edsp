@@ -4,6 +4,7 @@ use App\Http\Controllers\BookController;
 use App\Http\Controllers\CatalogReferenceController;
 use App\Http\Controllers\CopyController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DeskController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\StudentCardController;
 use App\Http\Controllers\StudentController;
@@ -42,6 +43,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/cards/create', [StudentCardController::class, 'create'])->middleware('permission:cards.create')->name('cards.create');
     Route::post('/cards', [StudentCardController::class, 'store'])->middleware('permission:cards.create')->name('cards.store');
     Route::get('/cards/{card}/print', [StudentCardController::class, 'print'])->middleware('permission:cards.print')->name('cards.print');
+
+    Route::get('/desk', [DeskController::class, 'index'])->middleware('permission:cards.scan')->name('desk.index');
+    Route::post('/desk/students/{student}/check-in', [DeskController::class, 'checkIn'])->middleware('permission:visits.check_in')->name('desk.check-in');
+    Route::post('/desk/visits/{visit}/check-out', [DeskController::class, 'checkOut'])->middleware('permission:visits.check_out')->name('desk.check-out');
+    Route::post('/desk/visits/{visit}/consultation', [DeskController::class, 'openConsultation'])->middleware('permission:consultations.open')->name('desk.consultations.open');
+    Route::post('/desk/consultations/{session}/copies', [DeskController::class, 'addCopy'])->middleware('permission:consultations.add_copy')->name('desk.consultations.copies.store');
+    Route::post('/desk/consultation-items/{item}/return', [DeskController::class, 'returnCopy'])->middleware('permission:consultations.return_copy')->name('desk.consultations.copies.return');
+    Route::post('/desk/consultations/{session}/close', [DeskController::class, 'closeConsultation'])->middleware('permission:consultations.close')->name('desk.consultations.close');
 });
 
 require __DIR__.'/auth.php';

@@ -29,4 +29,14 @@ class Student extends Model
     {
         return $this->hasMany(StudentCard::class);
     }
+
+    public function visits(): HasMany
+    {
+        return $this->hasMany(Visit::class);
+    }
+
+    public function consultationSessions(): HasMany
+    {
+        return $this->hasMany(ConsultationSession::class);
+    }
 }

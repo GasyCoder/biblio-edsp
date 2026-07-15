@@ -12,7 +12,11 @@ class NumberGenerator
     public function next(NumberType $type, ?Carbon $date = null): string
     {
         $date ??= now();
-        $scope = $type === NumberType::Student ? $date->format('Y') : 'global';
+        $scope = match ($type) {
+            NumberType::Student => $date->format('Y'),
+            NumberType::Visit, NumberType::Consultation => $date->format('Ymd'),
+            default => 'global',
+        };
 
         return DB::transaction(function () use ($type, $scope): string {
             DB::table('number_sequences')->insertOrIgnore([
@@ -32,9 +36,9 @@ class NumberGenerator
             $sequence->increment('current_value');
             $value = $sequence->fresh()->current_value;
 
-            return $type === NumberType::Student
-                ? sprintf('%s-%s-%06d', $type->prefix(), $scope, $value)
-                : sprintf('%s-%06d', $type->prefix(), $value);
+            return $scope === 'global'
+                ? sprintf('%s-%06d', $type->prefix(), $value)
+                : sprintf('%s-%s-%06d', $type->prefix(), $scope, $value);
         }, 3);
     }
 }
