@@ -36,6 +36,10 @@ class NumberGenerator
             $sequence->increment('current_value');
             $value = $sequence->fresh()->current_value;
 
+            if ($type === NumberType::Student) {
+                return sprintf('%s-%s-%03d', $type->prefix(), substr($scope, -2), $value);
+            }
+
             return $scope === 'global'
                 ? sprintf('%s-%06d', $type->prefix(), $value)
                 : sprintf('%s-%s-%06d', $type->prefix(), $scope, $value);

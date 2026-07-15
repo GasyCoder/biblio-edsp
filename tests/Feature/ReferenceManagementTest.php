@@ -16,8 +16,8 @@ beforeEach(function () {
 it('generates sequential student and copy numbers without using row counts', function () {
     $numbers = app(NumberGenerator::class);
 
-    expect($numbers->next(NumberType::Student))->toBe('EDSP-ETU-'.now()->year.'-000001')
-        ->and($numbers->next(NumberType::Student))->toBe('EDSP-ETU-'.now()->year.'-000002')
+    expect($numbers->next(NumberType::Student))->toBe('ETU-'.now()->format('y').'-001')
+        ->and($numbers->next(NumberType::Student))->toBe('ETU-'.now()->format('y').'-002')
         ->and($numbers->next(NumberType::Copy))->toBe('EDSP-LIV-000001');
 });
 
@@ -28,7 +28,7 @@ it('allows a superadmin to create a student with an automatic number', function 
         'academic_number' => 'MAT-001', 'last_name' => 'RAKOTO', 'first_name' => 'Soa', 'status' => 'active',
     ])->assertRedirect(route('students.index'));
 
-    expect(Student::query()->firstOrFail()->registration_number)->toBe('EDSP-ETU-'.now()->year.'-000001');
+    expect(Student::query()->firstOrFail()->registration_number)->toBe('ETU-'.now()->format('y').'-001');
 });
 
 it('allows the secretary to search students but not create them', function () {
@@ -72,4 +72,23 @@ it('creates copies with distinct automatic inventory and barcode values', functi
         ->and($second->inventory_number)->toBe('EDSP-LIV-000002')
         ->and($first->barcode_value)->not->toBe($second->barcode_value)
         ->and(Copy::query()->count())->toBe(2);
+});
+
+it('updates and safely deletes students without history', function () {
+    $admin = User::factory()->create()->assignRole('superadmin');
+    $student = Student::factory()->create();
+    $this->actingAs($admin)->patch(route('students.update', $student), ['last_name' => 'NOUVEAU', 'first_name' => 'Nom', 'status' => 'active'])->assertRedirect(route('students.index'));
+    expect($student->refresh()->last_name)->toBe('NOUVEAU');
+    $this->delete(route('students.destroy', $student))->assertRedirect(route('students.index'));
+    expect(Student::query()->count())->toBe(0);
+});
+
+it('updates books and prevents deletion while copies exist', function () {
+    $admin = User::factory()->create()->assignRole('superadmin');
+    $book = Book::factory()->create();
+    $this->actingAs($admin)->patch(route('books.update', $book), ['title' => 'Titre corrigé', 'authors' => ['Auteur corrigé']])->assertRedirect(route('books.index'));
+    expect($book->refresh()->title)->toBe('Titre corrigé');
+    app(CopyService::class)->create(['book_id' => $book->id]);
+    $this->delete(route('books.destroy', $book))->assertSessionHasErrors('book');
+    expect(Book::query()->count())->toBe(1);
 });

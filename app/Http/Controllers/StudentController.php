@@ -43,8 +43,39 @@ class StudentController extends Controller
 
     public function store(Request $request, StudentService $students): RedirectResponse
     {
-        $data = $request->validate([
-            'academic_number' => ['nullable', 'string', 'max:64', 'unique:students,academic_number'],
+        $student = $students->create($this->validatedData($request));
+
+        return to_route('students.index')->with('success', "Étudiant {$student->registration_number} créé avec succès.");
+    }
+
+    public function edit(Student $student): Response
+    {
+        return Inertia::render('Students/Edit', ['student' => $student, 'statuses' => collect(StudentStatus::cases())->map(fn (StudentStatus $status) => ['value' => $status->value, 'label' => $status->label()])]);
+    }
+
+    public function update(Request $request, Student $student): RedirectResponse
+    {
+        $student->update($this->validatedData($request, $student));
+
+        return to_route('students.index')->with('success', "Étudiant {$student->registration_number} mis à jour.");
+    }
+
+    public function destroy(Student $student): RedirectResponse
+    {
+        if ($student->cards()->exists() || $student->visits()->exists() || $student->consultationSessions()->exists()) {
+            return back()->withErrors(['student' => 'Cet étudiant possède une carte ou un historique. Passez plutôt son statut à Inactif.']);
+        }
+        $number = $student->registration_number;
+        $student->delete();
+
+        return to_route('students.index')->with('success', "Étudiant {$number} supprimé.");
+    }
+
+    /** @return array<string, mixed> */
+    private function validatedData(Request $request, ?Student $student = null): array
+    {
+        return $request->validate([
+            'academic_number' => ['nullable', 'string', 'max:64', Rule::unique('students', 'academic_number')->ignore($student)],
             'last_name' => ['required', 'string', 'max:255'],
             'first_name' => ['required', 'string', 'max:255'],
             'gender' => ['nullable', Rule::in(['female', 'male', 'other'])],
@@ -60,9 +91,5 @@ class StudentController extends Controller
             'status' => ['required', Rule::enum(StudentStatus::class)],
             'restriction_reason' => ['nullable', 'string', 'max:2000', 'required_if:status,suspended'],
         ]);
-
-        $student = $students->create($data);
-
-        return to_route('students.index')->with('success', "Étudiant {$student->registration_number} créé avec succès.");
     }
 }

@@ -30,7 +30,7 @@ L’interface reprend le langage visuel du template Dashwind fourni localement d
 - import Excel des ouvrages avec reprise des catégories, auteurs multilignes et quantités ;
 - création automatique d’un exemplaire et d’un code unique pour chaque unité importée ;
 - export Excel du catalogue et de ses numéros d’inventaire ;
-- numéros étudiants automatiques au format `EDSP-ETU-AAAA-000001` ;
+- numéros étudiants automatiques au format `ETU-AA-001` ;
 - création et consultation des ouvrages bibliographiques ;
 - auteurs multiples sans fusion automatique des titres ;
 - modèle séparant ouvrages et exemplaires physiques ;
@@ -175,7 +175,7 @@ Les numéros internes sont produits par des séquences transactionnelles verroui
 
 Formats actuellement actifs :
 
-- étudiant : `EDSP-ETU-AAAA-000001` ;
+- étudiant : `ETU-AA-001` ;
 - exemplaire : `EDSP-LIV-000001`.
 - pointage : `EDSP-PTG-AAAAMMJJ-000001` ;
 - consultation : `EDSP-CST-AAAAMMJJ-000001`.

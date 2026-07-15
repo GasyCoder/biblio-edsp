@@ -43,7 +43,7 @@ it('previews and commits valid student spreadsheet rows with automatic numbers',
     $this->actingAs($superadmin)->post(route('student-imports.commit', $import))->assertRedirect();
 
     expect(Student::query()->count())->toBe(2)
-        ->and(Student::query()->where('academic_number', '3254.D')->firstOrFail()->registration_number)->toStartWith('EDSP-ETU-')
+        ->and(Student::query()->where('academic_number', '3254.D')->firstOrFail()->registration_number)->toStartWith('ETU-'.now()->format('y').'-')
         ->and(Student::query()->where('academic_number', '3255.D')->firstOrFail()->repetition_code)->toBe('R');
 });
 

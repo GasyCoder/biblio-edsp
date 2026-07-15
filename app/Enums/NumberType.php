@@ -12,7 +12,7 @@ enum NumberType: string
     public function prefix(): string
     {
         return match ($this) {
-            self::Student => 'EDSP-ETU',
+            self::Student => 'ETU',
             self::Copy => 'EDSP-LIV',
             self::Visit => 'EDSP-PTG',
             self::Consultation => 'EDSP-CST',

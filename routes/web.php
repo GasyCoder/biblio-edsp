@@ -26,6 +26,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/students', [StudentController::class, 'index'])->middleware('permission:students.view')->name('students.index');
     Route::get('/students/create', [StudentController::class, 'create'])->middleware('permission:students.manage')->name('students.create');
     Route::post('/students', [StudentController::class, 'store'])->middleware('permission:students.manage')->name('students.store');
+    Route::get('/students/{student}/edit', [StudentController::class, 'edit'])->middleware('permission:students.update')->name('students.edit');
+    Route::patch('/students/{student}', [StudentController::class, 'update'])->middleware('permission:students.update')->name('students.update');
+    Route::delete('/students/{student}', [StudentController::class, 'destroy'])->middleware('permission:students.manage')->name('students.destroy');
     Route::get('/student-imports', [StudentImportController::class, 'index'])->middleware('permission:imports.view')->name('student-imports.index');
     Route::post('/student-imports', [StudentImportController::class, 'store'])->middleware('permission:imports.upload')->name('student-imports.store');
     Route::get('/student-imports/{import}', [StudentImportController::class, 'show'])->middleware('permission:imports.review')->name('student-imports.show');
@@ -35,6 +38,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/books', [BookController::class, 'index'])->middleware('permission:books.view|catalog.view')->name('books.index');
     Route::get('/books/create', [BookController::class, 'create'])->middleware('permission:books.create')->name('books.create');
     Route::post('/books', [BookController::class, 'store'])->middleware('permission:books.create')->name('books.store');
+    Route::get('/books/{book}/edit', [BookController::class, 'edit'])->middleware('permission:books.update')->name('books.edit');
+    Route::patch('/books/{book}', [BookController::class, 'update'])->middleware('permission:books.update')->name('books.update');
+    Route::delete('/books/{book}', [BookController::class, 'destroy'])->middleware('permission:catalog.manage')->name('books.destroy');
     Route::get('/book-imports', [BookImportController::class, 'index'])->middleware('permission:imports.view')->name('book-imports.index');
     Route::post('/book-imports', [BookImportController::class, 'store'])->middleware('permission:imports.upload')->name('book-imports.store');
     Route::post('/book-imports/reference', [BookImportController::class, 'reference'])->middleware('permission:imports.upload')->name('book-imports.reference');
