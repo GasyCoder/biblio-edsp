@@ -19,11 +19,12 @@ class BookController extends Controller
 
         return Inertia::render('Books/Index', [
             'books' => Book::query()
-                ->with(['category:id,name', 'authors:id,display_name'])
+                ->with(['category:id,name', 'authors:id,display_name', 'copies:id,book_id,inventory_number,status'])
                 ->withCount('copies')
                 ->when($search !== '', fn ($query) => $query->where(function ($query) use ($search) {
                     $query->where('title', 'like', "%{$search}%")
                         ->orWhere('isbn', 'like', "%{$search}%")
+                        ->orWhereHas('copies', fn ($query) => $query->where('inventory_number', 'like', "%{$search}%"))
                         ->orWhereHas('authors', fn ($query) => $query->where('display_name', 'like', "%{$search}%"));
                 }))
                 ->latest()

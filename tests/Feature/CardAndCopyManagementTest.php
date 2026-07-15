@@ -7,6 +7,7 @@ use App\Models\StudentCard;
 use App\Models\User;
 use App\Services\BarcodeService;
 use Database\Seeders\RolePermissionSeeder;
+use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(fn () => $this->seed(RolePermissionSeeder::class));
 
@@ -45,4 +46,16 @@ it('generates svg without embedding personal data beyond the opaque value', func
 
     expect($service->qrSvg('EDSP:CARD:1:TEST'))->toContain('<svg')
         ->and($service->code128Svg('EDSP:COPY:1:TEST'))->toContain('<svg');
+});
+
+it('shows and searches copy registration numbers in the books catalog', function () {
+    $user = User::factory()->create()->assignRole('secretaire');
+    $book = Book::factory()->create();
+    $this->actingAs($user)->post('/copies', ['book_id' => $book->id, 'condition' => 'good', 'barcode_symbology' => 'code128']);
+    $copy = Copy::query()->firstOrFail();
+
+    $this->get(route('books.index', ['search' => $copy->inventory_number]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('books.data', 1)
+            ->where('books.data.0.copies.0.inventory_number', $copy->inventory_number));
 });
