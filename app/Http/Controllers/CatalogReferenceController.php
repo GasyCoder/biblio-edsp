@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Author;
 use App\Models\Category;
 use App\Models\Location;
+use App\Services\CategoryCodeService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -24,15 +25,15 @@ class CatalogReferenceController extends Controller
         ]);
     }
 
-    public function storeCategory(Request $request): RedirectResponse
+    public function storeCategory(Request $request, CategoryCodeService $codes): RedirectResponse
     {
-        $data = $request->validate(['name' => ['required', 'string', 'max:255'], 'description' => ['nullable', 'string', 'max:2000']]);
+        $data = $request->validate(['name' => ['required', 'string', 'max:255'], 'inventory_code' => ['nullable', 'string', 'max:10', 'regex:/^[A-Za-z0-9]+$/', 'unique:categories,inventory_code'], 'description' => ['nullable', 'string', 'max:2000']]);
         $baseSlug = Str::slug($data['name']);
         $slug = $baseSlug;
         for ($suffix = 2; Category::withTrashed()->where('slug', $slug)->exists(); $suffix++) {
             $slug = $baseSlug.'-'.$suffix;
         }
-        Category::query()->create([...$data, 'slug' => $slug]);
+        Category::query()->create([...$data, 'inventory_code' => Str::upper(($data['inventory_code'] ?? null) ?: $codes->generate($data['name'])), 'slug' => $slug]);
 
         return back()->with('success', 'Catégorie créée avec succès.');
     }
@@ -53,14 +54,14 @@ class CatalogReferenceController extends Controller
         return back()->with('success', 'Emplacement créé avec succès.');
     }
 
-    public function updateCategory(Request $request, Category $category): RedirectResponse
+    public function updateCategory(Request $request, Category $category, CategoryCodeService $codes): RedirectResponse
     {
-        $data = $request->validate(['name' => ['required', 'string', 'max:255'], 'description' => ['nullable', 'string', 'max:2000']]);
+        $data = $request->validate(['name' => ['required', 'string', 'max:255'], 'inventory_code' => ['nullable', 'string', 'max:10', 'regex:/^[A-Za-z0-9]+$/', Rule::unique('categories', 'inventory_code')->ignore($category)], 'description' => ['nullable', 'string', 'max:2000']]);
         $slug = Str::slug($data['name']);
         if (Category::withTrashed()->where('slug', $slug)->whereKeyNot($category->id)->exists()) {
             $slug .= '-'.$category->id;
         }
-        $category->update([...$data, 'slug' => $slug]);
+        $category->update([...$data, 'inventory_code' => Str::upper(($data['inventory_code'] ?? null) ?: $codes->generate($data['name'], $category->id)), 'slug' => $slug]);
 
         return back()->with('success', 'Catégorie mise à jour.');
     }

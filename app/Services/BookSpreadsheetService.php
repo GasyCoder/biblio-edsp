@@ -21,7 +21,7 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class BookSpreadsheetService
 {
-    public function __construct(private readonly CopyService $copies) {}
+    public function __construct(private readonly CopyService $copies, private readonly CategoryCodeService $categoryCodes) {}
 
     public function previewUpload(UploadedFile $file, User $user): ImportBatch
     {
@@ -62,7 +62,7 @@ class BookSpreadsheetService
                 $data = $row->normalized_data;
                 $category = null;
                 if ($data['category']) {
-                    $category = Category::withTrashed()->firstOrCreate(['slug' => Str::slug($data['category'])], ['name' => $data['category'], 'is_active' => true]);
+                    $category = Category::withTrashed()->firstOrCreate(['slug' => Str::slug($data['category'])], ['name' => $data['category'], 'inventory_code' => $this->categoryCodes->generate($data['category']), 'is_active' => true]);
                     if ($category->trashed()) {
                         $category->restore();
                     }

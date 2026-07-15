@@ -2,6 +2,7 @@
 
 use App\Enums\NumberType;
 use App\Models\Book;
+use App\Models\Category;
 use App\Models\Copy;
 use App\Models\Student;
 use App\Models\User;
@@ -18,7 +19,7 @@ it('generates sequential student and copy numbers without using row counts', fun
 
     expect($numbers->next(NumberType::Student))->toBe('ETU-'.now()->format('y').'-001')
         ->and($numbers->next(NumberType::Student))->toBe('ETU-'.now()->format('y').'-002')
-        ->and($numbers->next(NumberType::Copy))->toBe('EDSP-LIV-000001');
+        ->and($numbers->next(NumberType::Copy))->toBe('EDSP-GEN-0001');
 });
 
 it('allows a superadmin to create a student with an automatic number', function () {
@@ -68,10 +69,20 @@ it('creates copies with distinct automatic inventory and barcode values', functi
     $first = $service->create(['book_id' => $book->id]);
     $second = $service->create(['book_id' => $book->id]);
 
-    expect($first->inventory_number)->toBe('EDSP-LIV-000001')
-        ->and($second->inventory_number)->toBe('EDSP-LIV-000002')
+    expect($first->inventory_number)->toBe('EDSP-GEN-0001')
+        ->and($second->inventory_number)->toBe('EDSP-GEN-0002')
         ->and($first->barcode_value)->not->toBe($second->barcode_value)
         ->and(Copy::query()->count())->toBe(2);
+});
+
+it('uses the book category code in the global copy sequence', function () {
+    $relations = Category::create(['name' => 'Relations internationales', 'slug' => 'relations-internationales', 'inventory_code' => 'RI']);
+    $commercial = Category::create(['name' => 'Droit commercial', 'slug' => 'droit-commercial', 'inventory_code' => 'DRC']);
+    $first = app(CopyService::class)->create(['book_id' => Book::factory()->create(['category_id' => $relations->id])->id]);
+    $second = app(CopyService::class)->create(['book_id' => Book::factory()->create(['category_id' => $commercial->id])->id]);
+
+    expect($first->inventory_number)->toBe('EDSP-RI-0001')
+        ->and($second->inventory_number)->toBe('EDSP-DRC-0002');
 });
 
 it('updates and safely deletes students without history', function () {

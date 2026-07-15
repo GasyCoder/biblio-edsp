@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['parent_id', 'name', 'slug', 'description', 'is_active'])]
+#[Fillable(['parent_id', 'name', 'inventory_code', 'slug', 'description', 'is_active'])]
 class Category extends Model
 {
     use HasFactory, SoftDeletes;

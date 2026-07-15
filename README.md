@@ -34,7 +34,7 @@ L’interface reprend le langage visuel du template Dashwind fourni localement d
 - création et consultation des ouvrages bibliographiques ;
 - auteurs multiples sans fusion automatique des titres ;
 - modèle séparant ouvrages et exemplaires physiques ;
-- numéros d’exemplaires automatiques au format `EDSP-LIV-000001` ;
+- numéros d’exemplaires automatiques selon la catégorie, par exemple `EDSP-RI-0001` ;
 - codes scannables opaques et uniques ;
 - gestion des catégories, auteurs, emplacements et cartes étudiantes ;
 - mode clair et sombre persistant ;
@@ -176,7 +176,7 @@ Les numéros internes sont produits par des séquences transactionnelles verroui
 Formats actuellement actifs :
 
 - étudiant : `ETU-AA-001` ;
-- exemplaire : `EDSP-LIV-000001`.
+- exemplaire : `EDSP-{CODE-CATÉGORIE}-0001`, par exemple `EDSP-DRC-0002`.
 - pointage : `EDSP-PTG-AAAAMMJJ-000001` ;
 - consultation : `EDSP-CST-AAAAMMJJ-000001`.
 

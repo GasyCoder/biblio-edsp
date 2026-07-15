@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 
 class NumberGenerator
 {
-    public function next(NumberType $type, ?Carbon $date = null): string
+    public function next(NumberType $type, ?Carbon $date = null, ?string $categoryCode = null): string
     {
         $date ??= now();
         $scope = match ($type) {
@@ -18,7 +18,7 @@ class NumberGenerator
             default => 'global',
         };
 
-        return DB::transaction(function () use ($type, $scope): string {
+        return DB::transaction(function () use ($type, $scope, $categoryCode): string {
             DB::table('number_sequences')->insertOrIgnore([
                 'key' => $type->value,
                 'scope' => $scope,
@@ -38,6 +38,10 @@ class NumberGenerator
 
             if ($type === NumberType::Student) {
                 return sprintf('%s-%s-%03d', $type->prefix(), substr($scope, -2), $value);
+            }
+
+            if ($type === NumberType::Copy) {
+                return sprintf('EDSP-%s-%04d', $categoryCode ?: 'GEN', $value);
             }
 
             return $scope === 'global'

@@ -146,7 +146,7 @@ Service unique `NumberGenerator` dans une transaction : calcul du `scope` (anné
 | Type | Clé/scope | Format |
 |---|---|---|
 | Étudiant | `student` / année locale | `ETU-{AA}-{001}` |
-| Exemplaire | `copy` / `global` | `EDSP-LIV-{000001}` |
+| Exemplaire | `copy` / `global` | `EDSP-{CODE-CATÉGORIE}-{0001}` |
 | Pointage | `visit` / date locale | `EDSP-PTG-{AAAAMMJJ}-{000001}` |
 | Consultation | `consultation` / date locale | `EDSP-CST-{AAAAMMJJ}-{000001}` |
 | Prêt | `loan` / date locale | `EDSP-PRT-{AAAAMMJJ}-{000001}` |

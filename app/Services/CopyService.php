@@ -6,6 +6,7 @@ use App\Enums\BarcodeSymbology;
 use App\Enums\CopyCondition;
 use App\Enums\CopyStatus;
 use App\Enums\NumberType;
+use App\Models\Book;
 use App\Models\Copy;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -19,9 +20,11 @@ class CopyService
     public function create(array $data): Copy
     {
         return DB::transaction(function () use ($data): Copy {
+            $categoryCode = Book::query()->with('category:id,inventory_code')->findOrFail($data['book_id'])->category?->inventory_code;
+
             return Copy::query()->create([
                 ...Arr::except($data, ['inventory_number', 'barcode_value']),
-                'inventory_number' => $this->numbers->next(NumberType::Copy),
+                'inventory_number' => $this->numbers->next(NumberType::Copy, categoryCode: $categoryCode),
                 'barcode_value' => 'EDSP:COPY:1:'.Str::ulid(),
                 'barcode_symbology' => $data['barcode_symbology'] ?? BarcodeSymbology::Code128,
                 'condition' => $data['condition'] ?? CopyCondition::Good,

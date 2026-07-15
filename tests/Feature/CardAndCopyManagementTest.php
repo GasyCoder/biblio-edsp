@@ -20,7 +20,7 @@ it('allows the secretary to create and print a physical copy', function () {
     $this->actingAs($user)->post('/copies', ['book_id' => $book->id, 'condition' => 'good', 'barcode_symbology' => 'code128'])->assertRedirect(route('copies.index'));
     $copy = Copy::query()->firstOrFail();
 
-    expect($copy->inventory_number)->toBe('EDSP-LIV-000001');
+    expect($copy->inventory_number)->toBe('EDSP-GEN-0001');
     $this->actingAs($user)->get(route('copies.print', $copy))->assertOk()->assertSee('<svg', false)->assertSee($copy->inventory_number);
 });
 
