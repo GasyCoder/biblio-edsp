@@ -10,6 +10,7 @@ const props = defineProps<{ students: { data: Student[]; links: PageLink[]; from
 const search = ref(props.filters.search);
 const page = usePage();
 const canCreate = page.props.auth.permissions.includes('students.manage');
+const canImport = page.props.auth.permissions.includes('imports.view');
 const submitSearch = () => router.get(route('students.index'), { search: search.value }, { preserveState: true, replace: true });
 const statusLabel: Record<string, string> = { active: 'Actif', inactive: 'Inactif', suspended: 'Suspendu', graduated: 'Diplômé' };
 </script>
@@ -17,7 +18,7 @@ const statusLabel: Record<string, string> = { active: 'Actif', inactive: 'Inacti
 <template>
     <Head title="Étudiants" />
     <AuthenticatedLayout>
-        <template #header><div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p class="mb-1 text-xs font-bold uppercase tracking-[0.16em] text-primary-600">Référentiel</p><h1 class="font-heading text-2xl font-bold text-slate-800">Gestion des étudiants</h1><p class="mt-2 text-sm text-slate-500">Recherchez par matricule, numéro interne, nom ou prénom.</p></div><Link v-if="canCreate" :href="route('students.create')" class="inline-flex h-10 items-center justify-center rounded-md bg-primary-600 px-4 text-sm font-bold text-white hover:bg-primary-700">Ajouter un étudiant</Link></div></template>
+        <template #header><div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p class="mb-1 text-xs font-bold uppercase tracking-[0.16em] text-primary-600">Référentiel</p><h1 class="font-heading text-2xl font-bold text-slate-800">Gestion des étudiants</h1><p class="mt-2 text-sm text-slate-500">Recherchez par matricule, numéro interne, nom ou prénom.</p></div><div class="flex flex-wrap gap-2"><a v-if="canImport" :href="route('student-exports.xlsx')" class="inline-flex h-10 items-center justify-center rounded-md border border-slate-200 px-4 text-sm font-bold text-slate-600">Exporter Excel</a><Link v-if="canImport" :href="route('student-imports.index')" class="inline-flex h-10 items-center justify-center rounded-md border border-primary-200 px-4 text-sm font-bold text-primary-600">Importer</Link><Link v-if="canCreate" :href="route('students.create')" class="inline-flex h-10 items-center justify-center rounded-md bg-primary-600 px-4 text-sm font-bold text-white hover:bg-primary-700">Ajouter un étudiant</Link></div></div></template>
 
         <div v-if="$page.props.flash?.success" class="mb-5 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{{ $page.props.flash.success }}</div>
         <section class="dw-card overflow-hidden">

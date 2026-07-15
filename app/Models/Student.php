@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['user_id', 'registration_number', 'academic_number', 'last_name', 'first_name', 'gender', 'birth_date', 'level', 'program', 'academic_year', 'phone', 'email', 'photo_path', 'status', 'restriction_reason'])]
+#[Fillable(['user_id', 'registration_number', 'academic_number', 'last_name', 'first_name', 'gender', 'repetition_code', 'birth_date', 'nationality', 'level', 'program', 'academic_year', 'phone', 'address', 'email', 'photo_path', 'status', 'restriction_reason'])]
 class Student extends Model
 {
     use HasFactory, SoftDeletes;

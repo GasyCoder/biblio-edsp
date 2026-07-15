@@ -25,6 +25,8 @@ L’interface reprend le langage visuel du template Dashwind fourni localement d
 - rôles `superadmin`, `secretaire` et `etudiant` ;
 - permissions et dashboards adaptés à chaque rôle ;
 - création et recherche d’étudiants ;
+- import Excel/CSV des étudiants avec prévisualisation, validation humaine et traçabilité des lignes ;
+- export Excel du référentiel étudiant ;
 - numéros étudiants automatiques au format `EDSP-ETU-AAAA-000001` ;
 - création et consultation des ouvrages bibliographiques ;
 - auteurs multiples sans fusion automatique des titres ;

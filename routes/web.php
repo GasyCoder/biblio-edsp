@@ -8,6 +8,7 @@ use App\Http\Controllers\DeskController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\StudentCardController;
 use App\Http\Controllers\StudentController;
+use App\Http\Controllers\StudentImportController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/login');
@@ -24,6 +25,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/students', [StudentController::class, 'index'])->middleware('permission:students.view')->name('students.index');
     Route::get('/students/create', [StudentController::class, 'create'])->middleware('permission:students.manage')->name('students.create');
     Route::post('/students', [StudentController::class, 'store'])->middleware('permission:students.manage')->name('students.store');
+    Route::get('/student-imports', [StudentImportController::class, 'index'])->middleware('permission:imports.view')->name('student-imports.index');
+    Route::post('/student-imports', [StudentImportController::class, 'store'])->middleware('permission:imports.upload')->name('student-imports.store');
+    Route::get('/student-imports/{import}', [StudentImportController::class, 'show'])->middleware('permission:imports.review')->name('student-imports.show');
+    Route::post('/student-imports/{import}/commit', [StudentImportController::class, 'commit'])->middleware('permission:imports.commit')->name('student-imports.commit');
+    Route::get('/student-exports/xlsx', [StudentImportController::class, 'export'])->middleware('permission:imports.view')->name('student-exports.xlsx');
 
     Route::get('/books', [BookController::class, 'index'])->middleware('permission:books.view|catalog.view')->name('books.index');
     Route::get('/books/create', [BookController::class, 'create'])->middleware('permission:books.create')->name('books.create');
