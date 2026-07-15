@@ -99,6 +99,23 @@ it('adapts the library card typography for a long student name', function () {
         ->assertSee('name-very-compact', false);
 });
 
+it('updates and bulk deletes library cards', function () {
+    $admin = User::factory()->create()->assignRole('superadmin');
+    $firstStudent = Student::factory()->create();
+    $secondStudent = Student::factory()->create();
+    $this->actingAs($admin)->post(route('cards.store'), ['student_id' => $firstStudent->id]);
+    $this->post(route('cards.store'), ['student_id' => $secondStudent->id]);
+    $cards = StudentCard::query()->orderBy('id')->get();
+
+    $this->patch(route('cards.update', $cards->first()), ['status' => 'suspended', 'expires_at' => now()->addYear()->format('Y-m-d')])
+        ->assertRedirect(route('cards.index'));
+    expect($cards->first()->refresh()->status->value)->toBe('suspended');
+
+    $this->delete(route('cards.destroy.bulk'), ['ids' => $cards->pluck('id')->all()])
+        ->assertRedirect(route('cards.index'));
+    expect(StudentCard::query()->count())->toBe(0);
+});
+
 it('prevents students from managing copies cards and catalog references', function () {
     $user = User::factory()->create()->assignRole('etudiant');
 
