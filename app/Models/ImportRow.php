@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['import_id', 'row_number', 'original_data', 'normalized_data', 'errors', 'status', 'student_id'])]
+#[Fillable(['import_id', 'row_number', 'original_data', 'normalized_data', 'errors', 'status', 'student_id', 'book_id'])]
 class ImportRow extends Model
 {
     protected function casts(): array
@@ -22,5 +22,10 @@ class ImportRow extends Model
     public function student(): BelongsTo
     {
         return $this->belongsTo(Student::class);
+    }
+
+    public function book(): BelongsTo
+    {
+        return $this->belongsTo(Book::class);
     }
 }

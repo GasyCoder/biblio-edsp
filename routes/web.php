@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\BookController;
+use App\Http\Controllers\BookImportController;
 use App\Http\Controllers\CatalogReferenceController;
 use App\Http\Controllers\CopyController;
 use App\Http\Controllers\DashboardController;
@@ -34,6 +35,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/books', [BookController::class, 'index'])->middleware('permission:books.view|catalog.view')->name('books.index');
     Route::get('/books/create', [BookController::class, 'create'])->middleware('permission:books.create')->name('books.create');
     Route::post('/books', [BookController::class, 'store'])->middleware('permission:books.create')->name('books.store');
+    Route::get('/book-imports', [BookImportController::class, 'index'])->middleware('permission:imports.view')->name('book-imports.index');
+    Route::post('/book-imports', [BookImportController::class, 'store'])->middleware('permission:imports.upload')->name('book-imports.store');
+    Route::post('/book-imports/reference', [BookImportController::class, 'reference'])->middleware('permission:imports.upload')->name('book-imports.reference');
+    Route::get('/book-imports/{import}', [BookImportController::class, 'show'])->middleware('permission:imports.review')->name('book-imports.show');
+    Route::post('/book-imports/{import}/commit', [BookImportController::class, 'commit'])->middleware('permission:imports.commit')->name('book-imports.commit');
+    Route::get('/book-exports/xlsx', [BookImportController::class, 'export'])->middleware('permission:imports.view')->name('book-exports.xlsx');
 
     Route::get('/catalog-references', [CatalogReferenceController::class, 'index'])->middleware('permission:categories.view|authors.view|locations.view')->name('catalog-references.index');
     Route::post('/categories', [CatalogReferenceController::class, 'storeCategory'])->middleware('permission:categories.create')->name('categories.store');

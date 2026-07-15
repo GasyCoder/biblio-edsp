@@ -27,6 +27,9 @@ L’interface reprend le langage visuel du template Dashwind fourni localement d
 - création et recherche d’étudiants ;
 - import Excel/CSV des étudiants avec prévisualisation, validation humaine et traçabilité des lignes ;
 - export Excel du référentiel étudiant ;
+- import Excel des ouvrages avec reprise des catégories, auteurs multilignes et quantités ;
+- création automatique d’un exemplaire et d’un code unique pour chaque unité importée ;
+- export Excel du catalogue et de ses numéros d’inventaire ;
 - numéros étudiants automatiques au format `EDSP-ETU-AAAA-000001` ;
 - création et consultation des ouvrages bibliographiques ;
 - auteurs multiples sans fusion automatique des titres ;
@@ -187,6 +190,12 @@ Les éléments suivants sont exclus de Git :
 - template visuel local `template-inspire`.
 
 Les fichiers importés doivent rester sur un disque privé et ne doivent pas être exposés directement par le serveur web.
+
+### Import des classeurs d’ouvrages de référence
+
+Les classeurs placés dans `storage/app/imports/reference` sont proposés directement dans **Ouvrages → Importer**. Ils ne sont jamais importés automatiquement : une analyse affiche d’abord les ouvrages, auteurs et quantités détectés, puis le superadministrateur valide les lignes correctes. Une quantité `N` crée un ouvrage bibliographique et `N` exemplaires possédant chacun son propre numéro d’inventaire et code scannable.
+
+La secrétaire peut également envoyer un autre fichier `.xlsx`, `.xls` ou `.csv` depuis ce même écran. Les lignes sans auteur ou sans quantité fiable sont conservées comme erreurs et doivent être corrigées dans le classeur avant une nouvelle analyse.
 
 ## Contribution
 
