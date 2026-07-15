@@ -57,6 +57,18 @@ class StudentController extends Controller
         return Inertia::render('Students/Edit', ['student' => $student, 'statuses' => collect(StudentStatus::cases())->map(fn (StudentStatus $status) => ['value' => $status->value, 'label' => $status->label()]), 'academicReferences' => $academicReferences->tree()]);
     }
 
+    public function show(Student $student): Response
+    {
+        return Inertia::render('Students/Show', [
+            'student' => $student->load([
+                'academicLevel:id,code,name', 'mention:id,code,name', 'academicProgram:id,code,name',
+                'cards' => fn ($query) => $query->latest('issued_at'),
+                'visits' => fn ($query) => $query->latest('checked_in_at')->limit(10),
+                'consultationSessions' => fn ($query) => $query->withCount('items')->latest('opened_at')->limit(10),
+            ]),
+        ]);
+    }
+
     public function update(Request $request, Student $student, AcademicReferenceService $academicReferences): RedirectResponse
     {
         $data = $this->validatedData($request, $student);

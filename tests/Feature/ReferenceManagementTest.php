@@ -48,6 +48,12 @@ it('stores a scanned identity photo for the library card', function () {
 
     $student = Student::query()->firstOrFail();
     Storage::disk('public')->assertExists($student->photo_path);
+    $this->get(route('students.show', $student))->assertInertia(fn (Assert $page) => $page
+        ->component('Students/Show')
+        ->where('student.registration_number', $student->registration_number)
+        ->where('student.photo_url', Storage::disk('public')->url($student->photo_path))
+        ->has('student.cards')
+        ->has('student.visits'));
 });
 
 it('allows the secretary to search students but not create them', function () {

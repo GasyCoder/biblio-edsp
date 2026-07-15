@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import InputError from "@/Components/InputError.vue";
+import AppIcon from "@/Components/AppIcon.vue";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import { Head, Link, useForm } from "@inertiajs/vue3";
-import { computed, watch } from "vue";
+import { computed, ref, watch } from "vue";
 const props = defineProps<{
     student: any;
     statuses: any[];
@@ -29,6 +30,7 @@ const form = useForm({
     status: props.student.status,
     restriction_reason: props.student.restriction_reason ?? "",
 });
+const photoPreview = ref<string | null>(props.student.photo_url ?? null);
 const programs = computed(
     () =>
         props.academicReferences.find(
@@ -51,7 +53,21 @@ watch(
     () => form.program_id,
     () => (form.level_id = ""),
 );
-const selectPhoto = (event: Event) => { form.photo = (event.target as HTMLInputElement).files?.[0] ?? null; if (form.photo) form.remove_photo = false; };
+const selectPhoto = (event: Event) => {
+    const file = (event.target as HTMLInputElement).files?.[0] ?? null;
+    form.photo = file;
+    form.remove_photo = false;
+    if (photoPreview.value?.startsWith("blob:"))
+        URL.revokeObjectURL(photoPreview.value);
+    photoPreview.value = file
+        ? URL.createObjectURL(file)
+        : props.student.photo_url;
+};
+const removePhoto = () => {
+    form.remove_photo = true;
+    form.photo = null;
+    photoPreview.value = null;
+};
 </script>
 <template>
     <Head title="Modifier un étudiant" /><AuthenticatedLayout
@@ -69,9 +85,77 @@ const selectPhoto = (event: Event) => { form.photo = (event.target as HTMLInputE
         >
         <form
             class="dw-card mx-auto max-w-5xl p-6"
-            @submit.prevent="form.post(route('students.update', student.id), { forceFormData: true })"
+            @submit.prevent="
+                form.post(route('students.update', student.id), {
+                    forceFormData: true,
+                })
+            "
         >
             <div class="grid gap-5 md:grid-cols-2">
+                <div class="md:col-span-2">
+                    <label class="mb-2 block text-sm font-semibold"
+                        >Photo de profil</label
+                    >
+                    <div
+                        class="flex flex-col gap-4 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4 sm:flex-row sm:items-center dark:border-slate-700 dark:bg-slate-900/50"
+                    >
+                        <img
+                            v-if="photoPreview"
+                            :src="photoPreview"
+                            class="h-32 w-28 rounded-lg border border-slate-200 object-cover shadow-sm"
+                            alt="Photo de l’étudiant"
+                        />
+                        <div
+                            v-else
+                            class="flex h-32 w-28 items-center justify-center rounded-lg border bg-white text-slate-300 dark:border-slate-700 dark:bg-slate-950"
+                        >
+                            <AppIcon name="user" class="h-12 w-12" />
+                        </div>
+                        <div>
+                            <p
+                                class="text-sm font-bold text-slate-700 dark:text-slate-200"
+                            >
+                                Photo utilisée sur la carte de bibliothèque
+                            </p>
+                            <p class="mt-1 text-xs text-slate-500">
+                                Vous pouvez ajouter ou remplacer la photo
+                                actuelle.
+                            </p>
+                            <div class="mt-3 flex flex-wrap gap-2">
+                                <label
+                                    for="student-photo-edit"
+                                    class="inline-flex cursor-pointer items-center rounded-md bg-primary-600 px-4 py-2 text-xs font-bold text-white"
+                                    >{{
+                                        photoPreview
+                                            ? "Remplacer la photo"
+                                            : "Ajouter une photo"
+                                    }}</label
+                                ><button
+                                    v-if="photoPreview"
+                                    type="button"
+                                    class="rounded-md border border-red-200 px-4 py-2 text-xs font-bold text-red-600"
+                                    @click="removePhoto"
+                                >
+                                    Supprimer
+                                </button>
+                            </div>
+                            <input
+                                id="student-photo-edit"
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                class="sr-only"
+                                @change="selectPhoto"
+                            />
+                            <p
+                                v-if="form.photo"
+                                class="mt-2 text-xs font-semibold text-emerald-600"
+                            >
+                                {{ form.photo.name }}
+                            </p>
+                            <InputError :message="form.errors.photo" />
+                        </div>
+                    </div>
+                </div>
                 <div>
                     <label class="mb-2 block text-sm font-semibold">Nom *</label
                     ><input
@@ -129,7 +213,6 @@ const selectPhoto = (event: Event) => { form.photo = (event.target as HTMLInputE
                         >Nationalité</label
                     ><input v-model="form.nationality" class="dw-field" />
                 </div>
-                <div><label class="mb-2 block text-sm font-semibold">Photo d’identité scannée</label><div v-if="student.photo_url && !form.remove_photo" class="mb-2 flex items-center gap-3"><img :src="student.photo_url" class="h-24 w-20 rounded-md border object-cover" alt="Photo de l’étudiant"/><button type="button" class="text-xs font-bold text-red-600" @click="form.remove_photo=true;form.photo=null">Supprimer</button></div><input type="file" accept="image/jpeg,image/png,image/webp" class="dw-field" @change="selectPhoto"/><InputError :message="form.errors.photo"/></div>
                 <div>
                     <label class="mb-2 block text-sm font-semibold"
                         >Téléphone</label

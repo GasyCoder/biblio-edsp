@@ -231,7 +231,27 @@ const statusLabel: Record<string, string> = {
                                 />
                             </td>
                             <td class="px-5 py-4 font-semibold text-slate-700">
-                                <div class="flex items-center gap-3"><img v-if="student.photo_url" :src="student.photo_url" class="h-11 w-9 rounded object-cover" alt="Photo"/><div v-else class="flex h-11 w-9 items-center justify-center rounded bg-slate-100"><AppIcon name="user" class="h-4 w-4 text-slate-400"/></div><span>{{ student.last_name }} {{ student.first_name }}</span></div>
+                                <div class="flex items-center gap-3">
+                                    <img
+                                        v-if="student.photo_url"
+                                        :src="student.photo_url"
+                                        class="h-11 w-9 rounded object-cover"
+                                        alt="Photo"
+                                    />
+                                    <div
+                                        v-else
+                                        class="flex h-11 w-9 items-center justify-center rounded bg-slate-100"
+                                    >
+                                        <AppIcon
+                                            name="user"
+                                            class="h-4 w-4 text-slate-400"
+                                        />
+                                    </div>
+                                    <span
+                                        >{{ student.last_name }}
+                                        {{ student.first_name }}</span
+                                    >
+                                </div>
                             </td>
                             <td
                                 class="px-5 py-4 font-mono text-xs text-primary-700"
@@ -263,6 +283,15 @@ const statusLabel: Record<string, string> = {
                             </td>
                             <td class="px-5 py-3">
                                 <div class="flex justify-center gap-1">
+                                    <Link
+                                        :href="
+                                            route('students.show', student.id)
+                                        "
+                                        class="inline-flex h-9 w-9 items-center justify-center rounded-md text-primary-600 hover:bg-primary-50"
+                                        title="Voir le profil"
+                                        aria-label="Voir le profil étudiant"
+                                        ><AppIcon name="eye" class="h-4 w-4"
+                                    /></Link>
                                     <Link
                                         v-if="canUpdate"
                                         :href="
