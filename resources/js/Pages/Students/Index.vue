@@ -105,7 +105,7 @@ const statusLabel: Record<string, string> = {
                         Gestion des étudiants
                     </h1>
                     <p class="mt-2 text-sm text-slate-500">
-                        Recherchez par matricule, numéro interne, nom ou prénom.
+                        Recherchez par matricule, numéro de bibliothèque, nom ou prénom.
                     </p>
                 </div>
                 <div class="flex flex-wrap gap-2">
@@ -202,7 +202,7 @@ const statusLabel: Record<string, string> = {
                                 />
                             </th>
                             <th class="px-5 py-3 text-start">Étudiant</th>
-                            <th class="px-5 py-3 text-start">N° interne</th>
+                            <th class="px-5 py-3 text-start">N° bibliothèque</th>
                             <th class="px-5 py-3 text-start">Matricule</th>
                             <th class="px-5 py-3 text-start">
                                 Niveau / parcours

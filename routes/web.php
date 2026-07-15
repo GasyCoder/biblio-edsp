@@ -93,6 +93,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/desk/consultations/{session}/copies', [DeskController::class, 'addCopy'])->middleware('permission:consultations.add_copy')->name('desk.consultations.copies.store');
     Route::post('/desk/consultation-items/{item}/return', [DeskController::class, 'returnCopy'])->middleware('permission:consultations.return_copy')->name('desk.consultations.copies.return');
     Route::post('/desk/consultations/{session}/close', [DeskController::class, 'closeConsultation'])->middleware('permission:consultations.close')->name('desk.consultations.close');
+    Route::post('/desk/students/{student}/loans', [DeskController::class, 'openLoan'])->middleware('permission:loans.create')->name('desk.loans.open');
+    Route::post('/desk/loans/{loan}/copies', [DeskController::class, 'addLoanCopy'])->middleware('permission:loans.create')->name('desk.loans.copies.store');
+    Route::post('/desk/loan-items/{item}/return', [DeskController::class, 'returnLoanCopy'])->middleware('permission:loans.return')->name('desk.loans.copies.return');
+    Route::post('/desk/loans/{loan}/close', [DeskController::class, 'closeLoan'])->middleware('permission:loans.close')->name('desk.loans.close');
 });
 
 require __DIR__.'/auth.php';

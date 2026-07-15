@@ -58,6 +58,11 @@ class Student extends Model
         return $this->hasMany(ConsultationSession::class);
     }
 
+    public function loans(): HasMany
+    {
+        return $this->hasMany(Loan::class);
+    }
+
     public function getPhotoUrlAttribute(): ?string
     {
         return $this->photo_path ? Storage::disk('public')->url($this->photo_path) : null;

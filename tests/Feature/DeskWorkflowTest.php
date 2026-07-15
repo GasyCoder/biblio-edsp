@@ -4,6 +4,7 @@ use App\Enums\CopyStatus;
 use App\Models\Book;
 use App\Models\ConsultationItem;
 use App\Models\ConsultationSession;
+use App\Models\Loan;
 use App\Models\Student;
 use App\Models\StudentCard;
 use App\Models\User;
@@ -88,4 +89,46 @@ it('returns candidate choices instead of selecting an ambiguous name', function 
         ->assertInertia(fn (Assert $page) => $page
             ->where('student', null)
             ->has('matches', 2));
+});
+
+it('recognizes a library number without the BIB prefix', function () {
+    $secretary = User::factory()->create()->assignRole('secretaire');
+    $student = Student::factory()->create(['registration_number' => 'BIB-26-001']);
+
+    $this->actingAs($secretary)->get(route('desk.index', ['q' => '26-001']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('student.id', $student->id)
+            ->where('student.registration_number', 'BIB-26-001'));
+});
+
+it('accepts the former four-digit library card format', function () {
+    $secretary = User::factory()->create()->assignRole('secretaire');
+    $student = Student::factory()->create(['registration_number' => 'BIB-26-001']);
+
+    $this->actingAs($secretary)->get(route('desk.index', ['q' => 'BIB-26-0001']))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('student.id', $student->id)
+            ->where('student.registration_number', 'BIB-26-001'));
+});
+
+it('manages a home loan from book scan through return', function () {
+    $secretary = User::factory()->create()->assignRole('secretaire');
+    $student = Student::factory()->create();
+    $copy = app(CopyService::class)->create(['book_id' => Book::factory()->create()->id]);
+
+    $this->actingAs($secretary)->post(route('desk.loans.open', $student), ['due_at' => now()->addDays(14)->format('Y-m-d')])
+        ->assertRedirect();
+    $loan = Loan::query()->firstOrFail();
+    expect($loan->loan_number)->toStartWith('EDSP-PRT-');
+
+    $this->post(route('desk.loans.copies.store', $loan), ['barcode' => $copy->barcode_value])->assertRedirect();
+    expect($copy->refresh()->status)->toBe(CopyStatus::Borrowed);
+
+    $item = $loan->items()->firstOrFail();
+    $this->post(route('desk.loans.close', $loan))->assertSessionHasErrors('loan');
+    $this->post(route('desk.loans.copies.return', $item))->assertRedirect();
+    expect($copy->refresh()->status)->toBe(CopyStatus::Available);
+
+    $this->post(route('desk.loans.close', $loan))->assertRedirect();
+    expect($loan->refresh()->closed_at)->not->toBeNull();
 });

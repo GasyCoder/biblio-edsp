@@ -22,8 +22,8 @@ beforeEach(function () {
 it('generates sequential student and copy numbers without using row counts', function () {
     $numbers = app(NumberGenerator::class);
 
-    expect($numbers->next(NumberType::Student))->toBe('ETU-'.now()->format('y').'-001')
-        ->and($numbers->next(NumberType::Student))->toBe('ETU-'.now()->format('y').'-002')
+    expect($numbers->next(NumberType::Student))->toBe('BIB-'.now()->format('y').'-001')
+        ->and($numbers->next(NumberType::Student))->toBe('BIB-'.now()->format('y').'-002')
         ->and($numbers->next(NumberType::Copy))->toBe('EDSP-GEN-0001');
 });
 
@@ -34,7 +34,7 @@ it('allows a superadmin to create a student with an automatic number', function 
         'academic_number' => 'MAT-001', 'last_name' => 'RAKOTO', 'first_name' => 'Soa', 'status' => 'active',
     ])->assertRedirect(route('students.index'));
 
-    expect(Student::query()->firstOrFail()->registration_number)->toBe('ETU-'.now()->format('y').'-001');
+    expect(Student::query()->firstOrFail()->registration_number)->toBe('BIB-'.now()->format('y').'-001');
 });
 
 it('stores a scanned identity photo for the library card', function () {

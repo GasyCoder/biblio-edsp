@@ -14,13 +14,14 @@ class NumberGenerator
         $date ??= now();
         $scope = match ($type) {
             NumberType::Student, NumberType::LibraryCard => $date->format('Y'),
-            NumberType::Visit, NumberType::Consultation => $date->format('Ymd'),
+            NumberType::Visit, NumberType::Consultation, NumberType::Loan => $date->format('Ymd'),
             default => 'global',
         };
+        $sequenceKey = $type === NumberType::LibraryCard ? NumberType::Student->value : $type->value;
 
-        return DB::transaction(function () use ($type, $scope, $categoryCode): string {
+        return DB::transaction(function () use ($type, $scope, $categoryCode, $sequenceKey): string {
             DB::table('number_sequences')->insertOrIgnore([
-                'key' => $type->value,
+                'key' => $sequenceKey,
                 'scope' => $scope,
                 'current_value' => 0,
                 'created_at' => now(),
@@ -28,7 +29,7 @@ class NumberGenerator
             ]);
 
             $sequence = NumberSequence::query()
-                ->where('key', $type->value)
+                ->where('key', $sequenceKey)
                 ->where('scope', $scope)
                 ->lockForUpdate()
                 ->firstOrFail();
@@ -36,12 +37,8 @@ class NumberGenerator
             $sequence->increment('current_value');
             $value = $sequence->fresh()->current_value;
 
-            if ($type === NumberType::Student) {
+            if ($type === NumberType::Student || $type === NumberType::LibraryCard) {
                 return sprintf('%s-%s-%03d', $type->prefix(), substr($scope, -2), $value);
-            }
-
-            if ($type === NumberType::LibraryCard) {
-                return sprintf('%s-%s-%04d', $type->prefix(), substr($scope, -2), $value);
             }
 
             if ($type === NumberType::Copy) {

@@ -140,7 +140,6 @@ const statusLabels: Record<string, string> = {
                         </th>
                         <th class="p-4 text-start">Titulaire</th>
                         <th class="p-4 text-start">N° carte bibliothèque</th>
-                        <th class="p-4 text-start">N° interne</th>
                         <th class="p-4 text-start">Statut</th>
                         <th class="p-4 text-start">Expiration</th>
                         <th class="p-4 text-center">Actions</th>
@@ -191,9 +190,6 @@ const statusLabels: Record<string, string> = {
                             class="p-4 font-mono text-xs font-bold text-primary-700"
                         >
                             {{ card.card_number }}
-                        </td>
-                        <td class="p-4 font-mono text-xs">
-                            {{ card.student.registration_number }}
                         </td>
                         <td class="p-4">
                             {{ statusLabels[card.status] || card.status }}

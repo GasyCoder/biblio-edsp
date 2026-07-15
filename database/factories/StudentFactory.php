@@ -12,7 +12,7 @@ class StudentFactory extends Factory
     public function definition(): array
     {
         return [
-            'registration_number' => 'ETU-'.now()->format('y').'-'.fake()->unique()->numerify('###'),
+            'registration_number' => 'BIB-'.now()->format('y').'-'.fake()->unique()->numerify('###'),
             'academic_number' => fake()->unique()->bothify('MAT-####??'),
             'last_name' => fake()->lastName(),
             'first_name' => fake()->firstName(),

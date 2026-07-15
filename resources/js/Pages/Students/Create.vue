@@ -71,7 +71,7 @@ const selectPhoto = (event: Event) => {
                     Inscrire un étudiant
                 </h1>
                 <p class="mt-2 text-sm text-slate-500">
-                    Le numéro interne sera généré automatiquement à
+                    Le numéro de bibliothèque sera généré automatiquement à
                     l’enregistrement.
                 </p>
             </div></template

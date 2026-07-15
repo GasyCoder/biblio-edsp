@@ -76,7 +76,7 @@ it('creates only one active card per student and prints its QR code', function (
     $card = StudentCard::query()->firstOrFail();
     $this->actingAs($user)->post('/cards', $payload)->assertSessionHasErrors('student_id');
     expect($card->type->value)->toBe('library')
-        ->and($card->card_number)->toStartWith('BIB-'.now()->format('y').'-');
+        ->and($card->card_number)->toBe($student->registration_number);
     $this->actingAs($user)->get(route('cards.print', $card))->assertOk()
         ->assertSee('<svg', false)
         ->assertSee($student->registration_number)

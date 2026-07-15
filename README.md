@@ -42,7 +42,7 @@ L’interface reprend le langage visuel du template Dashwind fourni localement d
 - profils étudiants détaillés avec informations académiques, carte et activité récente ;
 - sélection multiple des catégories et auteurs avec suppression groupée protégée par leurs relations au catalogue ;
 - export Excel du catalogue et de ses numéros d’inventaire ;
-- numéros étudiants automatiques au format `ETU-AA-001` ;
+- numéro unique de bibliothèque au format `BIB-AA-001`, utilisé pour l’étudiant et sa carte ;
 - création et consultation des ouvrages bibliographiques ;
 - auteurs multiples sans fusion automatique des titres ;
 - modèle séparant ouvrages et exemplaires physiques ;
@@ -187,7 +187,7 @@ Les numéros internes sont produits par des séquences transactionnelles verroui
 
 Formats actuellement actifs :
 
-- étudiant : `ETU-AA-001` ;
+- étudiant et carte de bibliothèque : `BIB-AA-001` ;
 - exemplaire : `EDSP-{CODE-CATÉGORIE}-0001`, par exemple `EDSP-DRC-0002`.
 - pointage : `EDSP-PTG-AAAAMMJJ-000001` ;
 - consultation : `EDSP-CST-AAAAMMJJ-000001`.

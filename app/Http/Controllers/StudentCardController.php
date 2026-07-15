@@ -5,11 +5,9 @@ namespace App\Http\Controllers;
 use App\Enums\BarcodeSymbology;
 use App\Enums\CardStatus;
 use App\Enums\CardType;
-use App\Enums\NumberType;
 use App\Models\Student;
 use App\Models\StudentCard;
 use App\Services\BarcodeService;
-use App\Services\NumberGenerator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -31,16 +29,24 @@ class StudentCardController extends Controller
         return Inertia::render('Cards/Create', ['students' => Student::query()->where('status', 'active')->whereDoesntHave('cards', fn ($query) => $query->where('status', 'active'))->orderBy('last_name')->get(['id', 'registration_number', 'academic_number', 'last_name', 'first_name'])]);
     }
 
-    public function store(Request $request, NumberGenerator $numbers): RedirectResponse
+    public function store(Request $request): RedirectResponse
     {
         $data = $request->validate(['student_id' => ['required', 'exists:students,id'], 'expires_at' => ['nullable', 'date', 'after:today']]);
-        $card = DB::transaction(function () use ($data, $request, $numbers) {
+        $card = DB::transaction(function () use ($data, $request) {
             $student = Student::query()->lockForUpdate()->findOrFail($data['student_id']);
             if ($student->cards()->where('status', CardStatus::Active)->lockForUpdate()->exists()) {
                 throw ValidationException::withMessages(['student_id' => 'Cet étudiant possède déjà une carte active.']);
             }
 
-            return StudentCard::query()->create([...$data, 'card_number' => $numbers->next(NumberType::LibraryCard), 'type' => CardType::Library, 'symbology' => BarcodeSymbology::Qr, 'status' => CardStatus::Active, 'issued_at' => now(), 'created_by' => $request->user()->id]);
+            $card = $student->cards()->latest('id')->lockForUpdate()->first();
+            $attributes = [...$data, 'card_number' => $student->registration_number, 'type' => CardType::Library, 'symbology' => BarcodeSymbology::Qr, 'status' => CardStatus::Active, 'issued_at' => now(), 'created_by' => $request->user()->id];
+            if ($card) {
+                $card->update($attributes);
+
+                return $card->refresh();
+            }
+
+            return StudentCard::query()->create($attributes);
         }, 3);
 
         return to_route('cards.index')->with('success', "Carte de bibliothèque {$card->card_number} créée.");
