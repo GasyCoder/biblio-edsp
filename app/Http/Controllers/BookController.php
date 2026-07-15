@@ -8,6 +8,7 @@ use App\Models\Category;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -55,6 +56,13 @@ class BookController extends Controller
         return Inertia::render('Books/Edit', ['book' => $book->load('authors:id,display_name'), 'categories' => Category::query()->where('is_active', true)->orderBy('name')->get(['id', 'name'])]);
     }
 
+    public function show(Book $book): Response
+    {
+        return Inertia::render('Books/Show', [
+            'book' => $book->load(['category:id,name', 'authors:id,display_name', 'copies' => fn ($query) => $query->with('location:id,code,name')->orderBy('inventory_number')]),
+        ]);
+    }
+
     public function update(Request $request, Book $book): RedirectResponse
     {
         DB::transaction(fn (): Book => $this->persist($book, $this->validatedData($request)));
@@ -95,6 +103,8 @@ class BookController extends Controller
             'category_id' => ['nullable', 'exists:categories,id'],
             'title' => ['required', 'string', 'max:255'],
             'subtitle' => ['nullable', 'string', 'max:255'],
+            'cover' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+            'remove_cover' => ['nullable', 'boolean'],
             'authors' => ['required', 'array', 'min:1'],
             'authors.*' => ['required', 'string', 'max:255', 'distinct'],
             'publication_year' => ['nullable', 'integer', 'min:1000', 'max:'.(now()->year + 1)],
@@ -109,7 +119,17 @@ class BookController extends Controller
     /** @param array<string, mixed> $data */
     private function persist(Book $book, array $data): Book
     {
-        $book->fill(collect($data)->except('authors')->all())->save();
+        $oldCover = $book->cover_path;
+        $coverPath = $oldCover;
+        if (! empty($data['cover'])) {
+            $coverPath = $data['cover']->store('covers/books', 'public');
+        } elseif (! empty($data['remove_cover'])) {
+            $coverPath = null;
+        }
+        $book->fill([...collect($data)->except(['authors', 'cover', 'remove_cover'])->all(), 'cover_path' => $coverPath])->save();
+        if ($oldCover && $oldCover !== $coverPath) {
+            Storage::disk('public')->delete($oldCover);
+        }
         $authors = collect($data['authors'])->mapWithKeys(function (string $name, int $position) {
             $author = Author::query()->create(['display_name' => trim($name)]);
 

@@ -9,11 +9,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 
-#[Fillable(['category_id', 'title', 'subtitle', 'publication_year', 'publisher', 'summary', 'isbn', 'keywords', 'language', 'edition'])]
+#[Fillable(['category_id', 'title', 'subtitle', 'cover_path', 'publication_year', 'publisher', 'summary', 'isbn', 'keywords', 'language', 'edition'])]
 class Book extends Model
 {
     use HasFactory, SoftDeletes;
+
+    protected $appends = ['cover_url'];
 
     protected function casts(): array
     {
@@ -33,5 +36,10 @@ class Book extends Model
     public function copies(): HasMany
     {
         return $this->hasMany(Copy::class);
+    }
+
+    public function getCoverUrlAttribute(): ?string
+    {
+        return $this->cover_path ? Storage::disk('public')->url($this->cover_path) : null;
     }
 }

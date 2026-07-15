@@ -29,6 +29,7 @@ L’interface reprend le langage visuel du template Dashwind fourni localement d
 - import Excel/CSV des étudiants avec prévisualisation, validation humaine et traçabilité des lignes ;
 - export Excel du référentiel étudiant ;
 - import Excel des ouvrages avec reprise des catégories, auteurs multilignes et quantités ;
+- fiche détaillée des ouvrages avec couverture, métadonnées bibliographiques et inventaire des exemplaires ;
 - création automatique d’un exemplaire et d’un code unique pour chaque unité importée ;
 - sélection multiple des exemplaires avec impression unitaire en modale, planche de QR codes et suppression groupée sécurisée ;
 - planches A4 économes de 24 étiquettes QR autocollantes au format 63,5 × 33,9 mm ;

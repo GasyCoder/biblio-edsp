@@ -6,6 +6,7 @@ import { computed, ref } from "vue";
 interface Book {
     id: number;
     title: string;
+    cover_url: string | null;
     publication_year: number | null;
     publisher: string | null;
     isbn: string | null;
@@ -141,7 +142,8 @@ const submitSearch = () =>
             v-if="selected.length"
             class="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-primary-200 bg-primary-50 p-3 dark:border-primary-800 dark:bg-primary-950/40"
         >
-            <span class="text-sm font-bold text-primary-700 dark:text-primary-300"
+            <span
+                class="text-sm font-bold text-primary-700 dark:text-primary-300"
                 >{{ selected.length }} ouvrage(s) sélectionné(s)</span
             >
             <button
@@ -229,16 +231,11 @@ const submitSearch = () =>
                                 />
                             </td>
                             <td class="px-5 py-4">
-                                <p class="font-semibold text-slate-700">
-                                    {{ book.title }}
-                                </p>
-                                <p class="mt-1 text-xs text-slate-400">
-                                    {{
-                                        book.authors
-                                            .map((a) => a.display_name)
-                                            .join(", ")
-                                    }}
-                                </p>
+                                <div class="flex items-center gap-3">
+                                    <img v-if="book.cover_url" :src="book.cover_url" :alt="`Couverture de ${book.title}`" class="h-16 w-12 shrink-0 rounded border border-slate-200 object-cover" />
+                                    <div v-else class="flex h-16 w-12 shrink-0 items-center justify-center rounded border border-dashed border-slate-300 bg-slate-50 text-slate-300"><AppIcon name="books" class="h-5 w-5" /></div>
+                                    <div class="min-w-0"><Link :href="route('books.show', book.id)" class="font-semibold text-slate-700 hover:text-primary-600">{{ book.title }}</Link><p class="mt-1 text-xs text-slate-400">{{ book.authors.map((a) => a.display_name).join(", ") }}</p></div>
+                                </div>
                             </td>
                             <td class="px-5 py-4 text-slate-500">
                                 {{ book.category?.name || "Non classé" }}
@@ -277,6 +274,7 @@ const submitSearch = () =>
                             </td>
                             <td class="px-5 py-3">
                                 <div class="flex justify-center gap-1">
+                                    <Link :href="route('books.show', book.id)" class="inline-flex h-9 w-9 items-center justify-center rounded-md text-primary-600 hover:bg-primary-50" title="Voir les détails" aria-label="Voir les détails de l’ouvrage"><AppIcon name="eye" class="h-4 w-4" /></Link>
                                     <Link
                                         v-if="canUpdate"
                                         :href="route('books.edit', book.id)"

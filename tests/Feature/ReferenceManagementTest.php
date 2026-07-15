@@ -11,6 +11,9 @@ use App\Models\User;
 use App\Services\CopyService;
 use App\Services\NumberGenerator;
 use Database\Seeders\RolePermissionSeeder;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
     $this->seed(RolePermissionSeeder::class);
@@ -56,6 +59,24 @@ it('allows the secretary to create a book without merging authors or titles', fu
 
     expect(Book::query()->count())->toBe(2)
         ->and(Book::query()->with('authors')->get()->pluck('authors')->flatten()->count())->toBe(2);
+});
+
+it('stores a cover image and displays the detailed book page', function () {
+    Storage::fake('public');
+    $user = User::factory()->create()->assignRole('secretaire');
+
+    $this->actingAs($user)->post(route('books.store'), [
+        'title' => 'Ouvrage avec couverture',
+        'authors' => ['Auteur Test'],
+        'cover' => UploadedFile::fake()->image('couverture.jpg', 600, 900),
+    ])->assertRedirect(route('books.index'));
+
+    $book = Book::query()->firstOrFail();
+    Storage::disk('public')->assertExists($book->cover_path);
+    $this->get(route('books.show', $book))->assertInertia(fn (Assert $page) => $page
+        ->component('Books/Show')
+        ->where('book.title', 'Ouvrage avec couverture')
+        ->where('book.cover_url', Storage::disk('public')->url($book->cover_path)));
 });
 
 it('allows students to browse the catalogue but not modify it', function () {
