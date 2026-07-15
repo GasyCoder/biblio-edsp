@@ -2,10 +2,12 @@
 
 use App\Models\Book;
 use App\Models\Copy;
+use App\Models\Location;
 use App\Models\Student;
 use App\Models\StudentCard;
 use App\Models\User;
 use App\Services\BarcodeService;
+use App\Services\CopyService;
 use Database\Seeders\RolePermissionSeeder;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -58,4 +60,31 @@ it('shows and searches copy registration numbers in the books catalog', function
         ->assertInertia(fn (Assert $page) => $page
             ->has('books.data', 1)
             ->where('books.data.0.copies.0.inventory_number', $copy->inventory_number));
+});
+
+it('updates copy status condition and cabinet location', function () {
+    $user = User::factory()->create()->assignRole('secretaire');
+    $book = Book::factory()->create();
+    $copy = app(CopyService::class)->create(['book_id' => $book->id]);
+
+    $this->actingAs($user)->post(route('locations.store'), ['type' => 'cabinet', 'number' => '1'])->assertRedirect();
+    $location = Location::query()->firstOrFail();
+    expect($location->code)->toBe('ARM-1')->and($location->name)->toBe('Armoire 1');
+
+    $this->patch(route('copies.update', $copy), ['location_id' => $location->id, 'condition' => 'fair', 'status' => 'damaged'])
+        ->assertRedirect(route('copies.index'));
+    expect($copy->refresh()->status->value)->toBe('damaged')
+        ->and($copy->condition->value)->toBe('fair')
+        ->and($copy->location_id)->toBe($location->id);
+});
+
+it('protects referenced locations and operational copies from deletion', function () {
+    $admin = User::factory()->create()->assignRole('superadmin');
+    $book = Book::factory()->create();
+    $location = Location::factory()->create();
+    $copy = app(CopyService::class)->create(['book_id' => $book->id, 'location_id' => $location->id, 'status' => 'in_consultation']);
+
+    $this->actingAs($admin)->delete(route('locations.destroy', $location))->assertSessionHasErrors('location');
+    $this->delete(route('copies.destroy', $copy))->assertSessionHasErrors('copy');
+    expect(Location::query()->count())->toBe(1)->and(Copy::query()->count())->toBe(1);
 });

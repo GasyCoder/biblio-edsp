@@ -44,12 +44,21 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/catalog-references', [CatalogReferenceController::class, 'index'])->middleware('permission:categories.view|authors.view|locations.view')->name('catalog-references.index');
     Route::post('/categories', [CatalogReferenceController::class, 'storeCategory'])->middleware('permission:categories.create')->name('categories.store');
+    Route::patch('/categories/{category}', [CatalogReferenceController::class, 'updateCategory'])->middleware('permission:categories.update')->name('categories.update');
+    Route::delete('/categories/{category}', [CatalogReferenceController::class, 'destroyCategory'])->middleware('permission:catalog.manage')->name('categories.destroy');
     Route::post('/authors', [CatalogReferenceController::class, 'storeAuthor'])->middleware('permission:authors.create')->name('authors.store');
+    Route::patch('/authors/{author}', [CatalogReferenceController::class, 'updateAuthor'])->middleware('permission:authors.update')->name('authors.update');
+    Route::delete('/authors/{author}', [CatalogReferenceController::class, 'destroyAuthor'])->middleware('permission:catalog.manage')->name('authors.destroy');
     Route::post('/locations', [CatalogReferenceController::class, 'storeLocation'])->middleware('permission:locations.create')->name('locations.store');
+    Route::patch('/locations/{location}', [CatalogReferenceController::class, 'updateLocation'])->middleware('permission:locations.update')->name('locations.update');
+    Route::delete('/locations/{location}', [CatalogReferenceController::class, 'destroyLocation'])->middleware('permission:catalog.manage')->name('locations.destroy');
 
     Route::get('/copies', [CopyController::class, 'index'])->middleware('permission:copies.view')->name('copies.index');
     Route::get('/copies/create', [CopyController::class, 'create'])->middleware('permission:copies.create')->name('copies.create');
     Route::post('/copies', [CopyController::class, 'store'])->middleware('permission:copies.create')->name('copies.store');
+    Route::get('/copies/{copy}/edit', [CopyController::class, 'edit'])->middleware('permission:copies.update')->name('copies.edit');
+    Route::patch('/copies/{copy}', [CopyController::class, 'update'])->middleware('permission:copies.update')->name('copies.update');
+    Route::delete('/copies/{copy}', [CopyController::class, 'destroy'])->middleware('permission:catalog.manage')->name('copies.destroy');
     Route::get('/copies/{copy}/print', [CopyController::class, 'print'])->middleware('permission:copies.print')->name('copies.print');
 
     Route::get('/cards', [StudentCardController::class, 'index'])->middleware('permission:cards.view')->name('cards.index');

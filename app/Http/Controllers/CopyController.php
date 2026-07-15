@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\BarcodeSymbology;
 use App\Enums\CopyCondition;
+use App\Enums\CopyStatus;
 use App\Models\Book;
 use App\Models\Copy;
 use App\Models\Location;
@@ -22,7 +23,7 @@ class CopyController extends Controller
     {
         $search = trim($request->string('search')->toString());
 
-        return Inertia::render('Copies/Index', ['copies' => Copy::query()->with(['book:id,title', 'location:id,code,name'])->when($search, fn ($query) => $query->where('inventory_number', 'like', "%{$search}%")->orWhereHas('book', fn ($query) => $query->where('title', 'like', "%{$search}%")))->latest()->paginate(20)->withQueryString(), 'filters' => ['search' => $search]]);
+        return Inertia::render('Copies/Index', ['copies' => Copy::query()->with(['book:id,title', 'location:id,code,type,number,name'])->when($search, fn ($query) => $query->where('inventory_number', 'like', "%{$search}%")->orWhereHas('book', fn ($query) => $query->where('title', 'like', "%{$search}%")))->latest()->paginate(20)->withQueryString(), 'filters' => ['search' => $search], 'conditionLabels' => collect(CopyCondition::cases())->mapWithKeys(fn ($case) => [$case->value => $case->label()]), 'statusLabels' => collect(CopyStatus::cases())->mapWithKeys(fn ($case) => [$case->value => $case->label()])]);
     }
 
     public function create(): Response
@@ -36,6 +37,33 @@ class CopyController extends Controller
         $copy = $copies->create($data);
 
         return to_route('copies.index')->with('success', "Exemplaire {$copy->inventory_number} enregistré.");
+    }
+
+    public function edit(Copy $copy): Response
+    {
+        return Inertia::render('Copies/Edit', ['copy' => $copy->load('book:id,title'), 'locations' => Location::query()->where('is_active', true)->orderBy('code')->get(['id', 'code', 'type', 'number', 'name']), 'conditions' => collect(CopyCondition::cases())->map(fn ($case) => ['value' => $case->value, 'label' => $case->label()]), 'statuses' => collect([CopyStatus::Available, CopyStatus::Damaged, CopyStatus::Lost, CopyStatus::Archived])->map(fn ($case) => ['value' => $case->value, 'label' => $case->label()])]);
+    }
+
+    public function update(Request $request, Copy $copy): RedirectResponse
+    {
+        if (in_array($copy->status, [CopyStatus::InConsultation, CopyStatus::Borrowed], true)) {
+            return back()->withErrors(['status' => 'Un exemplaire engagé dans une opération ne peut pas être modifié.']);
+        }
+        $data = $request->validate(['location_id' => ['nullable', 'exists:locations,id'], 'condition' => ['required', Rule::enum(CopyCondition::class)], 'status' => ['required', Rule::in([CopyStatus::Available->value, CopyStatus::Damaged->value, CopyStatus::Lost->value, CopyStatus::Archived->value])], 'notes' => ['nullable', 'string', 'max:2000']]);
+        $copy->update([...$data, 'lock_version' => $copy->lock_version + 1]);
+
+        return to_route('copies.index')->with('success', "Exemplaire {$copy->inventory_number} mis à jour.");
+    }
+
+    public function destroy(Copy $copy): RedirectResponse
+    {
+        if (in_array($copy->status, [CopyStatus::InConsultation, CopyStatus::Borrowed], true) || $copy->consultationItems()->exists()) {
+            return back()->withErrors(['copy' => 'Cet exemplaire possède un historique ou une opération active et ne peut pas être supprimé. Archivez-le plutôt.']);
+        }
+        $number = $copy->inventory_number;
+        $copy->delete();
+
+        return to_route('copies.index')->with('success', "Exemplaire {$number} supprimé.");
     }
 
     public function print(Copy $copy, BarcodeService $barcodes): View

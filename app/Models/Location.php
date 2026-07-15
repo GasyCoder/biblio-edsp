@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['code', 'name', 'description', 'is_active'])]
+#[Fillable(['code', 'type', 'number', 'name', 'description', 'is_active'])]
 class Location extends Model
 {
     use HasFactory, SoftDeletes;
