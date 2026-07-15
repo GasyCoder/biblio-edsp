@@ -10,11 +10,13 @@ use Illuminate\Support\Facades\DB;
 
 class StudentService
 {
-    public function __construct(private readonly NumberGenerator $numbers) {}
+    public function __construct(private readonly NumberGenerator $numbers, private readonly AcademicReferenceService $academicReferences) {}
 
     /** @param array<string, mixed> $data */
     public function create(array $data): Student
     {
+        $data = $this->academicReferences->resolve($data);
+
         return DB::transaction(function () use ($data): Student {
             return Student::query()->create([
                 ...Arr::except($data, ['registration_number']),

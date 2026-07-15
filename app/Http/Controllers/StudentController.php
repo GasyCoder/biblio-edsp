@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\StudentStatus;
 use App\Models\Student;
+use App\Services\AcademicReferenceService;
 use App\Services\StudentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -34,10 +35,11 @@ class StudentController extends Controller
         ]);
     }
 
-    public function create(): Response
+    public function create(AcademicReferenceService $academicReferences): Response
     {
         return Inertia::render('Students/Create', [
             'statuses' => collect(StudentStatus::cases())->map(fn (StudentStatus $status) => ['value' => $status->value, 'label' => $status->label()]),
+            'academicReferences' => $academicReferences->tree(),
         ]);
     }
 
@@ -48,14 +50,14 @@ class StudentController extends Controller
         return to_route('students.index')->with('success', "Étudiant {$student->registration_number} créé avec succès.");
     }
 
-    public function edit(Student $student): Response
+    public function edit(Student $student, AcademicReferenceService $academicReferences): Response
     {
-        return Inertia::render('Students/Edit', ['student' => $student, 'statuses' => collect(StudentStatus::cases())->map(fn (StudentStatus $status) => ['value' => $status->value, 'label' => $status->label()])]);
+        return Inertia::render('Students/Edit', ['student' => $student, 'statuses' => collect(StudentStatus::cases())->map(fn (StudentStatus $status) => ['value' => $status->value, 'label' => $status->label()]), 'academicReferences' => $academicReferences->tree()]);
     }
 
-    public function update(Request $request, Student $student): RedirectResponse
+    public function update(Request $request, Student $student, AcademicReferenceService $academicReferences): RedirectResponse
     {
-        $student->update($this->validatedData($request, $student));
+        $student->update($academicReferences->resolve($this->validatedData($request, $student)));
 
         return to_route('students.index')->with('success', "Étudiant {$student->registration_number} mis à jour.");
     }
@@ -82,8 +84,9 @@ class StudentController extends Controller
             'repetition_code' => ['sometimes', Rule::in(['N', 'R', 'T'])],
             'birth_date' => ['nullable', 'date', 'before:today'],
             'nationality' => ['nullable', 'string', 'max:255'],
-            'level' => ['nullable', 'string', 'max:100'],
-            'program' => ['nullable', 'string', 'max:150'],
+            'level_id' => ['nullable', 'integer', 'exists:academic_levels,id'],
+            'mention_id' => ['nullable', 'integer', 'exists:academic_mentions,id'],
+            'program_id' => ['nullable', 'integer', 'exists:academic_programs,id'],
             'academic_year' => ['nullable', 'string', 'max:20'],
             'phone' => ['nullable', 'string', 'max:50'],
             'address' => ['nullable', 'string', 'max:2000'],

@@ -22,16 +22,18 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class StudentSpreadsheetService
 {
-    private const HEADERS = ['matricule', 'nom', 'prenom', 'sexe', 'code_redoublement', 'date_naissance', 'nationalite', 'telephone', 'adresse', 'niveau', 'parcours', 'annee_universitaire', 'email'];
+    private const HEADERS = ['matricule', 'nom', 'prenom', 'sexe', 'code_redoublement', 'date_naissance', 'nationalite', 'telephone', 'adresse', 'mention', 'parcours', 'niveau', 'annee_universitaire', 'email'];
 
     private const ALIASES = [
         'matricule' => 'academic_number', 'numero_matricule' => 'academic_number',
         'nom' => 'last_name', 'prenom' => 'first_name', 'sexe' => 'gender',
         'code_redoublement' => 'repetition_code', 'redoublement' => 'repetition_code',
         'date_naissance' => 'birth_date', 'nationalite' => 'nationality',
-        'telephone' => 'phone', 'adresse' => 'address', 'niveau' => 'level',
+        'telephone' => 'phone', 'adresse' => 'address', 'mention' => 'mention', 'niveau' => 'level',
         'parcours' => 'program', 'annee_universitaire' => 'academic_year', 'email' => 'email',
     ];
+
+    public function __construct(private readonly AcademicReferenceService $academicReferences) {}
 
     public function preview(UploadedFile $file, User $user): ImportBatch
     {
@@ -60,16 +62,22 @@ class StudentSpreadsheetService
                 }
 
                 $normalized = $this->normalizeRow($original);
+                $academicErrors = [];
+                try {
+                    $normalized = $this->academicReferences->resolve($normalized);
+                } catch (ValidationException $exception) {
+                    $academicErrors = $exception->errors();
+                }
                 $validator = Validator::make($normalized, [
                     'academic_number' => ['required', 'string', 'max:64'], 'last_name' => ['required', 'string', 'max:255'],
                     'first_name' => ['nullable', 'string', 'max:255'], 'gender' => ['nullable', Rule::in(['male', 'female'])],
                     'repetition_code' => ['required', Rule::in(['N', 'R', 'T'])], 'birth_date' => ['nullable', 'date', 'before:today'],
                     'nationality' => ['nullable', 'string', 'max:255'], 'phone' => ['nullable', 'string', 'max:50'],
-                    'address' => ['nullable', 'string', 'max:2000'], 'level' => ['nullable', 'string', 'max:100'],
+                    'address' => ['nullable', 'string', 'max:2000'], 'mention' => ['nullable', 'string', 'max:150'], 'level' => ['nullable', 'string', 'max:100'],
                     'program' => ['nullable', 'string', 'max:150'], 'academic_year' => ['nullable', 'string', 'max:20'],
                     'email' => ['nullable', 'email', 'max:255'],
                 ]);
-                $errors = $validator->errors()->all();
+                $errors = [...$validator->errors()->all(), ...collect($academicErrors)->flatten()->all()];
                 $matricule = $normalized['academic_number'] ?? null;
                 if ($matricule && (isset($seen[$matricule]) || Student::withTrashed()->where('academic_number', $matricule)->exists())) {
                     $errors[] = isset($seen[$matricule]) ? 'Matricule présent plusieurs fois dans le fichier.' : 'Matricule déjà enregistré dans l’application.';
@@ -125,14 +133,14 @@ class StudentSpreadsheetService
         Student::query()->orderBy('last_name')->each(function (Student $student) use ($sheet, &$row) {
             $values = [$student->registration_number, $student->academic_number, $student->last_name, $student->first_name, match ($student->gender) {
                 'male' => 'M', 'female' => 'F', default => null
-            }, $student->repetition_code, $student->birth_date?->format('Y-m-d'), $student->nationality, $student->phone, $student->address, $student->level, $student->program, $student->academic_year, $student->email];
+            }, $student->repetition_code, $student->birth_date?->format('Y-m-d'), $student->nationality, $student->phone, $student->address, $student->mention?->name, $student->program, $student->level, $student->academic_year, $student->email];
             foreach ($values as $index => $value) {
                 $sheet->setCellValueExplicit(Coordinate::stringFromColumnIndex($index + 1).$row, (string) ($value ?? ''), DataType::TYPE_STRING);
             }
             $row++;
         });
-        $sheet->getStyle('A1:N1')->getFont()->setBold(true);
-        foreach (range('A', 'N') as $column) {
+        $sheet->getStyle('A1:O1')->getFont()->setBold(true);
+        foreach (range('A', 'O') as $column) {
             $sheet->getColumnDimension($column)->setAutoSize(true);
         }
 
