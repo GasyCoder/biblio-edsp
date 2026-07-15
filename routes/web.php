@@ -1,8 +1,11 @@
 <?php
 
 use App\Http\Controllers\BookController;
+use App\Http\Controllers\CatalogReferenceController;
+use App\Http\Controllers\CopyController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\StudentCardController;
 use App\Http\Controllers\StudentController;
 use Illuminate\Support\Facades\Route;
 
@@ -24,6 +27,21 @@ Route::middleware('auth')->group(function () {
     Route::get('/books', [BookController::class, 'index'])->middleware('permission:books.view|catalog.view')->name('books.index');
     Route::get('/books/create', [BookController::class, 'create'])->middleware('permission:books.create')->name('books.create');
     Route::post('/books', [BookController::class, 'store'])->middleware('permission:books.create')->name('books.store');
+
+    Route::get('/catalog-references', [CatalogReferenceController::class, 'index'])->middleware('permission:categories.view|authors.view|locations.view')->name('catalog-references.index');
+    Route::post('/categories', [CatalogReferenceController::class, 'storeCategory'])->middleware('permission:categories.create')->name('categories.store');
+    Route::post('/authors', [CatalogReferenceController::class, 'storeAuthor'])->middleware('permission:authors.create')->name('authors.store');
+    Route::post('/locations', [CatalogReferenceController::class, 'storeLocation'])->middleware('permission:locations.create')->name('locations.store');
+
+    Route::get('/copies', [CopyController::class, 'index'])->middleware('permission:copies.view')->name('copies.index');
+    Route::get('/copies/create', [CopyController::class, 'create'])->middleware('permission:copies.create')->name('copies.create');
+    Route::post('/copies', [CopyController::class, 'store'])->middleware('permission:copies.create')->name('copies.store');
+    Route::get('/copies/{copy}/print', [CopyController::class, 'print'])->middleware('permission:copies.print')->name('copies.print');
+
+    Route::get('/cards', [StudentCardController::class, 'index'])->middleware('permission:cards.view')->name('cards.index');
+    Route::get('/cards/create', [StudentCardController::class, 'create'])->middleware('permission:cards.create')->name('cards.create');
+    Route::post('/cards', [StudentCardController::class, 'store'])->middleware('permission:cards.create')->name('cards.store');
+    Route::get('/cards/{card}/print', [StudentCardController::class, 'print'])->middleware('permission:cards.print')->name('cards.print');
 });
 
 require __DIR__.'/auth.php';

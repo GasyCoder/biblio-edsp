@@ -21,13 +21,15 @@ const menuGroups = computed(() => [
     { label: 'Vue générale', items: [{ label: 'Tableau de bord', icon: 'dashboard', href: route('dashboard'), active: route().current('dashboard') }] },
     { label: 'Opérations', items: [
         { label: 'Scanner une carte', icon: 'scan', href: null, permission: 'cards.scan' },
+        { label: 'Cartes étudiantes', icon: 'scan', href: route('cards.index'), permission: 'cards.view', active: route().current('cards.*') },
         { label: 'Présences', icon: 'visits', href: null, permission: page.props.auth.roles.includes('etudiant') ? 'visits.view_own' : 'visits.view' },
         { label: 'Prêts et retours', icon: 'loans', href: null, permission: page.props.auth.roles.includes('etudiant') ? 'loans.view_own' : 'loans.view' },
     ] },
     { label: 'Bibliothèque', items: [
         { label: 'Étudiants', icon: 'students', href: route('students.index'), permission: 'students.view', active: route().current('students.*') },
         { label: page.props.auth.roles.includes('etudiant') ? 'Catalogue' : 'Ouvrages', icon: 'books', href: route('books.index'), permission: page.props.auth.roles.includes('etudiant') ? 'catalog.view' : 'books.view', active: route().current('books.*') },
-        { label: 'Exemplaires', icon: 'copies', href: null, permission: 'copies.view' },
+        { label: 'Exemplaires', icon: 'copies', href: route('copies.index'), permission: 'copies.view', active: route().current('copies.*') },
+        { label: 'Référentiels', icon: 'settings', href: route('catalog-references.index'), permission: 'categories.view', active: route().current('catalog-references.*') },
         { label: page.props.auth.roles.includes('etudiant') ? 'Mon historique' : 'Rapports', icon: 'reports', href: null, permission: page.props.auth.roles.includes('etudiant') ? 'consultations.view_own' : 'reports.operational' },
     ] },
     { label: 'Administration', items: [
