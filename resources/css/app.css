@@ -1,0 +1,33 @@
+@import 'tailwindcss' source(none);
+
+@source '../views/**/*.blade.php';
+@source '../js/**/*.vue';
+
+@theme {
+    --font-sans: 'Roboto', 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-heading: 'Nunito', 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --color-primary-50: #f7f8ff;
+    --color-primary-100: #eff1ff;
+    --color-primary-200: #e3e7fe;
+    --color-primary-300: #c4cefe;
+    --color-primary-400: #9cabff;
+    --color-primary-500: #798bff;
+    --color-primary-600: #6576ff;
+    --color-primary-700: #5664d9;
+    --color-primary-800: #4652b5;
+    --color-primary-900: #2c3782;
+    --color-edsp-600: #176b53;
+    --color-edsp-700: #115541;
+    --color-edsp-800: #0d4032;
+}
+
+@layer base {
+    html { color-scheme: light; }
+    body { @apply bg-slate-50 font-sans text-slate-600 antialiased; }
+    button, a, input { @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2; }
+}
+
+@layer components {
+    .dw-card { @apply rounded-md border border-slate-200 bg-white shadow-sm; }
+    .dw-field { @apply h-12 w-full rounded-md border border-slate-300 bg-white px-4 text-sm text-slate-700 placeholder:text-slate-400 transition hover:border-slate-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-100; }
+}
