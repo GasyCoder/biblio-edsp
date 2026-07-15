@@ -1,58 +1,189 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Bibliothèque EDSP
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Application interne de gestion de la bibliothèque de l’École de Droit et Sciences Politiques (EDSP) de l’Université de Mahajanga.
 
-## About Laravel
+Ce dépôt ne contient pas le site institutionnel public de l’EDSP. Il est exclusivement destiné aux opérations de bibliothèque : utilisateurs, étudiants, catalogue, exemplaires, cartes, présences, consultations sur place et prêts.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Stack technique
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- Laravel 13
+- PHP 8.4
+- MySQL 8 ou MariaDB compatible
+- Inertia.js 2
+- Vue 3 et TypeScript
+- Tailwind CSS 4
+- Vite 8
+- Pest 4
+- Spatie Laravel Permission
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+L’interface reprend le langage visuel du template Dashwind fourni localement dans `template-inspire`, sans intégrer ce template comme une seconde application.
 
-## Learning Laravel
+## Fonctionnalités disponibles
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+- authentification interne sans inscription publique ;
+- profils utilisateurs et réinitialisation du mot de passe ;
+- rôles `superadmin`, `secretaire` et `etudiant` ;
+- permissions et dashboards adaptés à chaque rôle ;
+- création et recherche d’étudiants ;
+- numéros étudiants automatiques au format `EDSP-ETU-AAAA-000001` ;
+- création et consultation des ouvrages bibliographiques ;
+- auteurs multiples sans fusion automatique des titres ;
+- modèle séparant ouvrages et exemplaires physiques ;
+- numéros d’exemplaires automatiques au format `EDSP-LIV-000001` ;
+- codes scannables opaques et uniques ;
+- catégories, emplacements et cartes étudiants préparés dans le domaine.
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+Les modules de pointage, consultation sur place, prêts, import Excel et statistiques avancées seront ajoutés progressivement. Le plan complet est disponible dans [docs/audit-et-plan-technique.md](docs/audit-et-plan-technique.md).
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+## Prérequis
 
-## Agentic Development
+- PHP 8.4 avec les extensions usuelles Laravel et `pdo_mysql` ;
+- Composer 2 ;
+- Node.js 22 ou version compatible avec Vite 8 ;
+- npm 11 ;
+- MySQL 8 ou MariaDB.
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+Vérifier impérativement que Composer utilise PHP 8.4 :
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+php --version
+composer check-platform-reqs
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Si la commande `php` pointe encore vers une ancienne version :
 
-## Contributing
+```bash
+php8.4 "$(which composer)" install
+php8.4 artisan --version
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Installation locale
 
-## Code of Conduct
+```bash
+git clone https://github.com/GasyCoder/biblio-edsp.git
+cd biblio-edsp
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+composer install
+cp .env.example .env
+php artisan key:generate
+npm install
+```
 
-## Security Vulnerabilities
+Créer ensuite la base MySQL et renseigner `.env` :
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```dotenv
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=biblio_edsp
+DB_USERNAME=root
+DB_PASSWORD=
+```
 
-## License
+Configurer des mots de passe initiaux robustes avant d’exécuter les seeders :
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```dotenv
+SEED_SUPERADMIN_PASSWORD="mot-de-passe-unique"
+SEED_SECRETAIRE_PASSWORD="mot-de-passe-unique"
+SEED_ETUDIANT_PASSWORD="mot-de-passe-unique"
+```
+
+Puis initialiser la base et compiler l’interface :
+
+```bash
+php artisan migrate --seed
+npm run build
+```
+
+Les comptes initiaux utilisent par défaut les adresses suivantes :
+
+| Rôle | Adresse |
+|---|---|
+| Super administrateur | `superadmin@edsp.mg` |
+| Secrétaire | `secretaire@edsp.mg` |
+| Étudiant de démonstration | `etudiant@edsp.mg` |
+
+Les adresses, noms et mots de passe sont configurables dans `.env`. Ne jamais committer ce fichier.
+
+## Développement
+
+Lancer tous les services de développement :
+
+```bash
+composer run dev
+```
+
+Ou lancer séparément Laravel et Vite :
+
+```bash
+php artisan serve
+npm run dev
+```
+
+L’application redirige `/` vers `/login`. Le serveur Laravel utilise par défaut `http://127.0.0.1:8000`.
+
+## Tests et qualité
+
+Les tests utilisent une base MySQL séparée nommée `biblio_edsp_testing`. La créer avant la première exécution :
+
+```sql
+CREATE DATABASE biblio_edsp_testing
+    CHARACTER SET utf8mb4
+    COLLATE utf8mb4_unicode_ci;
+```
+
+Exécuter les contrôles :
+
+```bash
+php artisan test --compact
+php vendor/bin/pint --test
+npm run build
+composer validate --strict
+```
+
+SQLite ne remplace pas MySQL dans cette application : certains tests dépendent des verrous, contraintes et colonnes générées MySQL.
+
+## Rôles
+
+### Superadmin
+
+Accès complet à l’administration, aux utilisateurs, référentiels, paramètres, statistiques et journaux d’audit.
+
+### Secrétaire
+
+Accès aux opérations du comptoir : recherche étudiant, catalogue, cartes, scans, présences, consultations et prêts selon les permissions attribuées.
+
+### Étudiant
+
+Accès en lecture au catalogue et, lorsque les modules correspondants seront actifs, à ses historiques personnels et restrictions.
+
+L’autorisation est toujours vérifiée côté serveur. Masquer un menu dans Vue ne remplace jamais les middlewares, Gates et Policies Laravel.
+
+## Numérotation interne
+
+Les numéros internes sont produits par des séquences transactionnelles verrouillées en base. Ils ne doivent jamais être saisis manuellement ni calculés à partir du nombre de lignes.
+
+Formats actuellement actifs :
+
+- étudiant : `EDSP-ETU-AAAA-000001` ;
+- exemplaire : `EDSP-LIV-000001`.
+
+## Fichiers sensibles et références locales
+
+Les éléments suivants sont exclus de Git :
+
+- `.env` ;
+- journaux et fichiers temporaires Laravel ;
+- classeurs Excel placés dans `storage/app/imports/reference` ;
+- template visuel local `template-inspire`.
+
+Les fichiers importés doivent rester sur un disque privé et ne doivent pas être exposés directement par le serveur web.
+
+## Contribution
+
+Avant chaque push :
+
+1. exécuter Pest, Pint et le build TypeScript ;
+2. vérifier les permissions et l’absence de données personnelles dans le diff ;
+3. créer des commits regroupés par fonctionnalité ;
+4. ouvrir une pull request vers `master`.
