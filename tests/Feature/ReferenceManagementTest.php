@@ -5,6 +5,7 @@ use App\Models\Book;
 use App\Models\Category;
 use App\Models\Copy;
 use App\Models\Student;
+use App\Models\StudentCard;
 use App\Models\User;
 use App\Services\CopyService;
 use App\Services\NumberGenerator;
@@ -92,6 +93,38 @@ it('updates and safely deletes students without history', function () {
     expect($student->refresh()->last_name)->toBe('NOUVEAU');
     $this->delete(route('students.destroy', $student))->assertRedirect(route('students.index'));
     expect(Student::query()->count())->toBe(0);
+});
+
+it('bulk deletes students only when none has library history', function () {
+    $admin = User::factory()->create()->assignRole('superadmin');
+    $first = Student::factory()->create();
+    $second = Student::factory()->create();
+
+    $this->actingAs($admin)->delete(route('students.destroy.bulk'), ['ids' => [$first->id, $second->id]])
+        ->assertRedirect(route('students.index'));
+
+    expect(Student::query()->count())->toBe(0)
+        ->and(Student::withTrashed()->count())->toBe(2);
+});
+
+it('cancels bulk student deletion when one selected student has a card', function () {
+    $admin = User::factory()->create()->assignRole('superadmin');
+    $protected = Student::factory()->create();
+    $deletable = Student::factory()->create();
+    StudentCard::create([
+        'student_id' => $protected->id,
+        'card_number' => 'CARD-BULK-TEST',
+        'type' => 'library',
+        'symbology' => 'qr',
+        'status' => 'active',
+        'issued_at' => now(),
+        'created_by' => $admin->id,
+    ]);
+
+    $this->actingAs($admin)->delete(route('students.destroy.bulk'), ['ids' => [$protected->id, $deletable->id]])
+        ->assertSessionHasErrors('student');
+
+    expect(Student::query()->count())->toBe(2);
 });
 
 it('updates books and prevents deletion while copies exist', function () {

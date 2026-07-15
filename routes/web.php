@@ -26,6 +26,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/students', [StudentController::class, 'index'])->middleware('permission:students.view')->name('students.index');
     Route::get('/students/create', [StudentController::class, 'create'])->middleware('permission:students.manage')->name('students.create');
     Route::post('/students', [StudentController::class, 'store'])->middleware('permission:students.manage')->name('students.store');
+    Route::delete('/students/bulk', [StudentController::class, 'destroyBulk'])->middleware('permission:students.manage')->name('students.destroy.bulk');
     Route::get('/students/{student}/edit', [StudentController::class, 'edit'])->middleware('permission:students.update')->name('students.edit');
     Route::patch('/students/{student}', [StudentController::class, 'update'])->middleware('permission:students.update')->name('students.update');
     Route::delete('/students/{student}', [StudentController::class, 'destroy'])->middleware('permission:students.manage')->name('students.destroy');

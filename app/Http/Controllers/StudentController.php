@@ -8,6 +8,7 @@ use App\Services\AcademicReferenceService;
 use App\Services\StudentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -71,6 +72,21 @@ class StudentController extends Controller
         $student->delete();
 
         return to_route('students.index')->with('success', "Étudiant {$number} supprimé.");
+    }
+
+    public function destroyBulk(Request $request): RedirectResponse
+    {
+        $data = $request->validate(['ids' => ['required', 'array', 'min:1', 'max:100'], 'ids.*' => ['integer', 'distinct', 'exists:students,id']]);
+        $students = Student::query()->whereKey($data['ids'])->withCount(['cards', 'visits', 'consultationSessions'])->get();
+        $protected = $students->first(fn (Student $student) => $student->cards_count > 0 || $student->visits_count > 0 || $student->consultation_sessions_count > 0);
+
+        if ($protected) {
+            return back()->withErrors(['student' => "L’étudiant {$protected->registration_number} possède une carte ou un historique. La suppression groupée a été annulée ; passez plutôt son statut à Inactif."]);
+        }
+
+        DB::transaction(fn () => $students->each->delete());
+
+        return to_route('students.index')->with('success', $students->count().' étudiant(s) supprimé(s).');
     }
 
     /** @return array<string, mixed> */
