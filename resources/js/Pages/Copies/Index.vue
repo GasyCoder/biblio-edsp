@@ -124,7 +124,7 @@ const printPreview = () => (document.querySelector<HTMLIFrameElement>('#copy-qr-
                         <div><h2 class="font-heading font-bold text-slate-800 dark:text-white">QR code de l’exemplaire</h2><p class="mt-1 font-mono text-xs text-primary-600">{{ previewCopy.inventory_number }}</p></div>
                         <button class="inline-flex h-9 w-9 items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Fermer" @click="previewCopy = null"><AppIcon name="close" class="h-5 w-5" /></button>
                     </div>
-                    <iframe id="copy-qr-preview" :src="previewUrl" class="h-[470px] w-full bg-white" title="Aperçu du QR code"></iframe>
+                    <div class="bg-slate-100 p-4 dark:bg-slate-950"><iframe id="copy-qr-preview" :src="previewUrl" class="h-[190px] w-full rounded-md bg-white" title="Aperçu de l’étiquette QR"></iframe><p class="mt-2 text-center text-xs text-slate-500">Étiquette autocollante 63,5 × 33,9 mm</p></div>
                     <div class="flex justify-end gap-3 border-t border-slate-200 p-4 dark:border-slate-700"><button class="rounded-md border border-slate-300 px-4 py-2 text-sm font-bold text-slate-600" @click="previewCopy = null">Fermer</button><button class="inline-flex items-center gap-2 rounded-md bg-primary-600 px-4 py-2 text-sm font-bold text-white" @click="printPreview"><AppIcon name="print" class="h-4 w-4" /> Imprimer</button></div>
                 </div>
             </div>

@@ -32,9 +32,11 @@ it('prints several selected copies as QR codes', function () {
 
     $this->actingAs($user)->get(route('copies.print.bulk', ['ids' => [$first->id, $second->id]]))
         ->assertOk()
-        ->assertSee('2 exemplaire(s)')
+        ->assertSee('Imprimer 2 étiquette(s)')
         ->assertSee($first->inventory_number)
         ->assertSee($second->inventory_number)
+        ->assertSee('63,5 × 33,9 mm')
+        ->assertSee('grid-template-columns: repeat(3, 63.5mm)', false)
         ->assertSee('<svg', false);
 });
 
