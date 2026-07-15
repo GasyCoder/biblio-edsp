@@ -15,7 +15,7 @@
         .number { margin-bottom: 1.2mm; font: 800 8.5pt monospace; overflow-wrap: anywhere; }
         .title { display: -webkit-box; overflow: hidden; color: #334155; font-size: 6.5pt; line-height: 1.25; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
         @page { size: A4 portrait; margin: 13mm 7.25mm; }
-        @media print { body { padding: 0; } button { display: none; } .label { border-color: transparent; } }
+        @media print { body { padding: 0; } button { display: none; } }
     </style>
 </head>
 <body>

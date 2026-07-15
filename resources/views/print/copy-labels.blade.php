@@ -24,7 +24,6 @@
             .toolbar { display: none; }
             .sheet { margin: 0; box-shadow: none; break-after: page; page-break-after: always; }
             .sheet:last-child { break-after: auto; page-break-after: auto; }
-            .label { border-color: transparent; }
         }
     </style>
 </head>
