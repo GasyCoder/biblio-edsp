@@ -24,6 +24,33 @@ it('allows the secretary to create and print a physical copy', function () {
     $this->actingAs($user)->get(route('copies.print', $copy))->assertOk()->assertSee('<svg', false)->assertSee($copy->inventory_number);
 });
 
+it('prints several selected copies as QR codes', function () {
+    $user = User::factory()->create()->assignRole('secretaire');
+    $book = Book::factory()->create();
+    $first = app(CopyService::class)->create(['book_id' => $book->id]);
+    $second = app(CopyService::class)->create(['book_id' => $book->id]);
+
+    $this->actingAs($user)->get(route('copies.print.bulk', ['ids' => [$first->id, $second->id]]))
+        ->assertOk()
+        ->assertSee('2 exemplaire(s)')
+        ->assertSee($first->inventory_number)
+        ->assertSee($second->inventory_number)
+        ->assertSee('<svg', false);
+});
+
+it('bulk deletes only copies without operational history', function () {
+    $admin = User::factory()->create()->assignRole('superadmin');
+    $book = Book::factory()->create();
+    $first = app(CopyService::class)->create(['book_id' => $book->id]);
+    $second = app(CopyService::class)->create(['book_id' => $book->id]);
+
+    $this->actingAs($admin)->delete(route('copies.destroy.bulk'), ['ids' => [$first->id, $second->id]])
+        ->assertRedirect(route('copies.index'));
+
+    expect(Copy::query()->count())->toBe(0)
+        ->and(Copy::withTrashed()->count())->toBe(2);
+});
+
 it('creates only one active card per student and prints its QR code', function () {
     $user = User::factory()->create()->assignRole('secretaire');
     $student = Student::factory()->create();
