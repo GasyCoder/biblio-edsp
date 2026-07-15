@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import InputError from "@/Components/InputError.vue";
+import AppIcon from "@/Components/AppIcon.vue";
 import { Head, Link, useForm } from "@inertiajs/vue3";
-import { computed, watch } from "vue";
+import { computed, ref, watch } from "vue";
 const props = defineProps<{
     statuses: { value: string; label: string }[];
     academicReferences: any[];
@@ -26,6 +27,7 @@ const form = useForm({
     status: "active",
     restriction_reason: "",
 });
+const photoPreview = ref<string | null>(null);
 const programs = computed(
     () =>
         props.academicReferences.find(
@@ -49,7 +51,12 @@ watch(
     () => (form.level_id = ""),
 );
 const submit = () => form.post(route("students.store"));
-const selectPhoto = (event: Event) => { form.photo = (event.target as HTMLInputElement).files?.[0] ?? null; };
+const selectPhoto = (event: Event) => {
+    const file = (event.target as HTMLInputElement).files?.[0] ?? null;
+    form.photo = file;
+    if (photoPreview.value) URL.revokeObjectURL(photoPreview.value);
+    photoPreview.value = file ? URL.createObjectURL(file) : null;
+};
 </script>
 <template>
     <Head title="Nouvel étudiant" /><AuthenticatedLayout
@@ -74,6 +81,60 @@ const selectPhoto = (event: Event) => { form.photo = (event.target as HTMLInputE
             @submit.prevent="submit"
         >
             <div class="grid gap-5 md:grid-cols-2">
+                <div class="md:col-span-2">
+                    <label
+                        class="mb-2 block text-sm font-semibold text-slate-700"
+                        >Photo de profil</label
+                    >
+                    <div
+                        class="flex flex-col gap-4 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4 sm:flex-row sm:items-center dark:border-slate-700 dark:bg-slate-900/50"
+                    >
+                        <img
+                            v-if="photoPreview"
+                            :src="photoPreview"
+                            class="h-32 w-28 rounded-lg border border-slate-200 object-cover shadow-sm"
+                            alt="Aperçu de la photo"
+                        />
+                        <div
+                            v-else
+                            class="flex h-32 w-28 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-300 dark:border-slate-700 dark:bg-slate-950"
+                        >
+                            <AppIcon name="user" class="h-12 w-12" />
+                        </div>
+                        <div>
+                            <p
+                                class="text-sm font-bold text-slate-700 dark:text-slate-200"
+                            >
+                                Photo utilisée sur la carte de bibliothèque
+                            </p>
+                            <p class="mt-1 text-xs leading-5 text-slate-500">
+                                Importez une photo d’identité ou une photo
+                                scannée. JPG, PNG ou WebP, maximum 4 Mo.
+                            </p>
+                            <label
+                                for="student-photo"
+                                class="mt-3 inline-flex cursor-pointer items-center rounded-md bg-primary-600 px-4 py-2 text-xs font-bold text-white hover:bg-primary-700"
+                                >Choisir une photo</label
+                            ><input
+                                id="student-photo"
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                class="sr-only"
+                                @change="selectPhoto"
+                            />
+                            <p
+                                v-if="form.photo"
+                                class="mt-2 max-w-sm truncate text-xs font-semibold text-emerald-600"
+                            >
+                                {{ form.photo.name }}
+                            </p>
+                            <InputError
+                                class="mt-2"
+                                :message="form.errors.photo"
+                            />
+                        </div>
+                    </div>
+                </div>
                 <div>
                     <label
                         class="mb-2 block text-sm font-semibold text-slate-700"
@@ -149,7 +210,6 @@ const selectPhoto = (event: Event) => { form.photo = (event.target as HTMLInputE
                         >Nationalité</label
                     ><input v-model="form.nationality" class="dw-field" />
                 </div>
-                <div><label class="mb-2 block text-sm font-semibold text-slate-700">Photo d’identité scannée</label><input type="file" accept="image/jpeg,image/png,image/webp" class="dw-field" @change="selectPhoto"/><InputError :message="form.errors.photo"/></div>
                 <div>
                     <label
                         class="mb-2 block text-sm font-semibold text-slate-700"
