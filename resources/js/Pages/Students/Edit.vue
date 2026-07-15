@@ -9,6 +9,7 @@ const props = defineProps<{
     academicReferences: any[];
 }>();
 const form = useForm({
+    _method: "patch",
     academic_number: props.student.academic_number ?? "",
     last_name: props.student.last_name,
     first_name: props.student.first_name,
@@ -16,6 +17,8 @@ const form = useForm({
     repetition_code: props.student.repetition_code ?? "N",
     birth_date: props.student.birth_date ?? "",
     nationality: props.student.nationality ?? "",
+    photo: null as File | null,
+    remove_photo: false,
     mention_id: props.student.mention_id ?? "",
     program_id: props.student.program_id ?? "",
     level_id: props.student.level_id ?? "",
@@ -48,6 +51,7 @@ watch(
     () => form.program_id,
     () => (form.level_id = ""),
 );
+const selectPhoto = (event: Event) => { form.photo = (event.target as HTMLInputElement).files?.[0] ?? null; if (form.photo) form.remove_photo = false; };
 </script>
 <template>
     <Head title="Modifier un étudiant" /><AuthenticatedLayout
@@ -65,7 +69,7 @@ watch(
         >
         <form
             class="dw-card mx-auto max-w-5xl p-6"
-            @submit.prevent="form.patch(route('students.update', student.id))"
+            @submit.prevent="form.post(route('students.update', student.id), { forceFormData: true })"
         >
             <div class="grid gap-5 md:grid-cols-2">
                 <div>
@@ -125,6 +129,7 @@ watch(
                         >Nationalité</label
                     ><input v-model="form.nationality" class="dw-field" />
                 </div>
+                <div><label class="mb-2 block text-sm font-semibold">Photo d’identité scannée</label><div v-if="student.photo_url && !form.remove_photo" class="mb-2 flex items-center gap-3"><img :src="student.photo_url" class="h-24 w-20 rounded-md border object-cover" alt="Photo de l’étudiant"/><button type="button" class="text-xs font-bold text-red-600" @click="form.remove_photo=true;form.photo=null">Supprimer</button></div><input type="file" accept="image/jpeg,image/png,image/webp" class="dw-field" @change="selectPhoto"/><InputError :message="form.errors.photo"/></div>
                 <div>
                     <label class="mb-2 block text-sm font-semibold"
                         >Téléphone</label

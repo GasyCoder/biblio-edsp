@@ -37,6 +37,19 @@ it('allows a superadmin to create a student with an automatic number', function 
     expect(Student::query()->firstOrFail()->registration_number)->toBe('ETU-'.now()->format('y').'-001');
 });
 
+it('stores a scanned identity photo for the library card', function () {
+    Storage::fake('public');
+    $user = User::factory()->create()->assignRole('superadmin');
+
+    $this->actingAs($user)->post(route('students.store'), [
+        'last_name' => 'PHOTO', 'first_name' => 'Test', 'status' => 'active',
+        'photo' => UploadedFile::fake()->image('identite.jpg', 400, 500),
+    ])->assertRedirect(route('students.index'));
+
+    $student = Student::query()->firstOrFail();
+    Storage::disk('public')->assertExists($student->photo_path);
+});
+
 it('allows the secretary to search students but not create them', function () {
     $user = User::factory()->create()->assignRole('secretaire');
 

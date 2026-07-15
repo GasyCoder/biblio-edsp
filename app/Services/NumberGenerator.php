@@ -13,7 +13,7 @@ class NumberGenerator
     {
         $date ??= now();
         $scope = match ($type) {
-            NumberType::Student => $date->format('Y'),
+            NumberType::Student, NumberType::LibraryCard => $date->format('Y'),
             NumberType::Visit, NumberType::Consultation => $date->format('Ymd'),
             default => 'global',
         };
@@ -38,6 +38,10 @@ class NumberGenerator
 
             if ($type === NumberType::Student) {
                 return sprintf('%s-%s-%03d', $type->prefix(), substr($scope, -2), $value);
+            }
+
+            if ($type === NumberType::LibraryCard) {
+                return sprintf('%s-%s-%04d', $type->prefix(), substr($scope, -2), $value);
             }
 
             if ($type === NumberType::Copy) {

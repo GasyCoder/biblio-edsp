@@ -10,6 +10,7 @@ interface Student {
     academic_number: string | null;
     last_name: string;
     first_name: string;
+    photo_url: string | null;
     level: string | null;
     program: string | null;
     status: string;
@@ -36,7 +37,9 @@ const canCreate = page.props.auth.permissions.includes("students.manage");
 const canImport = page.props.auth.permissions.includes("imports.view");
 const canUpdate = page.props.auth.permissions.includes("students.update");
 const canDelete = page.props.auth.permissions.includes("students.manage");
-const pageIds = computed(() => props.students.data.map((student) => student.id));
+const pageIds = computed(() =>
+    props.students.data.map((student) => student.id),
+);
 const allSelected = computed(
     () =>
         pageIds.value.length > 0 &&
@@ -142,7 +145,8 @@ const statusLabel: Record<string, string> = {
             v-if="selected.length"
             class="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-primary-200 bg-primary-50 p-3 dark:border-primary-800 dark:bg-primary-950/40"
         >
-            <span class="text-sm font-bold text-primary-700 dark:text-primary-300"
+            <span
+                class="text-sm font-bold text-primary-700 dark:text-primary-300"
                 >{{ selected.length }} étudiant(s) sélectionné(s)</span
             >
             <button
@@ -227,7 +231,7 @@ const statusLabel: Record<string, string> = {
                                 />
                             </td>
                             <td class="px-5 py-4 font-semibold text-slate-700">
-                                {{ student.last_name }} {{ student.first_name }}
+                                <div class="flex items-center gap-3"><img v-if="student.photo_url" :src="student.photo_url" class="h-11 w-9 rounded object-cover" alt="Photo"/><div v-else class="flex h-11 w-9 items-center justify-center rounded bg-slate-100"><AppIcon name="user" class="h-4 w-4 text-slate-400"/></div><span>{{ student.last_name }} {{ student.first_name }}</span></div>
                             </td>
                             <td
                                 class="px-5 py-4 font-mono text-xs text-primary-700"

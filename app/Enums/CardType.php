@@ -9,6 +9,6 @@ enum CardType: string
 
     public function label(): string
     {
-        return $this === self::Student ? 'Carte étudiant' : 'Carte bibliothèque';
+        return 'Carte de bibliothèque';
     }
 }

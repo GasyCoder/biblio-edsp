@@ -15,6 +15,7 @@ const form = useForm({
     repetition_code: "N",
     birth_date: "",
     nationality: "Malagasy",
+    photo: null as File | null,
     mention_id: "",
     program_id: "",
     level_id: "",
@@ -48,6 +49,7 @@ watch(
     () => (form.level_id = ""),
 );
 const submit = () => form.post(route("students.store"));
+const selectPhoto = (event: Event) => { form.photo = (event.target as HTMLInputElement).files?.[0] ?? null; };
 </script>
 <template>
     <Head title="Nouvel étudiant" /><AuthenticatedLayout
@@ -147,6 +149,7 @@ const submit = () => form.post(route("students.store"));
                         >Nationalité</label
                     ><input v-model="form.nationality" class="dw-field" />
                 </div>
+                <div><label class="mb-2 block text-sm font-semibold text-slate-700">Photo d’identité scannée</label><input type="file" accept="image/jpeg,image/png,image/webp" class="dw-field" @change="selectPhoto"/><InputError :message="form.errors.photo"/></div>
                 <div>
                     <label
                         class="mb-2 block text-sm font-semibold text-slate-700"

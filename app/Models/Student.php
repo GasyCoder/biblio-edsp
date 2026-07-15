@@ -9,11 +9,14 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 
 #[Fillable(['user_id', 'registration_number', 'academic_number', 'last_name', 'first_name', 'gender', 'repetition_code', 'birth_date', 'nationality', 'level_id', 'mention_id', 'program_id', 'level', 'program', 'academic_year', 'phone', 'address', 'email', 'photo_path', 'status', 'restriction_reason'])]
 class Student extends Model
 {
     use HasFactory, SoftDeletes;
+
+    protected $appends = ['photo_url'];
 
     protected function casts(): array
     {
@@ -53,5 +56,10 @@ class Student extends Model
     public function consultationSessions(): HasMany
     {
         return $this->hasMany(ConsultationSession::class);
+    }
+
+    public function getPhotoUrlAttribute(): ?string
+    {
+        return $this->photo_path ? Storage::disk('public')->url($this->photo_path) : null;
     }
 }

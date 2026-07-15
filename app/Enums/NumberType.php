@@ -8,6 +8,7 @@ enum NumberType: string
     case Copy = 'copy';
     case Visit = 'visit';
     case Consultation = 'consultation';
+    case LibraryCard = 'library_card';
 
     public function prefix(): string
     {
@@ -16,6 +17,7 @@ enum NumberType: string
             self::Copy => 'EDSP-LIV',
             self::Visit => 'EDSP-PTG',
             self::Consultation => 'EDSP-CST',
+            self::LibraryCard => 'BIB',
         };
     }
 }

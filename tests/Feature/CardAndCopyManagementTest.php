@@ -75,7 +75,13 @@ it('creates only one active card per student and prints its QR code', function (
     $this->actingAs($user)->post('/cards', $payload)->assertRedirect(route('cards.index'));
     $card = StudentCard::query()->firstOrFail();
     $this->actingAs($user)->post('/cards', $payload)->assertSessionHasErrors('student_id');
-    $this->actingAs($user)->get(route('cards.print', $card))->assertOk()->assertSee('<svg', false)->assertSee($student->registration_number);
+    expect($card->type->value)->toBe('library')
+        ->and($card->card_number)->toStartWith('BIB-'.now()->format('y').'-');
+    $this->actingAs($user)->get(route('cards.print', $card))->assertOk()
+        ->assertSee('<svg', false)
+        ->assertSee($student->registration_number)
+        ->assertSee('Carte de bibliothèque')
+        ->assertSee('85.6mm 53.98mm', false);
 });
 
 it('prevents students from managing copies cards and catalog references', function () {

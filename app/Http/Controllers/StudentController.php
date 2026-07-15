@@ -9,6 +9,7 @@ use App\Services\StudentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -58,7 +59,17 @@ class StudentController extends Controller
 
     public function update(Request $request, Student $student, AcademicReferenceService $academicReferences): RedirectResponse
     {
-        $student->update($academicReferences->resolve($this->validatedData($request, $student)));
+        $data = $this->validatedData($request, $student);
+        $oldPhoto = $student->photo_path;
+        if (! empty($data['photo'])) {
+            $data['photo_path'] = $data['photo']->store('photos/students', 'public');
+        } elseif (! empty($data['remove_photo'])) {
+            $data['photo_path'] = null;
+        }
+        $student->update($academicReferences->resolve(collect($data)->except(['photo', 'remove_photo'])->all()));
+        if ($oldPhoto && $oldPhoto !== $student->photo_path) {
+            Storage::disk('public')->delete($oldPhoto);
+        }
 
         return to_route('students.index')->with('success', "Étudiant {$student->registration_number} mis à jour.");
     }
@@ -100,6 +111,8 @@ class StudentController extends Controller
             'repetition_code' => ['sometimes', Rule::in(['N', 'R', 'T'])],
             'birth_date' => ['nullable', 'date', 'before:today'],
             'nationality' => ['nullable', 'string', 'max:255'],
+            'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+            'remove_photo' => ['nullable', 'boolean'],
             'level_id' => ['nullable', 'integer', 'exists:academic_levels,id'],
             'mention_id' => ['nullable', 'integer', 'exists:academic_mentions,id'],
             'program_id' => ['nullable', 'integer', 'exists:academic_programs,id'],

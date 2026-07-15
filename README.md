@@ -36,6 +36,7 @@ L’interface reprend le langage visuel du template Dashwind fourni localement d
 - téléchargement PDF des étiquettes QR sélectionnées en complément de l’impression directe ;
 - sélection multiple des ouvrages avec suppression groupée transactionnelle des notices sans exemplaire ;
 - sélection multiple des étudiants avec suppression groupée protégée par les cartes et historiques de bibliothèque ;
+- photos d’identité scannées et cartes de bibliothèque CR80 imprimables sur PVC ou papier A4 ;
 - sélection multiple des catégories et auteurs avec suppression groupée protégée par leurs relations au catalogue ;
 - export Excel du catalogue et de ses numéros d’inventaire ;
 - numéros étudiants automatiques au format `ETU-AA-001` ;

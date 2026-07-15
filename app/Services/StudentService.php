@@ -15,6 +15,10 @@ class StudentService
     /** @param array<string, mixed> $data */
     public function create(array $data): Student
     {
+        if (! empty($data['photo'])) {
+            $data['photo_path'] = $data['photo']->store('photos/students', 'public');
+        }
+        $data = Arr::except($data, ['photo', 'remove_photo']);
         $data = $this->academicReferences->resolve($data);
 
         return DB::transaction(function () use ($data): Student {
