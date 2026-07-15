@@ -84,6 +84,21 @@ it('creates only one active card per student and prints its QR code', function (
         ->assertSee('85.6mm 53.98mm', false);
 });
 
+it('adapts the library card typography for a long student name', function () {
+    $user = User::factory()->create()->assignRole('secretaire');
+    $student = Student::factory()->create([
+        'last_name' => 'ANDRIANARISON RAZAFINDRAKOTOARIMANANA',
+        'first_name' => 'Jean Chrysostome',
+    ]);
+    $this->actingAs($user)->post(route('cards.store'), ['student_id' => $student->id]);
+    $card = StudentCard::query()->firstOrFail();
+
+    $this->get(route('cards.print', $card))
+        ->assertOk()
+        ->assertSee('ANDRIANARISON RAZAFINDRAKOTOARIMANANA Jean Chrysostome')
+        ->assertSee('name-very-compact', false);
+});
+
 it('prevents students from managing copies cards and catalog references', function () {
     $user = User::factory()->create()->assignRole('etudiant');
 
