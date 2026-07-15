@@ -1,5 +1,7 @@
 @import 'tailwindcss' source(none);
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @source '../views/**/*.blade.php';
 @source '../js/**/*.vue';
 
@@ -22,12 +24,28 @@
 }
 
 @layer base {
-    html { color-scheme: light; }
-    body { @apply bg-slate-50 font-sans text-slate-600 antialiased; }
+    html { @apply bg-slate-50; color-scheme: light; }
+    html.dark { @apply bg-slate-950; color-scheme: dark; }
+    body { @apply bg-slate-50 font-sans text-slate-600 antialiased transition-colors duration-200 dark:bg-slate-950 dark:text-slate-300; }
     button, a, input { @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2; }
 }
 
 @layer components {
-    .dw-card { @apply rounded-md border border-slate-200 bg-white shadow-sm; }
-    .dw-field { @apply h-12 w-full rounded-md border border-slate-300 bg-white px-4 text-sm text-slate-700 placeholder:text-slate-400 transition hover:border-slate-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-100; }
+    .dw-card { @apply rounded-md border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900; }
+    .dw-field { @apply h-12 w-full rounded-md border border-slate-300 bg-white px-4 text-sm text-slate-700 placeholder:text-slate-400 transition hover:border-slate-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:placeholder:text-slate-500 dark:hover:border-slate-600 dark:focus:border-primary-500 dark:focus:ring-primary-900; }
+}
+
+@layer utilities {
+    .dark .bg-white { background-color: var(--color-slate-900); }
+    .dark .bg-white\/95 { background-color: color-mix(in srgb, var(--color-slate-900) 95%, transparent); }
+    .dark .bg-slate-50, .dark .bg-gray-100 { background-color: var(--color-slate-950); }
+    .dark .bg-slate-100 { background-color: var(--color-slate-800); }
+    .dark .border-slate-100, .dark .border-slate-200, .dark .border-gray-300 { border-color: var(--color-slate-800); }
+    .dark .divide-slate-100 > :not(:last-child) { border-color: var(--color-slate-800); }
+    .dark .text-slate-800, .dark .text-gray-900, .dark .text-gray-800 { color: var(--color-slate-100); }
+    .dark .text-slate-700, .dark .text-gray-700 { color: var(--color-slate-200); }
+    .dark .text-slate-600, .dark .text-gray-600 { color: var(--color-slate-300); }
+    .dark .text-slate-500, .dark .text-gray-500 { color: var(--color-slate-400); }
+    .dark .hover\:bg-slate-50:hover, .dark .hover\:bg-slate-50\/70:hover, .dark .hover\:bg-slate-100:hover { background-color: var(--color-slate-800); }
+    .dark textarea:not(.dw-field), .dark select, .dark input { color-scheme: dark; }
 }

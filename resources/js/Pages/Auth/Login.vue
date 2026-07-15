@@ -2,6 +2,7 @@
 import AppIcon from '@/Components/AppIcon.vue';
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 import InputError from '@/Components/InputError.vue';
+import ThemeToggle from '@/Components/ThemeToggle.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
 
@@ -18,7 +19,8 @@ const submit = () => {
 <template>
     <Head title="Connexion" />
 
-    <main class="flex min-h-screen bg-white">
+    <main class="relative flex min-h-screen bg-white transition-colors dark:bg-slate-900">
+        <div class="absolute end-5 top-5 z-20 rounded-full bg-white/80 shadow-sm backdrop-blur dark:bg-slate-900/80 lg:end-7 lg:top-7"><ThemeToggle /></div>
         <section class="flex w-full flex-col lg:w-[46%]">
             <div class="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-10 sm:px-8 lg:py-14">
                 <div class="mb-12 flex items-center gap-3">

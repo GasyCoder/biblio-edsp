@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import AppIcon from '@/Components/AppIcon.vue';
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
+import ThemeToggle from '@/Components/ThemeToggle.vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 
@@ -40,10 +41,10 @@ const menuGroups = computed(() => [
 </script>
 
 <template>
-    <div class="min-h-screen bg-slate-50">
+    <div class="min-h-screen bg-slate-50 transition-colors dark:bg-slate-950">
         <div v-if="sidebarOpen" class="fixed inset-0 z-40 bg-slate-950/40 backdrop-blur-sm xl:hidden" @click="sidebarOpen = false"></div>
 
-        <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'" class="fixed inset-y-0 start-0 z-50 flex w-72 flex-col border-e border-slate-200 bg-white transition-transform duration-300 xl:translate-x-0">
+        <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'" class="fixed inset-y-0 start-0 z-50 flex w-72 flex-col border-e border-slate-200 bg-white transition duration-300 dark:border-slate-800 dark:bg-slate-900 xl:translate-x-0">
             <div class="flex h-16 items-center border-b border-slate-200 px-6">
                 <Link :href="route('dashboard')" class="flex items-center gap-3 rounded-md">
                     <ApplicationLogo class="h-9 w-9 text-primary-600" />
@@ -81,7 +82,8 @@ const menuGroups = computed(() => [
                         <AppIcon name="search" class="h-5 w-5 text-slate-400"/><span class="ms-3 text-sm text-slate-400">Recherche rapide dans la bibliothèque…</span><kbd class="ms-auto rounded border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] text-slate-400">Ctrl K</kbd>
                     </div>
                     <div class="ms-auto flex items-center gap-2">
-                        <button class="relative rounded-full p-2.5 text-slate-500 hover:bg-slate-100" aria-label="Notifications"><AppIcon name="bell" class="h-5 w-5"/><span class="absolute end-2 top-2 h-2 w-2 rounded-full border-2 border-white bg-primary-500"></span></button>
+                        <ThemeToggle />
+                        <button class="relative rounded-full p-2.5 text-slate-500 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800" aria-label="Notifications"><AppIcon name="bell" class="h-5 w-5"/><span class="absolute end-2 top-2 h-2 w-2 rounded-full border-2 border-white bg-primary-500 dark:border-slate-900"></span></button>
                         <div class="relative">
                             <button class="flex items-center gap-3 rounded-md p-1.5 hover:bg-slate-50" @click="userMenuOpen = !userMenuOpen">
                                 <span class="flex h-9 w-9 items-center justify-center rounded-full bg-primary-100 text-xs font-bold text-primary-700">{{ initials }}</span>
