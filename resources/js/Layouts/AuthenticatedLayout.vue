@@ -25,8 +25,8 @@ const menuGroups = computed(() => [
         { label: 'Prêts et retours', icon: 'loans', href: null, permission: page.props.auth.roles.includes('etudiant') ? 'loans.view_own' : 'loans.view' },
     ] },
     { label: 'Bibliothèque', items: [
-        { label: 'Étudiants', icon: 'students', href: null, permission: 'students.view' },
-        { label: page.props.auth.roles.includes('etudiant') ? 'Catalogue' : 'Ouvrages', icon: 'books', href: null, permission: page.props.auth.roles.includes('etudiant') ? 'catalog.view' : 'books.view' },
+        { label: 'Étudiants', icon: 'students', href: route('students.index'), permission: 'students.view', active: route().current('students.*') },
+        { label: page.props.auth.roles.includes('etudiant') ? 'Catalogue' : 'Ouvrages', icon: 'books', href: route('books.index'), permission: page.props.auth.roles.includes('etudiant') ? 'catalog.view' : 'books.view', active: route().current('books.*') },
         { label: 'Exemplaires', icon: 'copies', href: null, permission: 'copies.view' },
         { label: page.props.auth.roles.includes('etudiant') ? 'Mon historique' : 'Rapports', icon: 'reports', href: null, permission: page.props.auth.roles.includes('etudiant') ? 'consultations.view_own' : 'reports.operational' },
     ] },

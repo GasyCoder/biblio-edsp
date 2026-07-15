@@ -60,9 +60,9 @@ class DashboardController extends Controller
         $actions = [
             ['label' => 'Gérer les utilisateurs', 'description' => 'Comptes, rôles et accès', 'icon' => 'users', 'permission' => 'users.manage', 'available' => false, 'href' => null],
             ['label' => 'Scanner une carte', 'description' => 'Entrée ou sortie étudiant', 'icon' => 'scan', 'permission' => 'visits.check_in', 'available' => false, 'href' => null],
-            ['label' => 'Rechercher un étudiant', 'description' => 'Matricule, carte ou identité', 'icon' => 'students', 'permission' => 'students.view', 'available' => false, 'href' => null],
-            ['label' => 'Gérer le catalogue', 'description' => 'Ouvrages et exemplaires', 'icon' => 'books', 'permission' => 'books.view', 'available' => false, 'href' => null],
-            ['label' => 'Consulter le catalogue', 'description' => 'Rechercher un ouvrage disponible', 'icon' => 'books', 'permission' => 'catalog.view', 'available' => false, 'href' => null],
+            ['label' => 'Rechercher un étudiant', 'description' => 'Matricule, carte ou identité', 'icon' => 'students', 'permission' => 'students.view', 'available' => true, 'href' => route('students.index')],
+            ['label' => 'Gérer le catalogue', 'description' => 'Ouvrages et exemplaires', 'icon' => 'books', 'permission' => 'books.view', 'available' => true, 'href' => route('books.index')],
+            ['label' => 'Consulter le catalogue', 'description' => 'Rechercher un ouvrage disponible', 'icon' => 'books', 'permission' => 'catalog.view', 'available' => true, 'href' => route('books.index')],
             ['label' => 'Mon historique', 'description' => 'Présences et lectures sur place', 'icon' => 'reports', 'permission' => 'visits.view_own', 'available' => false, 'href' => null],
         ];
 
