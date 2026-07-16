@@ -44,6 +44,16 @@ it('previews books with carried categories continuation authors and quantities',
         ->and($second->normalized_data['quantity'])->toBe(2);
 });
 
+it('analyzes several uploaded book spreadsheets in one request', function () {
+    $secretary = User::factory()->create()->assignRole('secretaire');
+
+    $this->actingAs($secretary)
+        ->post(route('book-imports.store'), ['files' => [bookSpreadsheet(), bookSpreadsheet()]])
+        ->assertRedirect(route('book-imports.index'));
+
+    expect(ImportBatch::query()->where('type', 'books')->count())->toBe(2);
+});
+
 it('creates one physical copy per imported quantity without merging titles', function () {
     $secretary = User::factory()->create()->assignRole('secretaire');
     $superadmin = User::factory()->create()->assignRole('superadmin');

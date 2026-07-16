@@ -19,6 +19,36 @@ beforeEach(function () {
     $this->seed(RolePermissionSeeder::class);
 });
 
+it('separates catalogue references into dedicated pages', function () {
+    $user = User::factory()->create()->assignRole('secretaire');
+
+    $this->actingAs($user)->get(route('catalog-references.index'))
+        ->assertInertia(fn (Assert $page) => $page->component('CatalogReferences/Index')->has('counts'));
+    $this->get(route('categories.index'))
+        ->assertInertia(fn (Assert $page) => $page->component('CatalogReferences/Categories')->has('categories'));
+    $this->get(route('authors.index'))
+        ->assertInertia(fn (Assert $page) => $page->component('CatalogReferences/Authors')->has('authors.data'));
+    $this->get(route('locations.index'))
+        ->assertInertia(fn (Assert $page) => $page->component('CatalogReferences/Locations')->has('locations'));
+});
+
+it('searches independently in every catalogue reference', function () {
+    $user = User::factory()->create()->assignRole('secretaire');
+    Category::create(['name' => 'Droit commercial', 'slug' => 'droit-commercial', 'inventory_code' => 'DRC']);
+    Category::create(['name' => 'Science politique', 'slug' => 'science-politique', 'inventory_code' => 'SP']);
+    Author::create(['display_name' => 'Jean Touchard']);
+    Author::create(['display_name' => 'Auteur différent']);
+    \App\Models\Location::create(['type' => 'cabinet', 'number' => '1', 'name' => 'Armoire 1', 'code' => 'ARM-1']);
+    \App\Models\Location::create(['type' => 'shelf', 'number' => '2', 'name' => 'Étagère 2', 'code' => 'ETA-2']);
+
+    $this->actingAs($user)->get(route('categories.index', ['search' => 'DRC']))
+        ->assertInertia(fn (Assert $page) => $page->has('categories', 1)->where('filters.search', 'DRC'));
+    $this->get(route('authors.index', ['search' => 'Touchard']))
+        ->assertInertia(fn (Assert $page) => $page->has('authors.data', 1)->where('filters.search', 'Touchard'));
+    $this->get(route('locations.index', ['search' => 'ARM-1']))
+        ->assertInertia(fn (Assert $page) => $page->has('locations', 1)->where('filters.search', 'ARM-1'));
+});
+
 it('generates sequential student and copy numbers without using row counts', function () {
     $numbers = app(NumberGenerator::class);
 

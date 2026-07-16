@@ -19,8 +19,8 @@ const submit = () => {
 <template>
     <Head title="Connexion" />
 
-    <main class="relative flex min-h-screen bg-white transition-colors dark:bg-slate-900">
-        <div class="absolute end-5 top-5 z-20 rounded-full bg-white/80 shadow-sm backdrop-blur dark:bg-slate-900/80 lg:end-7 lg:top-7"><ThemeToggle /></div>
+    <main class="relative flex min-h-screen bg-white transition-colors dark:bg-gray-950">
+        <div class="absolute end-5 top-5 z-20 rounded-full border border-gray-200 bg-white/80 shadow-sm backdrop-blur dark:border-gray-900 dark:bg-gray-950/80 lg:end-7 lg:top-7"><ThemeToggle /></div>
         <section class="flex w-full flex-col lg:w-[46%]">
             <div class="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-10 sm:px-8 lg:py-14">
                 <div class="mb-12 flex items-center gap-3">
@@ -65,19 +65,19 @@ const submit = () => {
                         Garder ma session ouverte
                     </label>
 
-                    <button type="submit" class="flex h-12 w-full items-center justify-center rounded-md bg-primary-600 px-5 text-sm font-bold text-white shadow-sm transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-60" :disabled="form.processing">
+                    <button type="submit" class="dw-btn-primary h-11 w-full" :disabled="form.processing">
                         <span v-if="form.processing" class="me-2 h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span>
                         Se connecter
                     </button>
                 </form>
 
-                <p class="mt-7 rounded-md bg-slate-50 px-4 py-3 text-center text-xs leading-5 text-slate-500">Les comptes sont attribués par l’administration de l’EDSP. Contactez le responsable si vous ne disposez pas encore d’un accès.</p>
+                <p class="mt-7 rounded-md bg-gray-50 px-4 py-3 text-center text-xs leading-5 text-slate-500 dark:bg-gray-1000">Les comptes sont attribués par l’administration de l’EDSP. Contactez le responsable si vous ne disposez pas encore d’un accès.</p>
             </div>
 
             <footer class="mx-auto w-full max-w-md px-6 pb-8 text-xs text-slate-400 sm:px-8">© {{ new Date().getFullYear() }} EDSP — Gestion interne de la bibliothèque</footer>
         </section>
 
-        <aside class="relative hidden flex-1 overflow-hidden bg-slate-950 lg:flex lg:items-center lg:justify-center">
+        <aside class="relative hidden flex-1 overflow-hidden bg-gray-1000 lg:flex lg:items-center lg:justify-center">
             <div class="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(121,139,255,0.3),transparent_35%),radial-gradient(circle_at_20%_85%,rgba(23,107,83,0.28),transparent_32%)]"></div>
             <div class="absolute inset-0 opacity-[0.08] [background-image:linear-gradient(rgba(255,255,255,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.35)_1px,transparent_1px)] [background-size:42px_42px]"></div>
             <div class="relative z-10 max-w-xl px-12 text-white">

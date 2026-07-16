@@ -5,9 +5,50 @@
 @source '../views/**/*.blade.php';
 @source '../js/**/*.vue';
 
+@font-face {
+    font-family: 'Roboto';
+    src: url('../fonts/Roboto-Regular.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Roboto';
+    src: url('../fonts/Roboto-Medium.woff2') format('woff2');
+    font-weight: 500 600;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Roboto';
+    src: url('../fonts/Roboto-Bold.woff2') format('woff2');
+    font-weight: 700 900;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Nunito';
+    src: url('../fonts/Nunito-Regular.woff2') format('woff2');
+    font-weight: 400 600;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Nunito';
+    src: url('../fonts/Nunito-Bold.woff2') format('woff2');
+    font-weight: 700 900;
+    font-style: normal;
+    font-display: swap;
+}
+
 @theme {
-    --font-sans: 'Roboto', 'Inter', ui-sans-serif, system-ui, sans-serif;
-    --font-heading: 'Nunito', 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-sans: 'Roboto', ui-sans-serif, system-ui, sans-serif;
+    --font-heading: 'Nunito', ui-sans-serif, system-ui, sans-serif;
+
     --color-primary-50: #f7f8ff;
     --color-primary-100: #eff1ff;
     --color-primary-200: #e3e7fe;
@@ -16,36 +57,160 @@
     --color-primary-500: #798bff;
     --color-primary-600: #6576ff;
     --color-primary-700: #5664d9;
-    --color-primary-800: #4652b5;
+    --color-primary-800: #465fff;
     --color-primary-900: #2c3782;
+    --color-primary-950: #29347a;
+
+    --color-slate-50: #f5f7fd;
+    --color-slate-100: #ecf2ff;
+    --color-slate-200: #dfe9fe;
+    --color-slate-300: #b6c6e3;
+    --color-slate-400: #8094ae;
+    --color-slate-500: #6e82a5;
+    --color-slate-600: #526484;
+    --color-slate-700: #364a63;
+    --color-slate-800: #203145;
+    --color-slate-900: #1c2b46;
+    --color-slate-950: #131f34;
+
+    --color-gray-50: #f7fafc;
+    --color-gray-100: #ebeef2;
+    --color-gray-200: #e5e9f2;
+    --color-gray-300: #dbdfea;
+    --color-gray-400: #b7c2d0;
+    --color-gray-500: #8091a7;
+    --color-gray-600: #3c4d62;
+    --color-gray-700: #344357;
+    --color-gray-800: #2b3748;
+    --color-gray-900: #1f2b3a;
+    --color-gray-950: #101924;
+    --color-gray-1000: #0d141d;
+
+    --color-green-50: #e9fcf7;
+    --color-green-100: #e6fcf6;
+    --color-green-200: #bcf6e6;
+    --color-green-300: #a5f3de;
+    --color-green-400: #78eccd;
+    --color-green-500: #4be6bd;
+    --color-green-600: #1ee0ac;
+    --color-green-700: #18b38a;
+    --color-green-800: #128667;
+    --color-green-900: #0c5a45;
+    --color-green-950: #062d22;
+    --color-emerald-50: #e9fcf7;
+    --color-emerald-100: #e6fcf6;
+    --color-emerald-200: #bcf6e6;
+    --color-emerald-300: #a5f3de;
+    --color-emerald-400: #78eccd;
+    --color-emerald-500: #4be6bd;
+    --color-emerald-600: #1ee0ac;
+    --color-emerald-700: #18b38a;
+    --color-emerald-800: #128667;
+    --color-emerald-900: #0c5a45;
+    --color-emerald-950: #062d22;
+    --color-yellow-50: #fef8e7;
+    --color-yellow-100: #fef8e4;
+    --color-yellow-200: #fcebb7;
+    --color-yellow-300: #fbe59f;
+    --color-yellow-400: #f8d76e;
+    --color-yellow-500: #f6ca3e;
+    --color-yellow-600: #f4bd0e;
+    --color-yellow-700: #c3970b;
+    --color-yellow-800: #927108;
+    --color-yellow-900: #624c06;
+    --color-yellow-950: #312603;
+    --color-amber-50: #fef8e7;
+    --color-amber-100: #fef8e4;
+    --color-amber-200: #fcebb7;
+    --color-amber-300: #fbe59f;
+    --color-amber-400: #f8d76e;
+    --color-amber-500: #f6ca3e;
+    --color-amber-600: #f4bd0e;
+    --color-amber-700: #c3970b;
+    --color-amber-800: #927108;
+    --color-amber-900: #624c06;
+    --color-amber-950: #312603;
+    --color-red-50: #fdeeed;
+    --color-red-100: #fceceb;
+    --color-red-200: #f8cbc8;
+    --color-red-300: #f6bab5;
+    --color-red-400: #f19891;
+    --color-red-500: #ed756c;
+    --color-red-600: #e85347;
+    --color-red-700: #ba4239;
+    --color-red-800: #8b322b;
+    --color-red-900: #2e110e;
+    --color-red-950: #2e110e;
+    --color-cyan-50: #e6f9fc;
+    --color-cyan-100: #e4f8fb;
+    --color-cyan-200: #b5edf5;
+    --color-cyan-300: #9de7f2;
+    --color-cyan-400: #6bdaeb;
+    --color-cyan-500: #3acee5;
+    --color-cyan-600: #09c2de;
+    --color-cyan-700: #079bb2;
+    --color-cyan-800: #057485;
+    --color-cyan-900: #044e59;
+    --color-cyan-950: #02272c;
+
     --color-edsp-600: #176b53;
     --color-edsp-700: #115541;
     --color-edsp-800: #0d4032;
 }
 
 @layer base {
-    html { @apply bg-slate-50; color-scheme: light; }
-    html.dark { @apply bg-slate-950; color-scheme: dark; }
-    body { @apply bg-slate-50 font-sans text-slate-600 antialiased transition-colors duration-200 dark:bg-slate-950 dark:text-slate-300; }
-    button, a, input { @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2; }
+    html { @apply bg-gray-50; color-scheme: light; }
+    html.dark { @apply bg-gray-1000; color-scheme: dark; }
+    body { @apply min-w-80 bg-gray-50 font-sans text-sm leading-6 text-slate-600 antialiased transition-colors duration-300 dark:bg-gray-1000 dark:text-slate-300; }
+    h1, h2, h3, h4, h5, h6 { @apply font-heading leading-tight tracking-[-0.01em] text-slate-700 dark:text-white; }
+    strong { @apply font-medium; }
+    ::selection { @apply bg-primary-200 text-primary-900; }
+    button, a, input, select, textarea { @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-950; }
+    button, a { @apply transition-colors duration-200; }
+    input, select, textarea { @apply accent-primary-600; }
+    select option { @apply bg-white text-slate-700 dark:bg-gray-950 dark:text-slate-200; }
+    * { scrollbar-color: var(--color-slate-300) transparent; scrollbar-width: thin; }
+    .dark * { scrollbar-color: var(--color-gray-700) transparent; }
 }
 
 @layer components {
-    .dw-card { @apply rounded-md border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900; }
-    .dw-field { @apply h-12 w-full rounded-md border border-slate-300 bg-white px-4 text-sm text-slate-700 placeholder:text-slate-400 transition hover:border-slate-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200 dark:placeholder:text-slate-500 dark:hover:border-slate-600 dark:focus:border-primary-500 dark:focus:ring-primary-900; }
+    .dw-card { @apply rounded-md border border-gray-300 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.025)] dark:border-gray-900 dark:bg-gray-950 dark:shadow-none; }
+    .dw-field { @apply h-11 w-full rounded-md border border-gray-300 bg-white px-3.5 text-sm leading-5 text-slate-700 placeholder:text-slate-400 transition duration-200 hover:border-slate-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 dark:border-gray-800 dark:bg-gray-950 dark:text-white dark:placeholder:text-slate-500 dark:hover:border-gray-700 dark:focus:border-primary-500 dark:focus:ring-primary-950; }
+    textarea.dw-field { @apply h-auto min-h-28 py-3; }
+    select.dw-field { @apply pe-10; }
+    .dw-btn-primary { @apply inline-flex h-10 items-center justify-center gap-2 rounded-md bg-primary-600 px-4 text-sm font-medium text-white shadow-sm hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50; }
+    .dw-btn-secondary { @apply inline-flex h-10 items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-4 text-sm font-medium text-slate-600 hover:border-primary-300 hover:text-primary-600 dark:border-gray-800 dark:bg-gray-950 dark:text-slate-300 dark:hover:border-primary-700 dark:hover:text-primary-400; }
+    .dw-page-kicker { @apply text-[11px] font-bold uppercase tracking-[0.16em] text-primary-600; }
+    .dw-page-title { @apply mt-1 font-heading text-2xl font-bold leading-tight tracking-[-0.02em] text-slate-700 dark:text-white sm:text-[1.75rem]; }
+    .dw-page-description { @apply mt-2 text-sm leading-5 text-slate-500 dark:text-slate-400; }
+    .dw-table { @apply w-full text-sm; }
+    .dw-table thead { @apply border-b border-gray-200 bg-gray-50 text-[11px] font-medium uppercase tracking-wider text-slate-400 dark:border-gray-900 dark:bg-gray-1000; }
+    .dw-table tbody { @apply divide-y divide-gray-200 dark:divide-gray-900; }
+    .dw-table tbody tr { @apply transition-colors hover:bg-gray-50/80 dark:hover:bg-gray-900/60; }
 }
 
 @layer utilities {
-    .dark .bg-white { background-color: var(--color-slate-900); }
-    .dark .bg-white\/95 { background-color: color-mix(in srgb, var(--color-slate-900) 95%, transparent); }
-    .dark .bg-slate-50, .dark .bg-gray-100 { background-color: var(--color-slate-950); }
-    .dark .bg-slate-100 { background-color: var(--color-slate-800); }
-    .dark .border-slate-100, .dark .border-slate-200, .dark .border-gray-300 { border-color: var(--color-slate-800); }
-    .dark .divide-slate-100 > :not(:last-child) { border-color: var(--color-slate-800); }
-    .dark .text-slate-800, .dark .text-gray-900, .dark .text-gray-800 { color: var(--color-slate-100); }
+    .dark .bg-white { background-color: var(--color-gray-950); }
+    .dark .bg-white\/95 { background-color: color-mix(in srgb, var(--color-gray-950) 95%, transparent); }
+    .dark .bg-slate-50, .dark .bg-gray-50, .dark .bg-gray-100 { background-color: var(--color-gray-1000); }
+    .dark .bg-slate-100 { background-color: var(--color-gray-900); }
+    .dark .bg-slate-900 { background-color: var(--color-gray-950); }
+    .dark .bg-slate-950 { background-color: var(--color-gray-1000); }
+    .dark .border-slate-100, .dark .border-slate-200, .dark .border-gray-200, .dark .border-gray-300 { border-color: var(--color-gray-900); }
+    .dark .divide-slate-100 > :not(:last-child), .dark .divide-gray-200 > :not(:last-child) { border-color: var(--color-gray-900); }
+    .dark .text-slate-800, .dark .text-gray-900, .dark .text-gray-800 { color: #fff; }
     .dark .text-slate-700, .dark .text-gray-700 { color: var(--color-slate-200); }
     .dark .text-slate-600, .dark .text-gray-600 { color: var(--color-slate-300); }
     .dark .text-slate-500, .dark .text-gray-500 { color: var(--color-slate-400); }
-    .dark .hover\:bg-slate-50:hover, .dark .hover\:bg-slate-50\/70:hover, .dark .hover\:bg-slate-100:hover { background-color: var(--color-slate-800); }
+    .dark .hover\:bg-slate-50:hover, .dark .hover\:bg-slate-50\/70:hover, .dark .hover\:bg-slate-100:hover { background-color: var(--color-gray-900); }
     .dark textarea:not(.dw-field), .dark select, .dark input { color-scheme: dark; }
+
+    .dw-card label { font-weight: 500; color: var(--color-slate-700); }
+    .dark .dw-card label { color: var(--color-slate-200); }
+    button.bg-primary-600, a.bg-primary-600 { font-weight: 500; box-shadow: 0 1px 2px rgb(15 23 42 / 0.08); }
+    button.bg-primary-600:hover, a.bg-primary-600:hover { background-color: var(--color-primary-700); }
+    input[type='file'] { border-color: var(--color-gray-300); background-color: #fff; color: var(--color-slate-500); }
+    input[type='file']::file-selector-button { margin-inline-end: .75rem; border: 0; border-inline-end: 1px solid var(--color-gray-300); background: var(--color-gray-50); padding: .5rem .75rem; color: var(--color-slate-600); font-weight: 500; }
+    .dark input[type='file'] { border-color: var(--color-gray-800); background-color: var(--color-gray-950); color: var(--color-slate-400); }
+    .dark input[type='file']::file-selector-button { border-color: var(--color-gray-800); background: var(--color-gray-1000); color: var(--color-slate-300); }
 }

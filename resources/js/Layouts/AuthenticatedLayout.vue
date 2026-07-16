@@ -65,18 +65,20 @@ const menuGroups = computed(() =>
                 {
                     label: "Présences",
                     icon: "visits",
-                    href: null,
+                    href: route("visits.index"),
                     permission: page.props.auth.roles.includes("etudiant")
                         ? "visits.view_own"
                         : "visits.view",
+                    active: route().current("visits.*"),
                 },
                 {
                     label: "Prêts et retours",
                     icon: "loans",
-                    href: null,
+                    href: route("loans.index"),
                     permission: page.props.auth.roles.includes("etudiant")
                         ? "loans.view_own"
                         : "loans.view",
+                    active: route().current("loans.*"),
                 },
             ],
         },
@@ -84,11 +86,11 @@ const menuGroups = computed(() =>
             label: "Bibliothèque",
             items: [
                 {
-                    label: "Étudiants",
-                    icon: "students",
-                    href: route("students.index"),
-                    permission: "students.view",
-                    active: route().current("students.*"),
+                    label: "Inventaire physique",
+                    icon: "copies",
+                    href: route("copies.index"),
+                    permission: "copies.view",
+                    active: route().current("copies.*"),
                 },
                 {
                     label: page.props.auth.roles.includes("etudiant")
@@ -102,28 +104,57 @@ const menuGroups = computed(() =>
                     active: route().current("books.*"),
                 },
                 {
-                    label: "Exemplaires",
-                    icon: "copies",
-                    href: route("copies.index"),
-                    permission: "copies.view",
-                    active: route().current("copies.*"),
-                },
-                {
-                    label: "Référentiels",
-                    icon: "settings",
-                    href: route("catalog-references.index"),
-                    permission: "categories.view",
-                    active: route().current("catalog-references.*"),
+                    label: "Étudiants",
+                    icon: "students",
+                    href: route("students.index"),
+                    permission: "students.view",
+                    active: route().current("students.*"),
                 },
                 {
                     label: page.props.auth.roles.includes("etudiant")
                         ? "Mon historique"
                         : "Rapports",
                     icon: "reports",
-                    href: null,
+                    href: page.props.auth.roles.includes("etudiant")
+                        ? route("visits.index")
+                        : route("reports.index"),
                     permission: page.props.auth.roles.includes("etudiant")
                         ? "consultations.view_own"
                         : "reports.operational",
+                    active: route().current("reports.*"),
+                },
+            ],
+        },
+        {
+            label: "Référentiels",
+            items: [
+                {
+                    label: "Vue d’ensemble",
+                    icon: "settings",
+                    href: route("catalog-references.index"),
+                    permission: "categories.view",
+                    active: route().current("catalog-references.*"),
+                },
+                {
+                    label: "Catégories",
+                    icon: "books",
+                    href: route("categories.index"),
+                    permission: "categories.view",
+                    active: route().current("categories.*"),
+                },
+                {
+                    label: "Auteurs",
+                    icon: "users",
+                    href: route("authors.index"),
+                    permission: "authors.view",
+                    active: route().current("authors.*"),
+                },
+                {
+                    label: "Emplacements",
+                    icon: "copies",
+                    href: route("locations.index"),
+                    permission: "locations.view",
+                    active: route().current("locations.*"),
                 },
             ],
         },
@@ -133,14 +164,16 @@ const menuGroups = computed(() =>
                 {
                     label: "Utilisateurs",
                     icon: "users",
-                    href: null,
+                    href: route("users.index"),
                     permission: "users.manage",
+                    active: route().current("users.*"),
                 },
                 {
                     label: "Paramètres",
                     icon: "settings",
-                    href: null,
+                    href: route("settings.edit"),
                     permission: "settings.manage",
+                    active: route().current("settings.*"),
                 },
             ],
         },
@@ -148,7 +181,7 @@ const menuGroups = computed(() =>
         .map((group) => ({
             ...group,
             items: group.items.filter((item) =>
-                can("permission" in item ? item.permission : undefined),
+                can("permission" in item && typeof item.permission === "string" ? item.permission : undefined),
             ),
         }))
         .filter((group) => group.items.length > 0),
@@ -156,7 +189,7 @@ const menuGroups = computed(() =>
 </script>
 
 <template>
-    <div class="min-h-screen bg-slate-50 transition-colors dark:bg-slate-950">
+    <div class="min-h-screen bg-gray-50 transition-colors duration-300 dark:bg-gray-1000">
         <div
             v-if="sidebarOpen"
             class="fixed inset-0 z-40 bg-slate-950/40 backdrop-blur-sm xl:hidden"
@@ -165,9 +198,9 @@ const menuGroups = computed(() =>
 
         <aside
             :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
-            class="fixed inset-y-0 start-0 z-50 flex w-72 flex-col border-e border-slate-200 bg-white transition duration-300 dark:border-slate-800 dark:bg-slate-900 xl:translate-x-0"
+            class="fixed inset-y-0 start-0 z-50 flex w-72 flex-col border-e border-gray-200 bg-white transition duration-300 dark:border-gray-900 dark:bg-gray-950 xl:translate-x-0"
         >
-            <div class="flex h-16 items-center border-b border-slate-200 px-6">
+            <div class="flex h-16 items-center border-b border-gray-200 px-6 dark:border-gray-900">
                 <Link
                     :href="route('dashboard')"
                     class="flex items-center gap-3 rounded-md"
@@ -175,7 +208,7 @@ const menuGroups = computed(() =>
                     <ApplicationLogo class="h-9 w-9 text-primary-600" />
                     <div>
                         <p
-                            class="font-heading text-base font-bold leading-tight text-slate-800"
+                            class="font-heading text-base font-bold leading-tight tracking-tight text-slate-700 dark:text-white"
                         >
                             Bibliothèque EDSP
                         </p>
@@ -187,7 +220,7 @@ const menuGroups = computed(() =>
                     </div>
                 </Link>
                 <button
-                    class="ms-auto rounded-md p-2 text-slate-400 hover:bg-slate-100 xl:hidden"
+                    class="ms-auto rounded-full p-2 text-slate-400 hover:bg-gray-100 dark:hover:bg-gray-900 xl:hidden"
                     aria-label="Fermer le menu"
                     @click="sidebarOpen = false"
                 >
@@ -195,11 +228,11 @@ const menuGroups = computed(() =>
                 </button>
             </div>
 
-            <nav class="flex-1 overflow-y-auto px-4 py-5">
+            <nav class="flex-1 overflow-y-auto px-4 py-4">
                 <div
                     v-for="group in menuGroups"
                     :key="group.label"
-                    class="mb-6"
+                    class="mb-5"
                 >
                     <p
                         class="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400"
@@ -213,10 +246,10 @@ const menuGroups = computed(() =>
                                 :href="item.href"
                                 :class="
                                     item.active
-                                        ? 'bg-primary-50 text-primary-700'
-                                        : 'text-slate-600 hover:bg-slate-50 hover:text-primary-600'
+                                        ? 'bg-primary-50 text-primary-600 dark:bg-primary-950/45 dark:text-primary-400'
+                                        : 'text-slate-600 hover:bg-gray-50 hover:text-primary-600 dark:text-slate-300 dark:hover:bg-gray-900 dark:hover:text-primary-400'
                                 "
-                                class="flex h-11 items-center gap-3 rounded-md px-3 text-sm font-semibold transition"
+                                class="group flex h-10 items-center gap-3 rounded-md px-3 text-sm font-medium transition duration-200"
                                 @click="sidebarOpen = false"
                             >
                                 <AppIcon
@@ -226,7 +259,7 @@ const menuGroups = computed(() =>
                             </Link>
                             <div
                                 v-else
-                                class="flex h-11 cursor-not-allowed items-center gap-3 rounded-md px-3 text-sm font-medium text-slate-400"
+                                class="flex h-10 cursor-not-allowed items-center gap-3 rounded-md px-3 text-sm font-normal text-slate-400 opacity-75"
                                 :title="`${item.label} sera disponible dans la prochaine phase`"
                             >
                                 <AppIcon
@@ -234,7 +267,7 @@ const menuGroups = computed(() =>
                                     class="h-5 w-5 shrink-0"
                                 /><span>{{ item.label }}</span
                                 ><span
-                                    class="ms-auto rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold uppercase text-slate-400"
+                                    class="ms-auto rounded bg-gray-100 px-1.5 py-0.5 text-[9px] font-bold uppercase text-slate-400 dark:bg-gray-900"
                                     >Bientôt</span
                                 >
                             </div>
@@ -243,8 +276,8 @@ const menuGroups = computed(() =>
                 </div>
             </nav>
 
-            <div class="border-t border-slate-200 p-4">
-                <div class="rounded-md bg-slate-50 p-3">
+            <div class="border-t border-gray-200 p-4 dark:border-gray-900">
+                <div class="rounded-md bg-gray-50 p-3 dark:bg-gray-1000">
                     <p class="text-xs font-semibold text-slate-600">
                         Besoin d’aide ?
                     </p>
@@ -255,9 +288,9 @@ const menuGroups = computed(() =>
             </div>
         </aside>
 
-        <div class="min-h-screen transition-all duration-300 xl:ps-72">
+        <div class="flex min-h-screen flex-col transition-all duration-300 xl:ps-72">
             <header
-                class="fixed inset-x-0 top-0 z-30 h-16 border-b border-slate-200 bg-white/95 backdrop-blur xl:start-72"
+                class="fixed inset-x-0 top-0 z-30 h-16 border-b border-gray-200 bg-white/95 backdrop-blur-md dark:border-gray-900 dark:bg-gray-950/95 xl:start-72"
             >
                 <div
                     class="flex h-full items-center gap-3 px-4 sm:px-6 lg:px-8"
@@ -276,7 +309,7 @@ const menuGroups = computed(() =>
                         /><span class="ms-3 text-sm text-slate-400"
                             >Recherche rapide dans la bibliothèque…</span
                         ><kbd
-                            class="ms-auto rounded border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] text-slate-400"
+                            class="ms-auto rounded border border-gray-200 bg-gray-50 px-2 py-1 text-[10px] text-slate-400 dark:border-gray-800 dark:bg-gray-1000"
                             >Ctrl K</kbd
                         >
                     </div>
@@ -292,11 +325,11 @@ const menuGroups = computed(() =>
                         </button>
                         <div class="relative">
                             <button
-                                class="flex items-center gap-3 rounded-md p-1.5 hover:bg-slate-50"
+                                class="flex items-center gap-3 rounded-md p-1.5 hover:bg-gray-50 dark:hover:bg-gray-900"
                                 @click="userMenuOpen = !userMenuOpen"
                             >
                                 <span
-                                    class="flex h-9 w-9 items-center justify-center rounded-full bg-primary-100 text-xs font-bold text-primary-700"
+                                    class="flex h-9 w-9 items-center justify-center rounded-full bg-primary-100 text-xs font-bold text-primary-700 ring-2 ring-white dark:bg-primary-950 dark:text-primary-300 dark:ring-gray-950"
                                     >{{ initials }}</span
                                 >
                                 <span class="hidden text-start md:block"
@@ -315,10 +348,10 @@ const menuGroups = computed(() =>
                             </button>
                             <div
                                 v-if="userMenuOpen"
-                                class="absolute end-0 mt-2 w-56 overflow-hidden rounded-md border border-slate-200 bg-white py-2 shadow-lg"
+                                class="absolute end-0 mt-2 w-56 overflow-hidden rounded-md border border-gray-200 bg-white py-2 shadow-xl dark:border-gray-900 dark:bg-gray-950"
                             >
                                 <div
-                                    class="border-b border-slate-100 px-4 py-2 md:hidden"
+                                    class="border-b border-gray-200 px-4 py-2 dark:border-gray-900 md:hidden"
                                 >
                                     <p
                                         class="truncate text-sm font-semibold text-slate-700"
@@ -331,7 +364,7 @@ const menuGroups = computed(() =>
                                 </div>
                                 <Link
                                     :href="route('profile.edit')"
-                                    class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-primary-600"
+                                    class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-gray-50 hover:text-primary-600 dark:text-slate-300 dark:hover:bg-gray-900"
                                     ><AppIcon name="user" class="h-4 w-4" />Mon
                                     profil</Link
                                 >
@@ -349,16 +382,16 @@ const menuGroups = computed(() =>
                 </div>
             </header>
 
-            <main class="px-4 pb-10 pt-24 sm:px-6 lg:px-8">
-                <div class="mx-auto max-w-[1500px]">
-                    <div v-if="$slots.header" class="mb-7">
+            <main class="mt-16 flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+                <div class="mx-auto w-full max-w-[1680px]">
+                    <div v-if="$slots.header" class="mb-5 md:mb-7">
                         <slot name="header" />
                     </div>
                     <slot />
                 </div>
             </main>
             <footer
-                class="border-t border-slate-200 bg-white px-6 py-4 text-center text-xs text-slate-400"
+                class="border-t border-gray-200 bg-white px-6 py-4 text-center text-xs text-slate-400 dark:border-gray-900 dark:bg-gray-950"
             >
                 © {{ new Date().getFullYear() }} EDSP — Université de Mahajanga
             </footer>

@@ -12,25 +12,37 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class BookImportController extends Controller
 {
-    public function index(BookSpreadsheetService $spreadsheets): Response
+    public function index(): Response
     {
-        return Inertia::render('Books/Imports/Index', ['imports' => ImportBatch::query()->where('type', 'books')->with('uploader:id,name')->latest()->paginate(15), 'referenceFiles' => $spreadsheets->referenceFiles()]);
+        return Inertia::render('Books/Imports/Index', [
+            'imports' => ImportBatch::query()->where('type', 'books')->with('uploader:id,name')->latest()->paginate(15),
+        ]);
     }
 
     public function store(Request $request, BookSpreadsheetService $spreadsheets): RedirectResponse
     {
-        $validated = $request->validate(['file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:20480']]);
-        $import = $spreadsheets->previewUpload($validated['file'], $request->user());
+        if ($request->hasFile('files')) {
+            $validated = $request->validate([
+                'files' => ['required', 'array', 'min:1', 'max:20'],
+                'files.*' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:20480'],
+            ]);
+            $files = $validated['files'];
+        } else {
+            // Compatibilité avec l'ancien formulaire et les intégrations existantes.
+            $validated = $request->validate(['file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:20480']]);
+            $files = [$validated['file']];
+        }
 
-        return to_route('book-imports.show', $import)->with('success', 'Classeur analysé. Vérifiez les ouvrages et quantités.');
-    }
+        $imports = collect($files)
+            ->map(fn ($file) => $spreadsheets->previewUpload($file, $request->user()));
 
-    public function reference(Request $request, BookSpreadsheetService $spreadsheets): RedirectResponse
-    {
-        $validated = $request->validate(['filename' => ['required', 'string']]);
-        $import = $spreadsheets->previewReference($validated['filename'], $request->user());
+        if ($imports->count() === 1) {
+            return to_route('book-imports.show', $imports->first())
+                ->with('success', 'Classeur analysé. Vérifiez les ouvrages et quantités.');
+        }
 
-        return to_route('book-imports.show', $import)->with('success', 'Fichier de référence analysé.');
+        return to_route('book-imports.index')
+            ->with('success', $imports->count().' classeurs analysés. Contrôlez chaque import avant validation.');
     }
 
     public function show(ImportBatch $import): Response

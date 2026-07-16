@@ -20,9 +20,54 @@ class CatalogReferenceController extends Controller
     public function index(): Response
     {
         return Inertia::render('CatalogReferences/Index', [
-            'categories' => Category::query()->withCount('books')->orderBy('name')->get(),
-            'authors' => Author::query()->withCount('books')->orderBy('display_name')->paginate(20, ['*'], 'authors_page'),
-            'locations' => Location::query()->withCount('copies')->orderBy('code')->get(),
+            'counts' => [
+                'categories' => Category::query()->count(),
+                'authors' => Author::query()->count(),
+                'locations' => Location::query()->count(),
+            ],
+        ]);
+    }
+
+    public function categories(Request $request): Response
+    {
+        $search = trim($request->string('search')->toString());
+
+        return Inertia::render('CatalogReferences/Categories', [
+            'categories' => Category::query()->withCount('books')
+                ->when($search !== '', fn ($query) => $query->where(function ($query) use ($search) {
+                    $query->where('name', 'like', "%{$search}%")
+                        ->orWhere('inventory_code', 'like', "%{$search}%")
+                        ->orWhere('description', 'like', "%{$search}%");
+                }))->orderBy('name')->get(),
+            'filters' => ['search' => $search],
+        ]);
+    }
+
+    public function authors(Request $request): Response
+    {
+        $search = trim($request->string('search')->toString());
+
+        return Inertia::render('CatalogReferences/Authors', [
+            'authors' => Author::query()->withCount('books')
+                ->when($search !== '', fn ($query) => $query->where('display_name', 'like', "%{$search}%"))
+                ->orderBy('display_name')->paginate(25)->withQueryString(),
+            'filters' => ['search' => $search],
+        ]);
+    }
+
+    public function locations(Request $request): Response
+    {
+        $search = trim($request->string('search')->toString());
+
+        return Inertia::render('CatalogReferences/Locations', [
+            'locations' => Location::query()->withCount('copies')
+                ->when($search !== '', fn ($query) => $query->where(function ($query) use ($search) {
+                    $query->where('name', 'like', "%{$search}%")
+                        ->orWhere('code', 'like', "%{$search}%")
+                        ->orWhere('type', 'like', "%{$search}%")
+                        ->orWhere('description', 'like', "%{$search}%");
+                }))->orderBy('code')->get(),
+            'filters' => ['search' => $search],
         ]);
     }
 
