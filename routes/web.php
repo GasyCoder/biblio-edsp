@@ -10,6 +10,11 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\StudentCardController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\StudentImportController;
+use App\Http\Controllers\VisitController;
+use App\Http\Controllers\LoanController;
+use App\Http\Controllers\ReportController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\SettingController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/login');
@@ -47,21 +52,23 @@ Route::middleware('auth')->group(function () {
     Route::delete('/books/{book}', [BookController::class, 'destroy'])->middleware('permission:catalog.manage')->name('books.destroy');
     Route::get('/book-imports', [BookImportController::class, 'index'])->middleware('permission:imports.view')->name('book-imports.index');
     Route::post('/book-imports', [BookImportController::class, 'store'])->middleware('permission:imports.upload')->name('book-imports.store');
-    Route::post('/book-imports/reference', [BookImportController::class, 'reference'])->middleware('permission:imports.upload')->name('book-imports.reference');
     Route::get('/book-imports/{import}', [BookImportController::class, 'show'])->middleware('permission:imports.review')->name('book-imports.show');
     Route::post('/book-imports/{import}/commit', [BookImportController::class, 'commit'])->middleware('permission:imports.commit')->name('book-imports.commit');
     Route::get('/book-exports/xlsx', [BookImportController::class, 'export'])->middleware('permission:imports.view')->name('book-exports.xlsx');
 
     Route::get('/catalog-references', [CatalogReferenceController::class, 'index'])->middleware('permission:categories.view|authors.view|locations.view')->name('catalog-references.index');
+    Route::get('/categories', [CatalogReferenceController::class, 'categories'])->middleware('permission:categories.view')->name('categories.index');
     Route::post('/categories', [CatalogReferenceController::class, 'storeCategory'])->middleware('permission:categories.create')->name('categories.store');
     Route::delete('/categories/bulk', [CatalogReferenceController::class, 'destroyCategoriesBulk'])->middleware('permission:catalog.manage')->name('categories.destroy.bulk');
     Route::patch('/categories/{category}', [CatalogReferenceController::class, 'updateCategory'])->middleware('permission:categories.update')->name('categories.update');
     Route::delete('/categories/{category}', [CatalogReferenceController::class, 'destroyCategory'])->middleware('permission:catalog.manage')->name('categories.destroy');
     Route::post('/authors', [CatalogReferenceController::class, 'storeAuthor'])->middleware('permission:authors.create')->name('authors.store');
+    Route::get('/authors', [CatalogReferenceController::class, 'authors'])->middleware('permission:authors.view')->name('authors.index');
     Route::delete('/authors/bulk', [CatalogReferenceController::class, 'destroyAuthorsBulk'])->middleware('permission:catalog.manage')->name('authors.destroy.bulk');
     Route::patch('/authors/{author}', [CatalogReferenceController::class, 'updateAuthor'])->middleware('permission:authors.update')->name('authors.update');
     Route::delete('/authors/{author}', [CatalogReferenceController::class, 'destroyAuthor'])->middleware('permission:catalog.manage')->name('authors.destroy');
     Route::post('/locations', [CatalogReferenceController::class, 'storeLocation'])->middleware('permission:locations.create')->name('locations.store');
+    Route::get('/locations', [CatalogReferenceController::class, 'locations'])->middleware('permission:locations.view')->name('locations.index');
     Route::patch('/locations/{location}', [CatalogReferenceController::class, 'updateLocation'])->middleware('permission:locations.update')->name('locations.update');
     Route::delete('/locations/{location}', [CatalogReferenceController::class, 'destroyLocation'])->middleware('permission:catalog.manage')->name('locations.destroy');
 
@@ -87,6 +94,20 @@ Route::middleware('auth')->group(function () {
     Route::get('/cards/{card}/print', [StudentCardController::class, 'print'])->middleware('permission:cards.print')->name('cards.print');
 
     Route::get('/desk', [DeskController::class, 'index'])->middleware('permission:cards.scan')->name('desk.index');
+    Route::get('/visits', [VisitController::class, 'index'])->middleware('permission:visits.view|visits.view_own')->name('visits.index');
+    Route::get('/visits-export/xlsx', [VisitController::class, 'exportExcel'])->middleware('permission:reports.operational|reports.export')->name('visits.export.xlsx');
+    Route::get('/visits-export/pdf', [VisitController::class, 'exportPdf'])->middleware('permission:reports.operational|reports.export')->name('visits.export.pdf');
+    Route::get('/visits-print', [VisitController::class, 'print'])->middleware('permission:reports.operational|reports.export')->name('visits.print');
+    Route::get('/loans', [LoanController::class, 'index'])->middleware('permission:loans.view|loans.view_own')->name('loans.index');
+    Route::get('/reports', [ReportController::class, 'index'])->middleware('permission:reports.operational|reports.statistics')->name('reports.index');
+    Route::get('/users', [UserController::class, 'index'])->middleware('permission:users.manage')->name('users.index');
+    Route::get('/users/create', [UserController::class, 'create'])->middleware('permission:users.manage')->name('users.create');
+    Route::post('/users', [UserController::class, 'store'])->middleware('permission:users.manage')->name('users.store');
+    Route::get('/users/{user}/edit', [UserController::class, 'edit'])->middleware('permission:users.manage')->name('users.edit');
+    Route::patch('/users/{user}', [UserController::class, 'update'])->middleware('permission:users.manage')->name('users.update');
+    Route::delete('/users/{user}', [UserController::class, 'destroy'])->middleware('permission:users.manage')->name('users.destroy');
+    Route::get('/settings', [SettingController::class, 'edit'])->middleware('permission:settings.manage')->name('settings.edit');
+    Route::patch('/settings', [SettingController::class, 'update'])->middleware('permission:settings.manage')->name('settings.update');
     Route::post('/desk/students/{student}/check-in', [DeskController::class, 'checkIn'])->middleware('permission:visits.check_in')->name('desk.check-in');
     Route::post('/desk/visits/{visit}/check-out', [DeskController::class, 'checkOut'])->middleware('permission:visits.check_out')->name('desk.check-out');
     Route::post('/desk/visits/{visit}/consultation', [DeskController::class, 'openConsultation'])->middleware('permission:consultations.open')->name('desk.consultations.open');
