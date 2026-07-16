@@ -28,9 +28,19 @@ const props = defineProps<{
         to: number | null;
         total: number;
     };
-    filters: { search: string };
+    filters: {
+        search: string;
+        category: number | null;
+        availability: string;
+        year: number | null;
+    };
+    categories: { id: number; name: string }[];
+    years: number[];
 }>();
 const search = ref(props.filters.search);
+const category = ref(props.filters.category ?? "");
+const availability = ref(props.filters.availability ?? "");
+const year = ref(props.filters.year ?? "");
 const selected = ref<number[]>([]);
 const page = usePage();
 const canCreate = page.props.auth.permissions.includes("books.create");
@@ -71,12 +81,28 @@ const removeSelected = () => {
         },
     });
 };
+const activeFilterCount = computed(
+    () =>
+        [category.value, availability.value, year.value].filter(Boolean).length,
+);
 const submitSearch = () =>
     router.get(
         route("books.index"),
-        { search: search.value },
+        {
+            search: search.value,
+            category: category.value,
+            availability: availability.value,
+            year: year.value,
+        },
         { preserveState: true, replace: true },
     );
+const resetFilters = () => {
+    search.value = "";
+    category.value = "";
+    availability.value = "";
+    year.value = "";
+    submitSearch();
+};
 </script>
 <template>
     <Head title="Catalogue" /><AuthenticatedLayout
@@ -85,15 +111,9 @@ const submitSearch = () =>
                 class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"
             >
                 <div>
-                    <p
-                        class="mb-1 text-xs font-bold uppercase tracking-[0.16em] text-primary-600"
-                    >
-                        Catalogue
-                    </p>
-                    <h1 class="font-heading text-2xl font-bold text-slate-800">
-                        Ouvrages
-                    </h1>
-                    <p class="mt-2 text-sm text-slate-500">
+                    <p class="dw-page-kicker">Catalogue</p>
+                    <h1 class="dw-page-title">Ouvrages</h1>
+                    <p class="dw-page-description">
                         Titres bibliographiques et disponibilité des
                         exemplaires.
                     </p>
@@ -106,7 +126,7 @@ const submitSearch = () =>
                             )
                         "
                         :href="route('book-exports.xlsx')"
-                        class="inline-flex h-10 items-center rounded-md border border-slate-200 px-4 text-sm font-bold text-slate-600"
+                        class="dw-btn-secondary"
                         >Exporter Excel</a
                     ><Link
                         v-if="
@@ -115,7 +135,7 @@ const submitSearch = () =>
                             )
                         "
                         :href="route('book-imports.index')"
-                        class="inline-flex h-10 items-center rounded-md border border-primary-200 px-4 text-sm font-bold text-primary-600"
+                        class="inline-flex h-10 items-center rounded-md border border-primary-200 bg-white px-4 text-sm font-semibold text-primary-600 transition-colors hover:border-primary-400 hover:bg-primary-50 dark:border-primary-800 dark:bg-gray-950 dark:text-primary-300 dark:hover:bg-primary-950"
                         >Importer</Link
                     ><Link
                         v-if="canCreate"
@@ -128,13 +148,13 @@ const submitSearch = () =>
         >
         <div
             v-if="$page.props.flash?.success"
-            class="mb-5 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"
+            class="mb-5 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300"
         >
             {{ $page.props.flash.success }}
         </div>
         <div
             v-if="$page.props.errors?.book"
-            class="mb-5 rounded-md bg-red-50 p-3 text-sm text-red-700"
+            class="mb-5 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300"
         >
             {{ $page.props.errors.book }}
         </div>
@@ -161,32 +181,82 @@ const submitSearch = () =>
             </button>
         </div>
         <section class="dw-card overflow-hidden">
-            <div class="border-b border-slate-100 p-4 sm:p-5">
+            <div
+                class="border-b border-gray-200 p-4 dark:border-gray-800 sm:p-5"
+            >
                 <form
-                    class="flex max-w-xl gap-2"
+                    class="grid gap-3 lg:grid-cols-[minmax(280px,1fr)_220px_200px_150px_auto]"
                     @submit.prevent="submitSearch"
                 >
                     <div class="relative flex-1">
                         <AppIcon
                             name="search"
-                            class="absolute start-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"
+                            class="absolute start-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500 dark:text-slate-400"
                         /><input
                             v-model="search"
                             class="dw-field ps-11"
                             placeholder="Titre, auteur, ISBN ou n° d’enregistrement…"
                         />
                     </div>
-                    <button
-                        class="rounded-md bg-slate-800 px-4 text-sm font-bold text-white"
+                    <select
+                        v-model="category"
+                        class="dw-field"
+                        aria-label="Filtrer par catégorie"
                     >
-                        Rechercher
+                        <option value="">Toutes les catégories</option>
+                        <option
+                            v-for="item in categories"
+                            :key="item.id"
+                            :value="item.id"
+                        >
+                            {{ item.name }}
+                        </option>
+                    </select>
+                    <select
+                        v-model="availability"
+                        class="dw-field"
+                        aria-label="Filtrer par disponibilité"
+                    >
+                        <option value="">Toutes les disponibilités</option>
+                        <option value="available">Disponible</option>
+                        <option value="in_consultation">En consultation</option>
+                        <option value="borrowed">Emprunté</option>
+                        <option value="no_copies">Sans exemplaire</option>
+                    </select>
+                    <select
+                        v-model="year"
+                        class="dw-field"
+                        aria-label="Filtrer par année"
+                    >
+                        <option value="">Toutes les années</option>
+                        <option v-for="item in years" :key="item" :value="item">
+                            {{ item }}
+                        </option>
+                    </select>
+                    <button class="dw-btn-primary justify-center">
+                        Filtrer
                     </button>
                 </form>
+                <div
+                    v-if="activeFilterCount || search"
+                    class="mt-3 flex flex-wrap items-center gap-2"
+                >
+                    <span class="text-xs font-semibold text-slate-500"
+                        >{{ activeFilterCount }} filtre(s) actif(s)</span
+                    >
+                    <button
+                        type="button"
+                        class="text-xs font-bold text-primary-600 hover:text-primary-700"
+                        @click="resetFilters"
+                    >
+                        Réinitialiser tous les filtres
+                    </button>
+                </div>
             </div>
             <div class="overflow-x-auto">
                 <table class="dw-table min-w-[1200px] text-sm">
                     <thead
-                        class="bg-slate-50 text-xs uppercase tracking-wide text-slate-400"
+                        class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400"
                     >
                         <tr>
                             <th class="w-12 px-4 py-3 text-center">
@@ -232,9 +302,34 @@ const submitSearch = () =>
                             </td>
                             <td class="px-5 py-4">
                                 <div class="flex items-center gap-3">
-                                    <img v-if="book.cover_url" :src="book.cover_url" :alt="`Couverture de ${book.title}`" class="h-16 w-12 shrink-0 rounded border border-slate-200 object-cover" />
-                                    <div v-else class="flex h-16 w-12 shrink-0 items-center justify-center rounded border border-dashed border-slate-300 bg-slate-50 text-slate-300"><AppIcon name="books" class="h-5 w-5" /></div>
-                                    <div class="min-w-0"><Link :href="route('books.show', book.id)" class="font-semibold text-slate-700 hover:text-primary-600">{{ book.title }}</Link><p class="mt-1 text-xs text-slate-400">{{ book.authors.map((a) => a.display_name).join(", ") }}</p></div>
+                                    <img
+                                        v-if="book.cover_url"
+                                        :src="book.cover_url"
+                                        :alt="`Couverture de ${book.title}`"
+                                        class="h-16 w-12 shrink-0 rounded border border-slate-200 object-cover"
+                                    />
+                                    <div
+                                        v-else
+                                        class="flex h-16 w-12 shrink-0 items-center justify-center rounded border border-dashed border-slate-300 bg-slate-50 text-slate-300"
+                                    >
+                                        <AppIcon name="books" class="h-5 w-5" />
+                                    </div>
+                                    <div class="min-w-0">
+                                        <Link
+                                            :href="route('books.show', book.id)"
+                                            class="font-semibold text-slate-700 hover:text-primary-600"
+                                            >{{ book.title }}</Link
+                                        >
+                                        <p
+                                            class="mt-1 text-xs text-slate-500 dark:text-slate-400"
+                                        >
+                                            {{
+                                                book.authors
+                                                    .map((a) => a.display_name)
+                                                    .join(", ")
+                                            }}
+                                        </p>
+                                    </div>
                                 </div>
                             </td>
                             <td class="px-5 py-4 text-slate-500">
@@ -259,7 +354,11 @@ const submitSearch = () =>
                                         >{{ copy.inventory_number }}</span
                                     >
                                 </div>
-                                <span v-else class="text-slate-400">Aucun</span>
+                                <span
+                                    v-else
+                                    class="text-slate-500 dark:text-slate-400"
+                                    >Aucun</span
+                                >
                             </td>
                             <td
                                 class="px-5 py-4 font-mono text-xs text-slate-500"
@@ -268,17 +367,23 @@ const submitSearch = () =>
                             </td>
                             <td class="px-5 py-4 text-center">
                                 <span
-                                    class="rounded-full bg-primary-50 px-2.5 py-1 text-xs font-bold text-primary-700"
+                                    class="rounded-full bg-primary-50 px-2.5 py-1 text-xs font-bold text-primary-700 dark:bg-primary-950 dark:text-primary-300"
                                     >{{ book.copies_count }}</span
                                 >
                             </td>
                             <td class="px-5 py-3">
                                 <div class="flex justify-center gap-1">
-                                    <Link :href="route('books.show', book.id)" class="inline-flex h-9 w-9 items-center justify-center rounded-md text-primary-600 hover:bg-primary-50" title="Voir les détails" aria-label="Voir les détails de l’ouvrage"><AppIcon name="eye" class="h-4 w-4" /></Link>
+                                    <Link
+                                        :href="route('books.show', book.id)"
+                                        class="inline-flex h-9 w-9 items-center justify-center rounded-md text-primary-600 transition-colors hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-950"
+                                        title="Voir les détails"
+                                        aria-label="Voir les détails de l’ouvrage"
+                                        ><AppIcon name="eye" class="h-4 w-4"
+                                    /></Link>
                                     <Link
                                         v-if="canUpdate"
                                         :href="route('books.edit', book.id)"
-                                        class="inline-flex h-9 w-9 items-center justify-center rounded-md text-amber-600 hover:bg-amber-50"
+                                        class="inline-flex h-9 w-9 items-center justify-center rounded-md text-amber-600 transition-colors hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-950"
                                         title="Modifier"
                                         aria-label="Modifier l’ouvrage"
                                         ><AppIcon
@@ -286,7 +391,7 @@ const submitSearch = () =>
                                             class="h-4 w-4" /></Link
                                     ><button
                                         v-if="canDelete"
-                                        class="inline-flex h-9 w-9 items-center justify-center rounded-md text-red-600 hover:bg-red-50"
+                                        class="inline-flex h-9 w-9 items-center justify-center rounded-md text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950"
                                         title="Supprimer"
                                         aria-label="Supprimer l’ouvrage"
                                         @click="remove(book)"
@@ -299,7 +404,7 @@ const submitSearch = () =>
                         <tr v-if="!books.data.length">
                             <td
                                 colspan="8"
-                                class="px-5 py-16 text-center text-slate-400"
+                                class="px-5 py-16 text-center text-slate-500 dark:text-slate-400"
                             >
                                 Aucun ouvrage trouvé.
                             </td>
@@ -311,7 +416,7 @@ const submitSearch = () =>
                 v-if="books.total"
                 class="flex flex-col gap-3 border-t border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
             >
-                <p class="text-xs text-slate-400">
+                <p class="text-xs text-slate-500 dark:text-slate-400">
                     Résultats {{ books.from }}–{{ books.to }} sur
                     {{ books.total }}
                 </p>
@@ -323,13 +428,13 @@ const submitSearch = () =>
                             preserve-state
                             :class="
                                 link.active
-                                    ? 'bg-primary-600 text-white'
-                                    : 'border border-slate-200 text-slate-500'
+                                    ? 'border border-primary-600 bg-primary-600 text-white shadow-sm'
+                                    : 'border border-gray-300 bg-white text-slate-600 hover:border-primary-300 hover:text-primary-600 dark:border-gray-800 dark:bg-gray-950 dark:text-slate-300 dark:hover:border-primary-700 dark:hover:text-primary-400'
                             "
-                            class="min-w-9 rounded px-3 py-2 text-center text-xs"
+                            class="min-w-9 rounded-md px-3 py-2 text-center text-xs font-semibold transition-colors"
                             v-html="link.label" /><span
                             v-else
-                            class="min-w-9 rounded border border-slate-100 px-3 py-2 text-center text-xs text-slate-300"
+                            class="min-w-9 rounded-md border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-slate-400 dark:border-gray-900 dark:text-slate-600"
                             v-html="link.label"
                     /></template>
                 </div>

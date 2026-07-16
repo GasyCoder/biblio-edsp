@@ -27,7 +27,7 @@ const submit = () => {
                     <ApplicationLogo class="h-11 w-11 text-primary-600" />
                     <div>
                         <p class="font-heading text-lg font-bold leading-tight text-slate-800">Bibliothèque EDSP</p>
-                        <p class="text-xs font-medium uppercase tracking-[0.16em] text-slate-400">Université de Mahajanga</p>
+                        <p class="text-xs font-medium uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">Université de Mahajanga</p>
                     </div>
                 </div>
 
@@ -53,7 +53,7 @@ const submit = () => {
                         </div>
                         <div class="relative">
                             <input id="password" v-model="form.password" :type="showPassword ? 'text' : 'password'" class="dw-field pe-12" placeholder="Votre mot de passe" required autocomplete="current-password" />
-                            <button type="button" class="absolute inset-y-0 end-0 flex w-12 items-center justify-center text-slate-400 hover:text-primary-600" :aria-label="showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'" @click="showPassword = !showPassword">
+                            <button type="button" class="absolute inset-y-0 end-0 flex w-12 items-center justify-center text-slate-500 dark:text-slate-400 hover:text-primary-600" :aria-label="showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'" @click="showPassword = !showPassword">
                                 <AppIcon :name="showPassword ? 'eye-off' : 'eye'" class="h-5 w-5" />
                             </button>
                         </div>
@@ -74,7 +74,7 @@ const submit = () => {
                 <p class="mt-7 rounded-md bg-gray-50 px-4 py-3 text-center text-xs leading-5 text-slate-500 dark:bg-gray-1000">Les comptes sont attribués par l’administration de l’EDSP. Contactez le responsable si vous ne disposez pas encore d’un accès.</p>
             </div>
 
-            <footer class="mx-auto w-full max-w-md px-6 pb-8 text-xs text-slate-400 sm:px-8">© {{ new Date().getFullYear() }} EDSP — Gestion interne de la bibliothèque</footer>
+            <footer class="mx-auto w-full max-w-md px-6 pb-8 text-xs text-slate-500 dark:text-slate-400 sm:px-8">© {{ new Date().getFullYear() }} EDSP — Gestion interne de la bibliothèque</footer>
         </section>
 
         <aside class="relative hidden flex-1 overflow-hidden bg-gray-1000 lg:flex lg:items-center lg:justify-center">

@@ -25,7 +25,7 @@ const showPassword = ref(false);
             ><div>
                 <Link
                     :href="route('users.index')"
-                    class="text-xs font-bold text-primary-600"
+                    class="text-xs font-bold text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
                     >← Utilisateurs</Link
                 >
                 <h1 class="dw-page-title">Nouvel utilisateur</h1>
@@ -35,7 +35,7 @@ const showPassword = ref(false);
             </div></template
         >
         <form
-            class="dw-card mx-auto w-full max-w-5xl p-6"
+            class="dw-card w-full p-5 sm:p-7"
             @submit.prevent="form.post(route('users.store'))"
         >
             <div class="grid gap-5 md:grid-cols-2">
@@ -91,7 +91,7 @@ const showPassword = ref(false);
                             required
                         /><button
                             type="button"
-                            class="absolute end-0 top-0 flex h-11 w-11 items-center justify-center text-slate-400 hover:text-primary-600"
+                            class="absolute end-0 top-0 flex h-11 w-11 items-center justify-center text-slate-500 dark:text-slate-400 hover:text-primary-600"
                             :title="showPassword ? 'Masquer' : 'Afficher'"
                             @click="showPassword = !showPassword"
                         >
@@ -113,7 +113,7 @@ const showPassword = ref(false);
                             required
                         /><button
                             type="button"
-                            class="absolute end-0 top-0 flex h-11 w-11 items-center justify-center text-slate-400 hover:text-primary-600"
+                            class="absolute end-0 top-0 flex h-11 w-11 items-center justify-center text-slate-500 dark:text-slate-400 hover:text-primary-600"
                             :title="showPassword ? 'Masquer' : 'Afficher'"
                             @click="showPassword = !showPassword"
                         >

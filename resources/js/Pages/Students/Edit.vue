@@ -75,16 +75,16 @@ const removePhoto = () => {
             ><div>
                 <Link
                     :href="route('students.index')"
-                    class="text-xs font-bold text-primary-600"
+                    class="text-xs font-bold text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
                     >← Retour aux étudiants</Link
                 >
-                <h1 class="mt-2 font-heading text-2xl font-bold text-slate-800">
+                <h1 class="dw-page-title mt-2">
                     Modifier {{ student.registration_number }}
                 </h1>
             </div></template
         >
         <form
-            class="dw-card mx-auto max-w-5xl p-6"
+            class="dw-card w-full p-5 sm:p-7"
             @submit.prevent="
                 form.post(route('students.update', student.id), {
                     forceFormData: true,
@@ -320,10 +320,10 @@ const removePhoto = () => {
             >
                 <Link
                     :href="route('students.index')"
-                    class="rounded-md border border-slate-200 px-5 py-2.5 text-sm font-bold"
+                    class="dw-btn-secondary"
                     >Annuler</Link
                 ><button
-                    class="rounded-md bg-primary-600 px-5 py-2.5 text-sm font-bold text-white"
+                    class="dw-btn-primary"
                 >
                     Enregistrer
                 </button>

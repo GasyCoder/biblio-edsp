@@ -149,9 +149,9 @@ onBeforeUnmount(stop);
                     <div v-if="continuous" class="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs">
                         <span v-if="lastScanned" class="inline-flex items-center gap-1.5 font-bold text-emerald-400"><AppIcon name="check" class="h-4 w-4" /> Code lu, présentez le livre suivant</span>
                         <span v-else class="text-slate-300">Le lecteur reste ouvert pour scanner plusieurs livres.</span>
-                        <span class="ms-auto tabular-nums text-slate-400">Fermeture dans {{ remainingSeconds }} s</span>
+                        <span class="ms-auto tabular-nums text-slate-500 dark:text-slate-400">Fermeture dans {{ remainingSeconds }} s</span>
                     </div>
-                    <p class="mt-3 text-center text-xs text-slate-400">La caméra sert uniquement à lire le code. Aucune image n’est conservée.</p>
+                    <p class="mt-3 text-center text-xs text-slate-500 dark:text-slate-400">La caméra sert uniquement à lire le code. Aucune image n’est conservée.</p>
                 </div>
             </section>
         </div>

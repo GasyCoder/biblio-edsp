@@ -101,7 +101,7 @@ const toneClasses: Record<string, string> = {
             >
                 <div>
                     <p
-                        class="mb-1 text-xs font-bold uppercase tracking-[0.16em] text-primary-600"
+                        class="dw-page-kicker"
                     >
                         Vue générale
                     </p>
@@ -171,7 +171,7 @@ const toneClasses: Record<string, string> = {
                     /></span>
                 </div>
                 <p
-                    class="mt-4 border-t border-gray-100 pt-3 text-xs text-slate-400 dark:border-gray-800"
+                    class="mt-4 border-t border-gray-100 pt-3 text-xs text-slate-500 dark:text-slate-400 dark:border-gray-800"
                 >
                     {{ metric.detail }}
                 </p>
@@ -189,7 +189,7 @@ const toneClasses: Record<string, string> = {
                         >
                             Fréquentation sur 7 jours
                         </h2>
-                        <p class="mt-1 text-xs text-slate-400">
+                        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
                             Nombre d’entrées enregistrées quotidiennement
                         </p>
                     </div>
@@ -221,7 +221,7 @@ const toneClasses: Record<string, string> = {
                                 ></div>
                             </div>
                             <span
-                                class="mt-2 text-[11px] font-semibold uppercase text-slate-400"
+                                class="mt-2 text-[11px] font-semibold uppercase text-slate-500 dark:text-slate-400"
                                 >{{ item.label }}</span
                             >
                         </div>
@@ -238,7 +238,7 @@ const toneClasses: Record<string, string> = {
                     >
                         État de l’inventaire
                     </h2>
-                    <p class="mt-1 text-xs text-slate-400">
+                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
                         Répartition des exemplaires physiques
                     </p>
                 </div>
@@ -253,7 +253,7 @@ const toneClasses: Record<string, string> = {
                                 {{ inventoryTotal }}
                             </p>
                             <p
-                                class="text-[10px] font-bold uppercase tracking-wider text-slate-400"
+                                class="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400"
                             >
                                 Exemplaires
                             </p>
@@ -264,7 +264,7 @@ const toneClasses: Record<string, string> = {
                             <span
                                 class="mb-1 block h-1.5 rounded-full bg-emerald-500"
                             ></span
-                            ><span class="text-xs text-slate-400"
+                            ><span class="text-xs text-slate-500 dark:text-slate-400"
                                 >Disponibles</span
                             ><strong
                                 class="float-end text-slate-700 dark:text-slate-200"
@@ -275,7 +275,7 @@ const toneClasses: Record<string, string> = {
                             <span
                                 class="mb-1 block h-1.5 rounded-full bg-amber-400"
                             ></span
-                            ><span class="text-xs text-slate-400"
+                            ><span class="text-xs text-slate-500 dark:text-slate-400"
                                 >Consultation</span
                             ><strong
                                 class="float-end text-slate-700 dark:text-slate-200"
@@ -286,7 +286,7 @@ const toneClasses: Record<string, string> = {
                             <span
                                 class="mb-1 block h-1.5 rounded-full bg-primary-500"
                             ></span
-                            ><span class="text-xs text-slate-400"
+                            ><span class="text-xs text-slate-500 dark:text-slate-400"
                                 >Empruntés</span
                             ><strong
                                 class="float-end text-slate-700 dark:text-slate-200"
@@ -297,7 +297,7 @@ const toneClasses: Record<string, string> = {
                             <span
                                 class="mb-1 block h-1.5 rounded-full bg-slate-400"
                             ></span
-                            ><span class="text-xs text-slate-400"
+                            ><span class="text-xs text-slate-500 dark:text-slate-400"
                                 >Indisponibles</span
                             ><strong
                                 class="float-end text-slate-700 dark:text-slate-200"
@@ -320,12 +320,12 @@ const toneClasses: Record<string, string> = {
                         >
                             Activité récente
                         </h2>
-                        <p class="mt-1 text-xs text-slate-400">
+                        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
                             Derniers passages enregistrés au comptoir
                         </p>
                     </div>
                     <span
-                        class="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold uppercase text-slate-500 dark:bg-gray-900"
+                        class="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold uppercase text-slate-500 dark:bg-gray-900"
                         >Temps réel</span
                     >
                 </div>
@@ -355,13 +355,13 @@ const toneClasses: Record<string, string> = {
                             >
                                 {{ activity.student }}
                             </p>
-                            <p class="mt-0.5 text-xs text-slate-400">
+                            <p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
                                 {{ activity.number }} ·
                                 {{ activity.checkedInAt }}
                             </p>
                         </div>
                         <span
-                            class="rounded-full px-2.5 py-1 text-[10px] font-bold"
+                            class="rounded-full px-2.5 py-1 text-[11px] font-bold"
                             :class="
                                 activity.active
                                     ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300'
@@ -384,7 +384,7 @@ const toneClasses: Record<string, string> = {
                     >
                         Aucun passage enregistré
                     </p>
-                    <p class="mt-1 text-xs text-slate-400">
+                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
                         Les prochains scans apparaîtront automatiquement ici.
                     </p>
                 </div>
@@ -399,7 +399,7 @@ const toneClasses: Record<string, string> = {
                     >
                         Actions rapides
                     </h2>
-                    <p class="mt-1 text-xs text-slate-400">
+                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
                         Raccourcis adaptés à votre rôle
                     </p>
                 </div>
@@ -419,7 +419,7 @@ const toneClasses: Record<string, string> = {
                                 class="block text-sm font-bold text-slate-700 dark:text-slate-200"
                                 >{{ action.label }}</span
                             ><span
-                                class="block truncate text-xs text-slate-400"
+                                class="block truncate text-xs text-slate-500 dark:text-slate-400"
                                 >{{ action.description }}</span
                             ></span
                         ><span class="text-primary-500">→</span>

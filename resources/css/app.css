@@ -174,17 +174,18 @@
 }
 
 @layer components {
-    .dw-card { @apply rounded-md border border-gray-300 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.025)] dark:border-gray-900 dark:bg-gray-950 dark:shadow-none; }
+    .dw-card { @apply rounded-lg border border-gray-300 bg-white shadow-[0_1px_3px_rgba(15,23,42,0.05),0_1px_2px_rgba(15,23,42,0.04)] dark:border-gray-900 dark:bg-gray-950 dark:shadow-none; }
     .dw-field { @apply h-11 w-full rounded-md border border-gray-300 bg-white px-3.5 text-sm leading-5 text-slate-700 placeholder:text-slate-400 transition duration-200 hover:border-slate-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 dark:border-gray-800 dark:bg-gray-950 dark:text-white dark:placeholder:text-slate-500 dark:hover:border-gray-700 dark:focus:border-primary-500 dark:focus:ring-primary-950; }
     textarea.dw-field { @apply h-auto min-h-28 py-3; }
     select.dw-field { @apply pe-10; }
     .dw-btn-primary { @apply inline-flex h-10 items-center justify-center gap-2 rounded-md bg-primary-600 px-4 text-sm font-medium text-white shadow-sm hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50; }
-    .dw-btn-secondary { @apply inline-flex h-10 items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-4 text-sm font-medium text-slate-600 hover:border-primary-300 hover:text-primary-600 dark:border-gray-800 dark:bg-gray-950 dark:text-slate-300 dark:hover:border-primary-700 dark:hover:text-primary-400; }
-    .dw-page-kicker { @apply text-[11px] font-bold uppercase tracking-[0.16em] text-primary-600; }
+    .dw-btn-secondary { @apply inline-flex h-10 items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-4 text-sm font-medium text-slate-600 shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:border-primary-300 hover:text-primary-600 disabled:cursor-not-allowed dark:border-gray-800 dark:bg-gray-950 dark:text-slate-300 dark:shadow-none dark:hover:border-primary-700 dark:hover:text-primary-400; }
+    .dw-btn-danger { @apply inline-flex h-10 items-center justify-center gap-2 rounded-md bg-red-600 px-4 text-sm font-medium text-white shadow-sm hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50; }
+    .dw-page-kicker { @apply text-xs font-bold uppercase tracking-[0.14em] text-primary-600 dark:text-primary-400; }
     .dw-page-title { @apply mt-1 font-heading text-2xl font-bold leading-tight tracking-[-0.02em] text-slate-700 dark:text-white sm:text-[1.75rem]; }
-    .dw-page-description { @apply mt-2 text-sm leading-5 text-slate-500 dark:text-slate-400; }
+    .dw-page-description { @apply mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400; }
     .dw-table { @apply w-full text-sm; }
-    .dw-table thead { @apply border-b border-gray-200 bg-gray-50 text-[11px] font-medium uppercase tracking-wider text-slate-400 dark:border-gray-900 dark:bg-gray-1000; }
+    .dw-table thead { @apply border-b border-gray-200 bg-gray-50 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:border-gray-900 dark:bg-gray-1000 dark:text-slate-400; }
     .dw-table tbody { @apply divide-y divide-gray-200 dark:divide-gray-900; }
     .dw-table tbody tr { @apply transition-colors hover:bg-gray-50/80 dark:hover:bg-gray-900/60; }
 }

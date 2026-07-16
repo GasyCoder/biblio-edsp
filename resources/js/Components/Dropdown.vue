@@ -10,7 +10,7 @@ const props = withDefaults(
     {
         align: 'right',
         width: '48',
-        contentClasses: 'py-1 bg-white dark:bg-gray-700',
+        contentClasses: 'py-1 bg-white dark:bg-gray-950',
     },
 );
 
@@ -65,13 +65,13 @@ const open = ref(false);
         >
             <div
                 v-show="open"
-                class="absolute z-50 mt-2 rounded-md shadow-lg"
+                class="absolute z-50 mt-2 rounded-md shadow-xl shadow-slate-950/10"
                 :class="[widthClass, alignmentClasses]"
                 style="display: none"
                 @click="open = false"
             >
                 <div
-                    class="rounded-md ring-1 ring-black ring-opacity-5"
+                    class="overflow-hidden rounded-md border border-gray-200 dark:border-gray-900"
                     :class="contentClasses"
                 >
                     <slot name="content" />

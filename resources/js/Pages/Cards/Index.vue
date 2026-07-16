@@ -73,16 +73,16 @@ const statusLabels: Record<string, string> = {
             ><div class="flex items-end justify-between">
                 <div>
                     <p
-                        class="text-xs font-bold uppercase tracking-widest text-primary-600"
+                        class="dw-page-kicker"
                     >
                         Identification bibliothèque
                     </p>
                     <h1
-                        class="mt-1 font-heading text-2xl font-bold text-slate-800"
+                        class="dw-page-title"
                     >
                         Cartes de bibliothèque
                     </h1>
-                    <p class="mt-2 text-sm text-slate-500">
+                    <p class="dw-page-description">
                         Sélectionnez plusieurs cartes pour effectuer une
                         suppression groupée.
                     </p>
@@ -96,7 +96,7 @@ const statusLabels: Record<string, string> = {
         >
         <div
             v-if="$page.props.flash?.success"
-            class="mb-4 rounded-md bg-emerald-50 p-3 text-sm text-emerald-700"
+            class="mb-4 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300"
         >
             {{ $page.props.flash.success }}
         </div>
@@ -127,7 +127,7 @@ const statusLabels: Record<string, string> = {
         </div>
         <section class="dw-card overflow-x-auto">
             <table class="dw-table min-w-[950px] text-sm">
-                <thead class="bg-slate-50 text-xs uppercase text-slate-400">
+                <thead class="bg-slate-50 text-xs uppercase text-slate-500 dark:text-slate-400">
                     <tr>
                         <th class="w-12 p-4 text-center">
                             <input
@@ -177,7 +177,7 @@ const statusLabels: Record<string, string> = {
                                 >
                                     <AppIcon
                                         name="user"
-                                        class="h-4 w-4 text-slate-400"
+                                        class="h-4 w-4 text-slate-500 dark:text-slate-400"
                                     />
                                 </div>
                                 <span class="font-semibold"
@@ -201,7 +201,7 @@ const statusLabels: Record<string, string> = {
                             <div class="flex justify-center gap-1">
                                 <button
                                     v-if="canPrint"
-                                    class="inline-flex h-9 w-9 items-center justify-center rounded-md text-primary-600 hover:bg-primary-50"
+                                    class="inline-flex h-9 w-9 items-center justify-center rounded-md text-primary-600 transition-colors hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-950"
                                     title="Imprimer"
                                     aria-label="Imprimer"
                                     @click="previewCard = card"
@@ -213,7 +213,7 @@ const statusLabels: Record<string, string> = {
                                 ><Link
                                     v-if="canUpdate"
                                     :href="route('cards.edit', card.id)"
-                                    class="inline-flex h-9 w-9 items-center justify-center rounded-md text-amber-600 hover:bg-amber-50"
+                                    class="inline-flex h-9 w-9 items-center justify-center rounded-md text-amber-600 transition-colors hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-950"
                                     title="Modifier"
                                     aria-label="Modifier"
                                     ><AppIcon
@@ -221,7 +221,7 @@ const statusLabels: Record<string, string> = {
                                         class="h-4 w-4" /></Link
                                 ><button
                                     v-if="canDelete"
-                                    class="inline-flex h-9 w-9 items-center justify-center rounded-md text-red-600 hover:bg-red-50"
+                                    class="inline-flex h-9 w-9 items-center justify-center rounded-md text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950"
                                     title="Supprimer"
                                     aria-label="Supprimer"
                                     @click="remove(card)"
@@ -232,7 +232,7 @@ const statusLabels: Record<string, string> = {
                         </td>
                     </tr>
                     <tr v-if="!cards.data.length">
-                        <td colspan="7" class="p-12 text-center text-slate-400">
+                        <td colspan="7" class="p-12 text-center text-slate-500 dark:text-slate-400">
                             Aucune carte de bibliothèque créée.
                         </td>
                     </tr>

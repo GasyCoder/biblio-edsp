@@ -213,14 +213,14 @@ const menuGroups = computed(() =>
                             Bibliothèque EDSP
                         </p>
                         <p
-                            class="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400"
+                            class="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400"
                         >
                             Administration
                         </p>
                     </div>
                 </Link>
                 <button
-                    class="ms-auto rounded-full p-2 text-slate-400 hover:bg-gray-100 dark:hover:bg-gray-900 xl:hidden"
+                    class="ms-auto rounded-full p-2 text-slate-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-gray-900 xl:hidden"
                     aria-label="Fermer le menu"
                     @click="sidebarOpen = false"
                 >
@@ -235,7 +235,7 @@ const menuGroups = computed(() =>
                     class="mb-5"
                 >
                     <p
-                        class="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400"
+                        class="mb-2 px-3 text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400"
                     >
                         {{ group.label }}
                     </p>
@@ -246,10 +246,10 @@ const menuGroups = computed(() =>
                                 :href="item.href"
                                 :class="
                                     item.active
-                                        ? 'bg-primary-50 text-primary-600 dark:bg-primary-950/45 dark:text-primary-400'
-                                        : 'text-slate-600 hover:bg-gray-50 hover:text-primary-600 dark:text-slate-300 dark:hover:bg-gray-900 dark:hover:text-primary-400'
+                                        ? 'bg-primary-50 font-semibold text-primary-700 shadow-[inset_3px_0_0_0_var(--color-primary-600)] dark:bg-primary-950/45 dark:text-primary-300 dark:shadow-[inset_3px_0_0_0_var(--color-primary-500)]'
+                                        : 'font-medium text-slate-600 hover:bg-gray-50 hover:text-primary-600 dark:text-slate-300 dark:hover:bg-gray-900 dark:hover:text-primary-400'
                                 "
-                                class="group flex h-10 items-center gap-3 rounded-md px-3 text-sm font-medium transition duration-200"
+                                class="group flex h-10 items-center gap-3 rounded-md px-3 text-sm transition duration-200"
                                 @click="sidebarOpen = false"
                             >
                                 <AppIcon
@@ -259,7 +259,7 @@ const menuGroups = computed(() =>
                             </Link>
                             <div
                                 v-else
-                                class="flex h-10 cursor-not-allowed items-center gap-3 rounded-md px-3 text-sm font-normal text-slate-400 opacity-75"
+                                class="flex h-10 cursor-not-allowed items-center gap-3 rounded-md px-3 text-sm font-normal text-slate-500 dark:text-slate-400 opacity-75"
                                 :title="`${item.label} sera disponible dans la prochaine phase`"
                             >
                                 <AppIcon
@@ -267,7 +267,7 @@ const menuGroups = computed(() =>
                                     class="h-5 w-5 shrink-0"
                                 /><span>{{ item.label }}</span
                                 ><span
-                                    class="ms-auto rounded bg-gray-100 px-1.5 py-0.5 text-[9px] font-bold uppercase text-slate-400 dark:bg-gray-900"
+                                    class="ms-auto rounded bg-gray-100 px-1.5 py-0.5 text-[11px] font-bold uppercase text-slate-500 dark:text-slate-400 dark:bg-gray-900"
                                     >Bientôt</span
                                 >
                             </div>
@@ -278,10 +278,10 @@ const menuGroups = computed(() =>
 
             <div class="border-t border-gray-200 p-4 dark:border-gray-900">
                 <div class="rounded-md bg-gray-50 p-3 dark:bg-gray-1000">
-                    <p class="text-xs font-semibold text-slate-600">
+                    <p class="text-xs font-semibold text-slate-700 dark:text-slate-200">
                         Besoin d’aide ?
                     </p>
-                    <p class="mt-1 text-[11px] leading-4 text-slate-400">
+                    <p class="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
                         Contactez le super administrateur de la bibliothèque.
                     </p>
                 </div>
@@ -305,11 +305,11 @@ const menuGroups = computed(() =>
                     <div class="hidden max-w-md flex-1 items-center sm:flex">
                         <AppIcon
                             name="search"
-                            class="h-5 w-5 text-slate-400"
-                        /><span class="ms-3 text-sm text-slate-400"
+                            class="h-5 w-5 text-slate-500 dark:text-slate-400"
+                        /><span class="ms-3 text-sm text-slate-500 dark:text-slate-400"
                             >Recherche rapide dans la bibliothèque…</span
                         ><kbd
-                            class="ms-auto rounded border border-gray-200 bg-gray-50 px-2 py-1 text-[10px] text-slate-400 dark:border-gray-800 dark:bg-gray-1000"
+                            class="ms-auto rounded border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] text-slate-500 dark:text-slate-400 dark:border-gray-800 dark:bg-gray-1000"
                             >Ctrl K</kbd
                         >
                     </div>
@@ -337,13 +337,13 @@ const menuGroups = computed(() =>
                                         class="block max-w-36 truncate text-sm font-semibold text-slate-700"
                                         >{{ $page.props.auth.user.name }}</span
                                     ><span
-                                        class="block text-[11px] text-slate-400"
+                                        class="block text-[11px] text-slate-500 dark:text-slate-400"
                                         >{{ roleLabel }}</span
                                     ></span
                                 >
                                 <AppIcon
                                     name="chevron-down"
-                                    class="hidden h-4 w-4 text-slate-400 md:block"
+                                    class="hidden h-4 w-4 text-slate-500 dark:text-slate-400 md:block"
                                 />
                             </button>
                             <div
@@ -358,7 +358,7 @@ const menuGroups = computed(() =>
                                     >
                                         {{ $page.props.auth.user.name }}
                                     </p>
-                                    <p class="text-xs text-slate-400">
+                                    <p class="text-xs text-slate-500 dark:text-slate-400">
                                         {{ roleLabel }}
                                     </p>
                                 </div>
@@ -372,7 +372,7 @@ const menuGroups = computed(() =>
                                     :href="route('logout')"
                                     method="post"
                                     as="button"
-                                    class="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50"
+                                    class="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950"
                                     ><AppIcon name="logout" class="h-4 w-4" />Se
                                     déconnecter</Link
                                 >
@@ -391,7 +391,7 @@ const menuGroups = computed(() =>
                 </div>
             </main>
             <footer
-                class="border-t border-gray-200 bg-white px-6 py-4 text-center text-xs text-slate-400 dark:border-gray-900 dark:bg-gray-950"
+                class="border-t border-gray-200 bg-white px-6 py-4 text-center text-xs text-slate-500 dark:text-slate-400 dark:border-gray-900 dark:bg-gray-950"
             >
                 © {{ new Date().getFullYear() }} EDSP — Université de Mahajanga
             </footer>

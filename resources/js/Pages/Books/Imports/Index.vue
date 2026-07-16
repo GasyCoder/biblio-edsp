@@ -35,7 +35,7 @@ const upload = () => {
     <AuthenticatedLayout>
         <template #header>
             <div>
-                <Link :href="route('books.index')" class="text-xs font-bold text-primary-600">← Retour aux ouvrages</Link>
+                <Link :href="route('books.index')" class="text-xs font-bold text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300">← Retour aux ouvrages</Link>
                 <h1 class="dw-page-title">Importer les ouvrages</h1>
                 <p class="dw-page-description">Sélectionnez un ou plusieurs classeurs Excel à analyser avant leur intégration.</p>
             </div>
@@ -55,7 +55,7 @@ const upload = () => {
                     <InputError :message="form.errors.files || form.errors['files.0']" />
 
                     <div v-if="form.files.length" class="rounded-md border border-gray-200 dark:border-gray-900">
-                        <div class="flex items-center justify-between border-b border-gray-200 px-4 py-3 text-xs font-bold uppercase tracking-wide text-slate-400 dark:border-gray-900">
+                        <div class="flex items-center justify-between border-b border-gray-200 px-4 py-3 text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400 dark:border-gray-900">
                             <span>{{ form.files.length }} fichier(s) sélectionné(s)</span>
                             <span>{{ (form.files.reduce((size, file) => size + file.size, 0) / 1048576).toFixed(2) }} Mo</span>
                         </div>
@@ -83,9 +83,9 @@ const upload = () => {
                 <thead><tr><th class="p-4 text-start">Fichier importé</th><th class="p-4">Ouvrages</th><th class="p-4">Valides</th><th class="p-4">À corriger</th><th></th></tr></thead>
                 <tbody>
                     <tr v-for="item in imports.data" :key="item.id">
-                        <td class="p-4 font-semibold">{{ item.original_filename }}</td><td class="p-4 text-center">{{ item.total_rows }}</td><td class="p-4 text-center text-emerald-600">{{ item.valid_rows }}</td><td class="p-4 text-center text-red-600">{{ item.error_rows }}</td><td class="p-4 text-end"><Link :href="route('book-imports.show', item.id)" class="text-xs font-bold text-primary-600">Contrôler</Link></td>
+                        <td class="p-4 font-semibold">{{ item.original_filename }}</td><td class="p-4 text-center">{{ item.total_rows }}</td><td class="p-4 text-center text-emerald-600">{{ item.valid_rows }}</td><td class="p-4 text-center text-red-600">{{ item.error_rows }}</td><td class="p-4 text-end"><Link :href="route('book-imports.show', item.id)" class="text-xs font-bold text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300">Contrôler</Link></td>
                     </tr>
-                    <tr v-if="!imports.data.length"><td colspan="5" class="p-10 text-center text-slate-400">Aucun fichier importé pour le moment.</td></tr>
+                    <tr v-if="!imports.data.length"><td colspan="5" class="p-10 text-center text-slate-500 dark:text-slate-400">Aucun fichier importé pour le moment.</td></tr>
                 </tbody>
             </table>
         </section>

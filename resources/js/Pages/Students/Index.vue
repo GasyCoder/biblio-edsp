@@ -97,14 +97,14 @@ const statusLabel: Record<string, string> = {
             >
                 <div>
                     <p
-                        class="mb-1 text-xs font-bold uppercase tracking-[0.16em] text-primary-600"
+                        class="dw-page-kicker"
                     >
                         Référentiel
                     </p>
-                    <h1 class="font-heading text-2xl font-bold text-slate-800">
+                    <h1 class="dw-page-title">
                         Gestion des étudiants
                     </h1>
-                    <p class="mt-2 text-sm text-slate-500">
+                    <p class="dw-page-description">
                         Recherchez par matricule, numéro de bibliothèque, nom ou prénom.
                     </p>
                 </div>
@@ -131,13 +131,13 @@ const statusLabel: Record<string, string> = {
 
         <div
             v-if="$page.props.flash?.success"
-            class="mb-5 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"
+            class="mb-5 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300"
         >
             {{ $page.props.flash.success }}
         </div>
         <div
             v-if="$page.props.errors?.student"
-            class="mb-5 rounded-md bg-red-50 p-3 text-sm text-red-700"
+            class="mb-5 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300"
         >
             {{ $page.props.errors.student }}
         </div>
@@ -172,7 +172,7 @@ const statusLabel: Record<string, string> = {
                     <div class="relative flex-1">
                         <AppIcon
                             name="search"
-                            class="absolute start-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"
+                            class="absolute start-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500 dark:text-slate-400"
                         /><input
                             v-model="search"
                             class="dw-field ps-11"
@@ -189,7 +189,7 @@ const statusLabel: Record<string, string> = {
             <div class="overflow-x-auto">
                 <table class="dw-table min-w-[950px] text-start text-sm">
                     <thead
-                        class="bg-slate-50 text-xs uppercase tracking-wide text-slate-400"
+                        class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400"
                     >
                         <tr>
                             <th class="w-12 px-4 py-3 text-center">
@@ -244,7 +244,7 @@ const statusLabel: Record<string, string> = {
                                     >
                                         <AppIcon
                                             name="user"
-                                            class="h-4 w-4 text-slate-400"
+                                            class="h-4 w-4 text-slate-500 dark:text-slate-400"
                                         />
                                     </div>
                                     <span
@@ -287,7 +287,7 @@ const statusLabel: Record<string, string> = {
                                         :href="
                                             route('students.show', student.id)
                                         "
-                                        class="inline-flex h-9 w-9 items-center justify-center rounded-md text-primary-600 hover:bg-primary-50"
+                                        class="inline-flex h-9 w-9 items-center justify-center rounded-md text-primary-600 transition-colors hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-950"
                                         title="Voir le profil"
                                         aria-label="Voir le profil étudiant"
                                         ><AppIcon name="eye" class="h-4 w-4"
@@ -297,7 +297,7 @@ const statusLabel: Record<string, string> = {
                                         :href="
                                             route('students.edit', student.id)
                                         "
-                                        class="inline-flex h-9 w-9 items-center justify-center rounded-md text-amber-600 hover:bg-amber-50"
+                                        class="inline-flex h-9 w-9 items-center justify-center rounded-md text-amber-600 transition-colors hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-950"
                                         title="Modifier"
                                         aria-label="Modifier l’étudiant"
                                         ><AppIcon
@@ -305,7 +305,7 @@ const statusLabel: Record<string, string> = {
                                             class="h-4 w-4" /></Link
                                     ><button
                                         v-if="canDelete"
-                                        class="inline-flex h-9 w-9 items-center justify-center rounded-md text-red-600 hover:bg-red-50"
+                                        class="inline-flex h-9 w-9 items-center justify-center rounded-md text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950"
                                         title="Supprimer"
                                         aria-label="Supprimer l’étudiant"
                                         @click="remove(student)"
@@ -318,7 +318,7 @@ const statusLabel: Record<string, string> = {
                         <tr v-if="!students.data.length">
                             <td
                                 colspan="7"
-                                class="px-5 py-16 text-center text-sm text-slate-400"
+                                class="px-5 py-16 text-center text-sm text-slate-500 dark:text-slate-400"
                             >
                                 Aucun étudiant trouvé.
                             </td>
@@ -330,7 +330,7 @@ const statusLabel: Record<string, string> = {
                 v-if="students.total"
                 class="flex flex-col gap-3 border-t border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
             >
-                <p class="text-xs text-slate-400">
+                <p class="text-xs text-slate-500 dark:text-slate-400">
                     Résultats {{ students.from }}–{{ students.to }} sur
                     {{ students.total }}
                 </p>
@@ -343,13 +343,13 @@ const statusLabel: Record<string, string> = {
                             preserve-state
                             :class="
                                 link.active
-                                    ? 'bg-primary-600 text-white'
-                                    : 'border border-slate-200 bg-white text-slate-500 hover:bg-slate-50'
+                                    ? 'border border-primary-600 bg-primary-600 text-white shadow-sm'
+                                    : 'border border-gray-300 bg-white text-slate-600 hover:border-primary-300 hover:text-primary-600 dark:border-gray-800 dark:bg-gray-950 dark:text-slate-300 dark:hover:border-primary-700 dark:hover:text-primary-400'
                             "
-                            class="min-w-9 rounded px-3 py-2 text-center text-xs"
+                            class="min-w-9 rounded-md px-3 py-2 text-center text-xs font-semibold transition-colors"
                             v-html="link.label" /><span
                             v-else
-                            class="min-w-9 rounded border border-slate-100 px-3 py-2 text-center text-xs text-slate-300"
+                            class="min-w-9 rounded-md border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-slate-400 dark:border-gray-900 dark:text-slate-600"
                             v-html="link.label"
                     /></template>
                 </div>

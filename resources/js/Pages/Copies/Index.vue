@@ -80,16 +80,16 @@ const printPreview = () => (document.querySelector<HTMLIFrameElement>('#copy-qr-
         <template #header>
             <div class="flex items-end justify-between gap-4">
                 <div>
-                    <p class="text-xs font-bold uppercase tracking-widest text-primary-600">Inventaire</p>
-                    <h1 class="mt-1 font-heading text-2xl font-bold text-slate-800 dark:text-white">Inventaire physique</h1>
-                    <p class="mt-2 text-sm text-slate-500">Sélectionnez un ou plusieurs exemplaires pour imprimer leurs QR codes ou les supprimer.</p>
+                    <p class="dw-page-kicker">Inventaire</p>
+                    <h1 class="dw-page-title">Inventaire physique</h1>
+                    <p class="dw-page-description">Sélectionnez un ou plusieurs exemplaires pour imprimer leurs QR codes ou les supprimer.</p>
                 </div>
                 <Link :href="route('copies.create')" class="shrink-0 rounded-md bg-primary-600 px-4 py-2.5 text-sm font-bold text-white">Nouvel exemplaire</Link>
             </div>
         </template>
 
-        <div v-if="$page.props.flash?.success" class="mb-4 rounded-md bg-emerald-50 p-3 text-sm text-emerald-700">{{ $page.props.flash.success }}</div>
-        <div v-if="$page.props.errors?.copy" class="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700">{{ $page.props.errors.copy }}</div>
+        <div v-if="$page.props.flash?.success" class="mb-4 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300">{{ $page.props.flash.success }}</div>
+        <div v-if="$page.props.errors?.copy" class="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">{{ $page.props.errors.copy }}</div>
 
         <div v-if="activeOperations" class="mb-4 flex flex-col gap-3 rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200 sm:flex-row sm:items-center sm:justify-between">
             <div><strong>{{ activeOperations }} opération(s) active(s) sur cette page.</strong><p class="mt-1 text-xs opacity-80">Ouvrez l’étudiant au comptoir pour clôturer une consultation ou enregistrer un retour de prêt.</p></div>
@@ -112,7 +112,7 @@ const printPreview = () => (document.querySelector<HTMLIFrameElement>('#copy-qr-
 
         <section class="dw-card overflow-x-auto">
             <table class="dw-table min-w-[1100px] text-sm">
-                <thead class="bg-slate-50 text-xs uppercase text-slate-400">
+                <thead class="bg-slate-50 text-xs uppercase text-slate-500 dark:text-slate-400">
                     <tr>
                         <th class="w-12 p-4 text-center"><input type="checkbox" class="h-4 w-4 rounded border-slate-300 text-primary-600" :checked="allSelected" aria-label="Tout sélectionner" @change="toggleAll" /></th>
                         <th class="p-4 text-start">N° d’enregistrement</th><th class="p-4 text-start">Ouvrage</th><th class="p-4 text-start">Emplacement</th><th class="p-4 text-start">État</th><th class="p-4 text-start">Statut</th><th class="w-36 p-4 text-center">Actions</th>
@@ -132,7 +132,7 @@ const printPreview = () => (document.querySelector<HTMLIFrameElement>('#copy-qr-
                             <button v-if="canDelete" class="inline-flex h-9 w-9 items-center justify-center rounded-md text-red-600 hover:bg-red-50 dark:hover:bg-red-950" title="Supprimer" aria-label="Supprimer l’exemplaire" @click="remove(copy)"><AppIcon name="trash" class="h-4 w-4" /></button>
                         </div></td>
                     </tr>
-                    <tr v-if="!copies.data.length"><td colspan="7" class="p-12 text-center text-slate-400">Aucun exemplaire enregistré.</td></tr>
+                    <tr v-if="!copies.data.length"><td colspan="7" class="p-12 text-center text-slate-500 dark:text-slate-400">Aucun exemplaire enregistré.</td></tr>
                 </tbody>
             </table>
         </section>

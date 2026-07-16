@@ -18,13 +18,13 @@ const form = useForm({
             ><div>
                 <Link
                     :href="route('cards.index')"
-                    class="text-xs font-bold text-primary-600"
+                    class="text-xs font-bold text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
                     >← Retour aux cartes</Link
                 >
-                <h1 class="mt-2 font-heading text-2xl font-bold text-slate-800">
+                <h1 class="dw-page-title mt-2">
                     Modifier {{ card.card_number }}
                 </h1>
-                <p class="mt-2 text-sm text-slate-500">
+                <p class="dw-page-description">
                     Le titulaire et le numéro de carte ne peuvent pas être
                     modifiés.
                 </p>
@@ -87,10 +87,10 @@ const form = useForm({
             >
                 <Link
                     :href="route('cards.index')"
-                    class="rounded-md border px-5 py-2.5 text-sm font-bold"
+                    class="dw-btn-secondary"
                     >Annuler</Link
                 ><button
-                    class="rounded-md bg-primary-600 px-5 py-2.5 text-sm font-bold text-white"
+                    class="dw-btn-primary"
                 >
                     Enregistrer
                 </button>

@@ -12,19 +12,22 @@ defineProps<{
 </script>
 
 <template>
-    <Head title="Profile" />
+    <Head title="Mon profil" />
 
     <AuthenticatedLayout>
         <template #header>
-            <h2
-                class="text-xl font-semibold leading-tight text-gray-800 dark:text-gray-200"
-            >
-                Profile
-            </h2>
+            <div>
+                <p class="dw-page-kicker">Compte</p>
+                <h1 class="dw-page-title">Mon profil</h1>
+                <p class="dw-page-description">
+                    Gérez vos informations personnelles et la sécurité de votre
+                    compte.
+                </p>
+            </div>
         </template>
 
-        <div class="py-12">
-            <div class="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
+        <div>
+            <div class="mx-auto max-w-3xl space-y-6">
                 <div
                     class="dw-card p-4 sm:p-8"
                 >

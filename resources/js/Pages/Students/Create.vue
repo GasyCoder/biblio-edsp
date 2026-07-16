@@ -67,17 +67,17 @@ const selectPhoto = (event: Event) => {
                     class="text-xs font-bold text-primary-600 hover:text-primary-700"
                     >← Retour aux étudiants</Link
                 >
-                <h1 class="mt-2 font-heading text-2xl font-bold text-slate-800">
+                <h1 class="dw-page-title mt-2">
                     Inscrire un étudiant
                 </h1>
-                <p class="mt-2 text-sm text-slate-500">
+                <p class="dw-page-description">
                     Le numéro de bibliothèque sera généré automatiquement à
                     l’enregistrement.
                 </p>
             </div></template
         >
         <form
-            class="dw-card mx-auto max-w-5xl p-5 sm:p-7"
+            class="dw-card w-full p-5 sm:p-7"
             @submit.prevent="submit"
         >
             <div class="grid gap-5 md:grid-cols-2">
@@ -296,7 +296,7 @@ const selectPhoto = (event: Event) => {
                     ><textarea
                         v-model="form.address"
                         rows="3"
-                        class="w-full rounded-md border border-slate-300 bg-white px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-950"
+                        class="dw-field"
                     ></textarea>
                 </div>
                 <div>
