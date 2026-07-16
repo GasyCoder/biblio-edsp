@@ -187,7 +187,7 @@ const statusLabel: Record<string, string> = {
                 </form>
             </div>
             <div class="overflow-x-auto">
-                <table class="w-full min-w-[950px] text-start text-sm">
+                <table class="dw-table min-w-[950px] text-start text-sm">
                     <thead
                         class="bg-slate-50 text-xs uppercase tracking-wide text-slate-400"
                     >

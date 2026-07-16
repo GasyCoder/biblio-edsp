@@ -12,6 +12,7 @@ type Visit = { id: number; visit_number: string; checked_in_at: string; consulta
 type Loan = { id: number; loan_number: string; opened_at: string; due_at: string; closed_at?: string; items: Item[] };
 type AcademicReference = { id: number; code: string; name: string };
 type Activity = { key: string; type: 'entry' | 'exit' | 'consultation' | 'loan' | 'return'; label: string; occurred_at: string; student: Pick<Student, 'registration_number' | 'first_name' | 'last_name'>; book?: string; inventory_number?: string };
+type ActiveVisit = { id: number; visit_number: string; checked_in_at: string; student: Student; consultation?: { is_open: boolean; active_copies: number }; loan?: { loan_number: string; active_copies: number; due_at: string } };
 type Student = {
     id: number;
     registration_number: string;
@@ -29,12 +30,12 @@ type Student = {
     cards?: { id: number; card_number: string; status: string; expires_at?: string }[];
 };
 
-const props = defineProps<{ query: string; student?: Student; visit?: Visit; loan?: Loan; matches: Student[]; recentActivity: Activity[] }>();
+const props = defineProps<{ query: string; student?: Student; visit?: Visit; loan?: Loan; matches: Student[]; activeVisits: ActiveVisit[]; recentActivity: Activity[]; operationSettings: { defaultLoanDays: number; scannerInactivitySeconds: number } }>();
 const scan = ref(props.query);
 const scanInput = ref<HTMLInputElement>();
 const copyInput = ref<HTMLInputElement>();
 const copyForm = useForm({ barcode: '' });
-const defaultDueDate = () => { const date = new Date(); date.setDate(date.getDate() + 14); return date.toISOString().slice(0, 10); };
+const defaultDueDate = () => { const date = new Date(); date.setDate(date.getDate() + props.operationSettings.defaultLoanDays); return date.toISOString().slice(0, 10); };
 const loanOpenForm = useForm({ due_at: defaultDueDate() });
 const loanCopyForm = useForm({ barcode: '' });
 const cameraTarget = ref<'student' | 'copy' | 'loan-copy' | null>(null);
@@ -44,6 +45,10 @@ const activeLoanItems = computed(() => props.loan?.items.filter((item) => !item.
 const statusLabels: Record<string, string> = { active: 'Actif', inactive: 'Inactif', suspended: 'Suspendu', graduated: 'Diplômé' };
 const activityStyles: Record<Activity['type'], string> = { entry: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950', exit: 'bg-slate-100 text-slate-500 dark:bg-slate-800', consultation: 'bg-primary-50 text-primary-600 dark:bg-primary-950', loan: 'bg-amber-50 text-amber-600 dark:bg-amber-950', return: 'bg-cyan-50 text-cyan-600 dark:bg-cyan-950' };
 const activityIcon = (type: Activity['type']) => type === 'loan' ? 'loans' : type === 'consultation' || type === 'return' ? 'books' : 'visits';
+const presenceDuration = (checkedInAt: string) => {
+    const minutes = Math.max(0, Math.floor((Date.now() - new Date(checkedInAt).getTime()) / 60000));
+    return minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
+};
 
 const findStudent = () => router.get(route('desk.index'), { q: scan.value }, { preserveState: false, replace: true });
 const post = (url: string) => router.post(url, {}, { preserveScroll: true });
@@ -116,6 +121,27 @@ onMounted(() => scanInput.value?.focus());
             <InputError class="mt-2" :message="$page.props.errors?.student" />
         </section>
 
+        <details class="dw-card group mt-6 overflow-hidden" open>
+            <summary class="flex cursor-pointer list-none items-center justify-between gap-4 p-5 marker:hidden sm:px-6">
+                <div class="flex items-center gap-4">
+                    <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300"><AppIcon name="visits" class="h-5 w-5" /></span>
+                    <div><p class="text-xs font-bold uppercase tracking-widest text-emerald-600">Suivi en temps réel</p><h2 class="mt-1 font-heading text-lg font-bold text-slate-800">Présences en cours</h2><p class="mt-1 text-xs text-slate-500">Étudiants entrés dans la bibliothèque et dont la sortie n’est pas encore enregistrée.</p></div>
+                </div>
+                <div class="flex shrink-0 items-center gap-3"><span class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">{{ activeVisits.length }} présent(s)</span><AppIcon name="chevron-down" class="h-5 w-5 text-slate-400 transition group-open:rotate-180" /></div>
+            </summary>
+            <div class="border-t border-gray-200 dark:border-gray-900">
+                <div v-if="activeVisits.length" class="grid gap-px bg-gray-200 dark:bg-gray-900 md:grid-cols-2 2xl:grid-cols-3">
+                    <button v-for="presence in activeVisits" :key="presence.id" class="flex min-w-0 items-start gap-4 bg-white p-5 text-start transition hover:bg-primary-50 dark:bg-gray-950 dark:hover:bg-primary-950/30" @click="router.get(route('desk.index'), { q: presence.student.registration_number })">
+                        <img v-if="presence.student.photo_url" :src="presence.student.photo_url" :alt="`Photo de ${presence.student.first_name} ${presence.student.last_name}`" class="h-14 w-12 shrink-0 rounded-md object-cover" />
+                        <span v-else class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary-50 text-xs font-bold text-primary-700 dark:bg-primary-950 dark:text-primary-300">{{ presence.student.first_name[0] }}{{ presence.student.last_name[0] }}</span>
+                        <span class="min-w-0 flex-1"><span class="block truncate text-sm font-bold text-slate-700 dark:text-slate-200">{{ presence.student.last_name }} {{ presence.student.first_name }}</span><span class="mt-1 block font-mono text-xs text-primary-600">{{ presence.student.registration_number }}</span><span class="mt-2 flex flex-wrap gap-1.5"><span class="rounded bg-emerald-50 px-2 py-1 text-[11px] font-bold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">Depuis {{ presenceDuration(presence.checked_in_at) }}</span><span v-if="presence.consultation?.is_open" class="rounded bg-primary-50 px-2 py-1 text-[11px] font-bold text-primary-700 dark:bg-primary-950 dark:text-primary-300">{{ presence.consultation.active_copies }} en consultation</span><span v-if="presence.loan" class="rounded bg-amber-50 px-2 py-1 text-[11px] font-bold text-amber-700 dark:bg-amber-950 dark:text-amber-300">{{ presence.loan.active_copies }} en prêt</span></span></span>
+                        <AppIcon name="chevron-down" class="mt-1 h-4 w-4 -rotate-90 text-slate-400" />
+                    </button>
+                </div>
+                <div v-else class="p-10 text-center"><span class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-500 dark:bg-emerald-950"><AppIcon name="visits" class="h-6 w-6" /></span><p class="mt-3 text-sm font-bold text-slate-600">Aucune présence ouverte</p><p class="mt-1 text-xs text-slate-400">Les étudiants apparaîtront ici après l’enregistrement de leur entrée.</p></div>
+            </div>
+        </details>
+
         <section v-if="student" class="mt-6 grid gap-6 xl:grid-cols-[360px_1fr]">
             <article class="dw-card self-start overflow-hidden xl:sticky xl:top-24">
                 <div class="relative min-h-64 overflow-hidden p-6 text-white">
@@ -124,8 +150,8 @@ onMounted(() => scanInput.value?.focus());
                     <div class="relative z-10 flex min-h-52 flex-col justify-end">
                         <img v-if="student.photo_url" :src="student.photo_url" :alt="`Photo de ${student.first_name} ${student.last_name}`" class="mb-5 h-28 w-24 rounded-lg border-2 border-white/70 object-cover shadow-xl" />
                         <div v-else class="mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-white/15 text-2xl font-bold ring-1 ring-white/30 backdrop-blur-sm">{{ student.first_name[0] }}{{ student.last_name[0] }}</div>
-                        <h2 class="font-heading text-xl font-bold drop-shadow-md">{{ student.last_name }} {{ student.first_name }}</h2>
-                        <p class="mt-1 font-mono text-sm font-bold text-primary-100 drop-shadow">{{ student.registration_number }}</p>
+                        <h2 class="font-heading text-xl font-bold !text-white [text-shadow:0_2px_5px_rgba(0,0,0,0.9)]">{{ student.last_name }} {{ student.first_name }}</h2>
+                        <p class="mt-1 font-mono text-sm font-bold !text-white [text-shadow:0_1px_4px_rgba(0,0,0,0.9)]">{{ student.registration_number }}</p>
                     </div>
                 </div>
                 <div class="space-y-4 p-5 text-sm">
@@ -169,7 +195,8 @@ onMounted(() => scanInput.value?.focus());
                             <div v-for="item in session.items" :key="item.id" class="flex items-center gap-4 p-4 sm:px-5"><img v-if="item.copy.book.cover_url" :src="item.copy.book.cover_url" :alt="`Couverture de ${item.copy.book.title}`" class="h-14 w-10 shrink-0 rounded border border-slate-200 object-cover shadow-sm dark:border-slate-700"/><div v-else class="flex h-14 w-10 shrink-0 items-center justify-center rounded border border-dashed border-slate-300 bg-slate-50 text-primary-500 dark:border-slate-700 dark:bg-slate-900"><AppIcon name="books" class="h-5 w-5"/></div><div class="min-w-0"><p class="truncate text-sm font-semibold text-slate-700">{{ item.copy.book.title }}</p><p class="mt-1 font-mono text-xs text-slate-400">{{ item.copy.inventory_number }}</p></div><span v-if="item.returned_at" class="ms-auto text-xs font-bold text-emerald-600">Restitué</span><button v-else class="ms-auto rounded-md border border-primary-200 px-3 py-2 text-xs font-bold text-primary-600 dark:border-primary-800" @click="post(route('desk.consultations.copies.return', item.id))">Restituer</button></div>
                         </div>
                         <p v-else class="p-10 text-center text-sm text-slate-400">Aucun exemplaire scanné.</p>
-                        <div v-if="!session.closed_at" class="border-t border-slate-100 p-5 text-end"><button :disabled="activeItems.length > 0" class="rounded-md bg-primary-600 px-5 py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40" @click="post(route('desk.consultations.close', session.id))">Clôturer la session</button></div>
+                        <div v-if="!session.closed_at" class="border-t border-slate-100 p-5 text-end"><p v-if="activeItems.length" class="mb-3 text-xs text-slate-500">La clôture rendra automatiquement disponible {{ activeItems.length }} exemplaire(s).</p><button class="rounded-md bg-primary-600 px-5 py-2.5 text-sm font-bold text-white" @click="post(route('desk.consultations.close', session.id))">Clôturer et libérer les exemplaires</button></div>
+                        <div v-else class="flex flex-col gap-3 border-t border-slate-100 p-5 sm:flex-row sm:items-center sm:justify-between dark:border-slate-800"><p class="text-sm text-slate-500">L’étudiant veut consulter d’autres livres ? Ouvrez une nouvelle session sans enregistrer une nouvelle entrée.</p><button class="shrink-0 rounded-md bg-primary-600 px-5 py-2.5 text-sm font-bold text-white" @click="post(route('desk.consultations.open', visit.id))">Nouvelle consultation</button></div>
                     </article>
 
                     <article class="dw-card overflow-hidden">
@@ -210,12 +237,12 @@ onMounted(() => scanInput.value?.focus());
         </section>
         <section v-else-if="query" class="dw-card mt-6 p-10 text-center"><p class="font-heading font-bold text-slate-800">Aucun étudiant trouvé</p><p class="mt-2 text-sm text-slate-500">Vérifiez le code ou utilisez une recherche par nom.</p></section>
 
-        <section class="dw-card mt-6 overflow-hidden">
-            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 p-5 dark:border-slate-800">
+        <details class="dw-card group mt-6 overflow-hidden">
+            <summary class="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 p-5 marker:hidden dark:border-slate-800">
                 <div><p class="text-xs font-bold uppercase tracking-widest text-primary-600">Activité du comptoir</p><h2 class="mt-1 font-heading text-lg font-bold text-slate-800">Historique récent des scans</h2></div>
-                <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500 dark:bg-slate-800">15 dernières opérations</span>
-            </div>
-            <div v-if="recentActivity.length" class="divide-y divide-slate-100 dark:divide-slate-800">
+                <span class="flex items-center gap-3"><span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500 dark:bg-slate-800">{{ recentActivity.length }} dernières opérations</span><AppIcon name="chevron-down" class="h-5 w-5 text-slate-400 transition group-open:rotate-180" /></span>
+            </summary>
+            <div v-if="recentActivity.length" class="divide-y divide-slate-100 border-t border-slate-100 dark:divide-slate-800 dark:border-slate-800">
                 <div v-for="activity in recentActivity" :key="activity.key" class="grid gap-3 p-4 sm:grid-cols-[44px_minmax(180px,0.8fr)_minmax(220px,1.4fr)_auto] sm:items-center sm:px-5">
                     <span class="flex h-10 w-10 items-center justify-center rounded-lg" :class="activityStyles[activity.type]"><AppIcon :name="activityIcon(activity.type)" class="h-5 w-5" /></span>
                     <div class="min-w-0"><p class="text-sm font-bold text-slate-700">{{ activity.label }}</p><p class="mt-1 text-xs text-slate-400">{{ new Date(activity.occurred_at).toLocaleString('fr-FR') }}</p></div>
@@ -224,12 +251,12 @@ onMounted(() => scanInput.value?.focus());
                 </div>
             </div>
             <div v-else class="p-10 text-center"><AppIcon name="scan" class="mx-auto h-9 w-9 text-slate-300"/><p class="mt-3 text-sm text-slate-400">Aucune opération de scan enregistrée pour le moment.</p></div>
-        </section>
+        </details>
 
         <CameraQrScanner
             :open="cameraTarget !== null"
             :continuous="cameraTarget === 'copy' || cameraTarget === 'loan-copy'"
-            :inactivity-seconds="40"
+            :inactivity-seconds="operationSettings.scannerInactivitySeconds"
             :title="cameraTarget === 'copy' ? 'Scanner un livre pour consultation' : cameraTarget === 'loan-copy' ? 'Scanner un livre à prêter' : 'Scanner une carte de bibliothèque'"
             :help="cameraTarget === 'copy' || cameraTarget === 'loan-copy' ? 'Présentez devant la caméra l’étiquette QR collée sur le livre.' : 'Présentez devant la caméra le QR de la carte de bibliothèque.'"
             @close="cameraTarget = null"

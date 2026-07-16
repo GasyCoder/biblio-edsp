@@ -27,7 +27,23 @@ class CopyController extends Controller
     {
         $search = trim($request->string('search')->toString());
 
-        return Inertia::render('Copies/Index', ['copies' => Copy::query()->with(['book:id,title', 'location:id,code,type,number,name'])->when($search, fn ($query) => $query->where('inventory_number', 'like', "%{$search}%")->orWhereHas('book', fn ($query) => $query->where('title', 'like', "%{$search}%")))->latest()->paginate(20)->withQueryString(), 'filters' => ['search' => $search], 'conditionLabels' => collect(CopyCondition::cases())->mapWithKeys(fn ($case) => [$case->value => $case->label()]), 'statusLabels' => collect(CopyStatus::cases())->mapWithKeys(fn ($case) => [$case->value => $case->label()])]);
+        return Inertia::render('Copies/Index', [
+            'copies' => Copy::query()
+                ->with([
+                    'book:id,title',
+                    'location:id,code,type,number,name',
+                    'activeConsultationItems.session.student:id,registration_number,first_name,last_name',
+                    'activeLoanItems.loan.student:id,registration_number,first_name,last_name',
+                ])
+                ->when($search, fn ($query) => $query->where('inventory_number', 'like', "%{$search}%")
+                    ->orWhereHas('book', fn ($query) => $query->where('title', 'like', "%{$search}%")))
+                ->latest()
+                ->paginate(20)
+                ->withQueryString(),
+            'filters' => ['search' => $search],
+            'conditionLabels' => collect(CopyCondition::cases())->mapWithKeys(fn ($case) => [$case->value => $case->label()]),
+            'statusLabels' => collect(CopyStatus::cases())->mapWithKeys(fn ($case) => [$case->value => $case->label()]),
+        ]);
     }
 
     public function create(): Response

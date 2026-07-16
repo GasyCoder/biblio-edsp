@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Enums\StudentStatus;
+use App\Models\ConsultationItem;
+use App\Models\LoanItem;
 use App\Models\Student;
 use App\Services\AcademicReferenceService;
 use App\Services\StudentService;
@@ -66,6 +68,18 @@ class StudentController extends Controller
                 'visits' => fn ($query) => $query->latest('checked_in_at')->limit(10),
                 'consultationSessions' => fn ($query) => $query->withCount('items')->latest('opened_at')->limit(10),
             ]),
+            'consultedBooks' => ConsultationItem::query()
+                ->whereHas('session', fn ($query) => $query->where('student_id', $student->id))
+                ->with(['session:id,session_number,opened_at,closed_at', 'copy.book'])
+                ->latest('scanned_at')
+                ->paginate(12, ['*'], 'consultations_page')
+                ->withQueryString(),
+            'borrowedBooks' => LoanItem::query()
+                ->whereHas('loan', fn ($query) => $query->where('student_id', $student->id))
+                ->with(['loan:id,loan_number,opened_at,due_at,closed_at', 'copy.book'])
+                ->latest('loaned_at')
+                ->paginate(12, ['*'], 'loans_page')
+                ->withQueryString(),
         ]);
     }
 

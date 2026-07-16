@@ -9,6 +9,7 @@ use App\Models\Loan;
 use App\Models\LoanItem;
 use App\Models\Student;
 use App\Models\User;
+use App\Models\Setting;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -42,6 +43,7 @@ class LoanService
             $lockedLoan = Loan::query()->lockForUpdate()->findOrFail($loan->id);
             $lockedCopy = Copy::query()->lockForUpdate()->findOrFail($copy->id);
             if ($lockedLoan->closed_at) throw ValidationException::withMessages(['loan_copy' => 'Ce prêt est clôturé.']);
+            if ($lockedLoan->items()->whereNull('returned_at')->count() >= (int) Setting::getValue('max_books_per_loan', 5)) throw ValidationException::withMessages(['loan_copy' => 'Le nombre maximal de livres autorisés pour un prêt est atteint.']);
             if ($lockedCopy->status !== CopyStatus::Available) throw ValidationException::withMessages(['loan_copy' => 'Cet exemplaire n’est pas disponible.']);
             if ($lockedLoan->items()->where('copy_id', $lockedCopy->id)->exists()) throw ValidationException::withMessages(['loan_copy' => 'Cet exemplaire figure déjà dans ce prêt.']);
 
@@ -60,6 +62,11 @@ class LoanService
             $copy = Copy::query()->lockForUpdate()->findOrFail($lockedItem->copy_id);
             $lockedItem->update(['returned_at' => now(), 'returned_by' => $operator->id]);
             $copy->update(['status' => CopyStatus::Available, 'lock_version' => $copy->lock_version + 1]);
+
+            $loan = Loan::query()->lockForUpdate()->findOrFail($lockedItem->loan_id);
+            if (! $loan->closed_at && ! $loan->items()->whereNull('returned_at')->exists()) {
+                $loan->update(['closed_at' => now(), 'closed_by' => $operator->id]);
+            }
 
             return $lockedItem->refresh();
         }, 3);

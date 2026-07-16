@@ -11,6 +11,7 @@ use App\Models\LoanItem;
 use App\Models\Student;
 use App\Models\StudentCard;
 use App\Models\Visit;
+use App\Models\Setting;
 use App\Services\ConsultationService;
 use App\Services\LoanService;
 use App\Services\VisitService;
@@ -43,7 +44,9 @@ class DeskController extends Controller
             'visit' => $student?->visits->first(),
             'loan' => $student?->loans->first(),
             'matches' => $matches,
+            'activeVisits' => $this->activeVisits(),
             'recentActivity' => $this->recentActivity(),
+            'operationSettings' => ['defaultLoanDays' => (int) Setting::getValue('default_loan_days', 14), 'scannerInactivitySeconds' => (int) Setting::getValue('scanner_inactivity_seconds', 40)],
         ]);
     }
 
@@ -163,6 +166,42 @@ class DeskController extends Controller
             ->orderBy('last_name')
             ->limit(10)
             ->get(['id', 'registration_number', 'academic_number', 'first_name', 'last_name', 'status', 'level', 'program']);
+    }
+
+    /** @return Collection<int, array<string, mixed>> */
+    private function activeVisits(): Collection
+    {
+        return Visit::query()
+            ->whereNull('checked_out_at')
+            ->with([
+                'student:id,registration_number,academic_number,last_name,first_name,photo_path,level,program',
+                'consultationSession.items' => fn ($query) => $query->whereNull('returned_at'),
+                'student.loans' => fn ($query) => $query->whereNull('closed_at')->with([
+                    'items' => fn ($items) => $items->whereNull('returned_at'),
+                ]),
+            ])
+            ->oldest('checked_in_at')
+            ->get()
+            ->map(function (Visit $visit): array {
+                $session = $visit->consultationSession;
+                $loan = $visit->student->loans->first();
+
+                return [
+                    'id' => $visit->id,
+                    'visit_number' => $visit->visit_number,
+                    'checked_in_at' => $visit->checked_in_at?->toIso8601String(),
+                    'student' => $visit->student,
+                    'consultation' => $session ? [
+                        'is_open' => ! $session->closed_at,
+                        'active_copies' => $session->items->count(),
+                    ] : null,
+                    'loan' => $loan ? [
+                        'loan_number' => $loan->loan_number,
+                        'active_copies' => $loan->items->count(),
+                        'due_at' => $loan->due_at?->toDateString(),
+                    ] : null,
+                ];
+            });
     }
 
     /** @return Collection<int, array<string, mixed>> */

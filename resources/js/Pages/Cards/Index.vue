@@ -126,7 +126,7 @@ const statusLabels: Record<string, string> = {
             </button>
         </div>
         <section class="dw-card overflow-x-auto">
-            <table class="w-full min-w-[950px] text-sm">
+            <table class="dw-table min-w-[950px] text-sm">
                 <thead class="bg-slate-50 text-xs uppercase text-slate-400">
                     <tr>
                         <th class="w-12 p-4 text-center">

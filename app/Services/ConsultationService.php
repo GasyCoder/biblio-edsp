@@ -24,8 +24,8 @@ class ConsultationService
                 throw ValidationException::withMessages(['visit' => 'La présence est déjà clôturée.']);
             }
 
-            if ($lockedVisit->consultationSession()->exists()) {
-                throw ValidationException::withMessages(['visit' => 'Une consultation existe déjà pour cette présence.']);
+            if ($lockedVisit->consultationSessions()->whereNull('closed_at')->exists()) {
+                throw ValidationException::withMessages(['visit' => 'Une consultation est déjà ouverte pour cette présence.']);
             }
 
             return ConsultationSession::create([
@@ -89,8 +89,15 @@ class ConsultationService
             if ($lockedSession->closed_at) {
                 throw ValidationException::withMessages(['session' => 'Cette consultation est déjà clôturée.']);
             }
-            if ($lockedSession->items()->whereNull('returned_at')->exists()) {
-                throw ValidationException::withMessages(['session' => 'Tous les exemplaires doivent être restitués avant la clôture.']);
+
+            $activeItems = $lockedSession->items()->whereNull('returned_at')->lockForUpdate()->get();
+            foreach ($activeItems as $item) {
+                $copy = Copy::query()->lockForUpdate()->findOrFail($item->copy_id);
+                $item->update(['returned_at' => now(), 'returned_by' => $operator->id]);
+                $copy->update([
+                    'status' => CopyStatus::Available,
+                    'lock_version' => $copy->lock_version + 1,
+                ]);
             }
 
             $lockedSession->update(['closed_at' => now(), 'closed_by' => $operator->id]);

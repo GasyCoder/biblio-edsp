@@ -16,8 +16,15 @@ const previewCopy = ref<any | null>(null);
 const canUpdate = page.props.auth.permissions.includes('copies.update');
 const canDelete = page.props.auth.permissions.includes('catalog.manage');
 const canPrint = page.props.auth.permissions.includes('copies.print');
+const canUseDesk = page.props.auth.permissions.includes('cards.scan');
 const pageIds = computed(() => props.copies.data.map((copy) => copy.id));
 const allSelected = computed(() => pageIds.value.length > 0 && pageIds.value.every((id) => selected.value.includes(id)));
+const activeOperations = computed(() => props.copies.data.filter((copy) => ['in_consultation', 'borrowed'].includes(copy.status)).length);
+
+const operationStudent = (copy: any) =>
+    copy.active_consultation_items?.[0]?.session?.student
+    ?? copy.active_loan_items?.[0]?.loan?.student
+    ?? null;
 
 const statusClass: Record<string, string> = {
     available: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300',
@@ -68,13 +75,13 @@ const printPreview = () => (document.querySelector<HTMLIFrameElement>('#copy-qr-
 </script>
 
 <template>
-    <Head title="Exemplaires" />
+    <Head title="Inventaire physique" />
     <AuthenticatedLayout>
         <template #header>
             <div class="flex items-end justify-between gap-4">
                 <div>
                     <p class="text-xs font-bold uppercase tracking-widest text-primary-600">Inventaire</p>
-                    <h1 class="mt-1 font-heading text-2xl font-bold text-slate-800">Exemplaires physiques</h1>
+                    <h1 class="mt-1 font-heading text-2xl font-bold text-slate-800 dark:text-white">Inventaire physique</h1>
                     <p class="mt-2 text-sm text-slate-500">Sélectionnez un ou plusieurs exemplaires pour imprimer leurs QR codes ou les supprimer.</p>
                 </div>
                 <Link :href="route('copies.create')" class="shrink-0 rounded-md bg-primary-600 px-4 py-2.5 text-sm font-bold text-white">Nouvel exemplaire</Link>
@@ -83,6 +90,11 @@ const printPreview = () => (document.querySelector<HTMLIFrameElement>('#copy-qr-
 
         <div v-if="$page.props.flash?.success" class="mb-4 rounded-md bg-emerald-50 p-3 text-sm text-emerald-700">{{ $page.props.flash.success }}</div>
         <div v-if="$page.props.errors?.copy" class="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700">{{ $page.props.errors.copy }}</div>
+
+        <div v-if="activeOperations" class="mb-4 flex flex-col gap-3 rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200 sm:flex-row sm:items-center sm:justify-between">
+            <div><strong>{{ activeOperations }} opération(s) active(s) sur cette page.</strong><p class="mt-1 text-xs opacity-80">Ouvrez l’étudiant au comptoir pour clôturer une consultation ou enregistrer un retour de prêt.</p></div>
+            <Link :href="route('desk.index')" class="shrink-0 text-xs font-bold text-amber-800 underline underline-offset-4 dark:text-amber-200">Ouvrir le comptoir</Link>
+        </div>
 
         <div v-if="selected.length" class="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-primary-200 bg-primary-50 p-3 dark:border-primary-800 dark:bg-primary-950/40">
             <span class="text-sm font-bold text-primary-700 dark:text-primary-300">{{ selected.length }} sélectionné(s)</span>
@@ -99,7 +111,7 @@ const printPreview = () => (document.querySelector<HTMLIFrameElement>('#copy-qr-
         </div>
 
         <section class="dw-card overflow-x-auto">
-            <table class="w-full min-w-[1100px] text-sm">
+            <table class="dw-table min-w-[1100px] text-sm">
                 <thead class="bg-slate-50 text-xs uppercase text-slate-400">
                     <tr>
                         <th class="w-12 p-4 text-center"><input type="checkbox" class="h-4 w-4 rounded border-slate-300 text-primary-600" :checked="allSelected" aria-label="Tout sélectionner" @change="toggleAll" /></th>
@@ -113,7 +125,7 @@ const printPreview = () => (document.querySelector<HTMLIFrameElement>('#copy-qr-
                         <td class="p-4 font-semibold text-slate-700">{{ copy.book.title }}</td>
                         <td class="p-4">{{ copy.location ? `${copy.location.name} · ${copy.location.code}` : 'Non affecté' }}</td>
                         <td class="p-4">{{ conditionLabels[copy.condition] }}</td>
-                        <td class="p-4"><span :class="statusClass[copy.status]" class="rounded-full px-2.5 py-1 text-xs font-bold">{{ statusLabels[copy.status] }}</span></td>
+                        <td class="p-4"><span :class="statusClass[copy.status]" class="rounded-full px-2.5 py-1 text-xs font-bold">{{ statusLabels[copy.status] }}</span><Link v-if="canUseDesk && operationStudent(copy)" :href="route('desk.index', { q: operationStudent(copy).registration_number })" class="mt-2 block text-xs font-bold text-primary-600 hover:underline">Gérer au comptoir →</Link></td>
                         <td class="p-3"><div class="flex justify-center gap-1">
                             <button v-if="canPrint" class="inline-flex h-9 w-9 items-center justify-center rounded-md text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/30" title="Afficher le QR code" aria-label="Afficher le QR code" @click="previewCopy = copy"><AppIcon name="print" class="h-4 w-4" /></button>
                             <Link v-if="canUpdate" :href="route('copies.edit', copy.id)" class="inline-flex h-9 w-9 items-center justify-center rounded-md text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950" title="Modifier" aria-label="Modifier l’exemplaire"><AppIcon name="edit" class="h-4 w-4" /></Link>

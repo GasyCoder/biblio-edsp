@@ -44,7 +44,7 @@ class VisitService
                 throw ValidationException::withMessages(['visit' => 'Cette présence est déjà clôturée.']);
             }
 
-            $session = $lockedVisit->consultationSession()->lockForUpdate()->first();
+            $session = $lockedVisit->consultationSessions()->whereNull('closed_at')->lockForUpdate()->first();
             if ($session && ! $session->closed_at) {
                 throw ValidationException::withMessages(['visit' => 'Clôturez la consultation avant d’enregistrer la sortie.']);
             }

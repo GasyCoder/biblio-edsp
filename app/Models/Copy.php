@@ -36,4 +36,14 @@ class Copy extends Model
     {
         return $this->hasMany(ConsultationItem::class);
     }
+
+    public function activeConsultationItems(): HasMany
+    {
+        return $this->hasMany(ConsultationItem::class)->whereNull('returned_at');
+    }
+
+    public function activeLoanItems(): HasMany
+    {
+        return $this->hasMany(LoanItem::class)->whereNull('returned_at');
+    }
 }

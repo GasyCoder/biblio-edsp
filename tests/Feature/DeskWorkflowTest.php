@@ -44,17 +44,29 @@ it('runs the complete desk workflow from card scan to checkout', function () {
     expect($copy->refresh()->status)->toBe(CopyStatus::InConsultation);
 
     $this->post(route('desk.check-out', $visit))->assertSessionHasErrors('visit');
-    $this->post(route('desk.consultations.close', $session))->assertSessionHasErrors('session');
-
-    $item = ConsultationItem::query()->firstOrFail();
-    $this->post(route('desk.consultations.copies.return', $item))->assertRedirect();
-    expect($copy->refresh()->status)->toBe(CopyStatus::Available);
-
     $this->post(route('desk.consultations.close', $session))->assertRedirect();
+    expect($copy->refresh()->status)->toBe(CopyStatus::Available);
+    expect(ConsultationItem::query()->firstOrFail()->returned_at)->not->toBeNull();
+
     $this->post(route('desk.check-out', $visit))->assertRedirect(route('desk.index'));
 
     expect($visit->refresh()->checked_out_at)->not->toBeNull()
         ->and($session->refresh()->closed_at)->not->toBeNull();
+});
+
+it('opens another consultation during the same active presence', function () {
+    $secretary = User::factory()->create()->assignRole('secretaire');
+    $student = Student::factory()->create();
+
+    $this->actingAs($secretary)->post(route('desk.check-in', $student));
+    $visit = Visit::query()->firstOrFail();
+    $this->post(route('desk.consultations.open', $visit));
+    $firstSession = ConsultationSession::query()->firstOrFail();
+    $this->post(route('desk.consultations.close', $firstSession));
+    $this->post(route('desk.consultations.open', $visit))->assertRedirect();
+
+    expect($visit->consultationSessions()->count())->toBe(2)
+        ->and($visit->consultationSessions()->whereNull('closed_at')->count())->toBe(1);
 });
 
 it('prevents duplicate open visits and duplicate copy scans', function () {
@@ -128,7 +140,5 @@ it('manages a home loan from book scan through return', function () {
     $this->post(route('desk.loans.close', $loan))->assertSessionHasErrors('loan');
     $this->post(route('desk.loans.copies.return', $item))->assertRedirect();
     expect($copy->refresh()->status)->toBe(CopyStatus::Available);
-
-    $this->post(route('desk.loans.close', $loan))->assertRedirect();
     expect($loan->refresh()->closed_at)->not->toBeNull();
 });
