@@ -5,6 +5,7 @@ use App\Models\Author;
 use App\Models\Book;
 use App\Models\Category;
 use App\Models\Copy;
+use App\Models\Location;
 use App\Models\Student;
 use App\Models\StudentCard;
 use App\Models\User;
@@ -38,8 +39,8 @@ it('searches independently in every catalogue reference', function () {
     Category::create(['name' => 'Science politique', 'slug' => 'science-politique', 'inventory_code' => 'SP']);
     Author::create(['display_name' => 'Jean Touchard']);
     Author::create(['display_name' => 'Auteur différent']);
-    \App\Models\Location::create(['type' => 'cabinet', 'number' => '1', 'name' => 'Armoire 1', 'code' => 'ARM-1']);
-    \App\Models\Location::create(['type' => 'shelf', 'number' => '2', 'name' => 'Étagère 2', 'code' => 'ETA-2']);
+    Location::create(['type' => 'cabinet', 'number' => '1', 'name' => 'Armoire 1', 'code' => 'ARM-1']);
+    Location::create(['type' => 'shelf', 'number' => '2', 'name' => 'Étagère 2', 'code' => 'ETA-2']);
 
     $this->actingAs($user)->get(route('categories.index', ['search' => 'DRC']))
         ->assertInertia(fn (Assert $page) => $page->has('categories', 1)->where('filters.search', 'DRC'));
@@ -126,6 +127,27 @@ it('stores a cover image and displays the detailed book page', function () {
         ->component('Books/Show')
         ->where('book.title', 'Ouvrage avec couverture')
         ->where('book.cover_url', Storage::disk('public')->url($book->cover_path)));
+});
+
+it('filters books by category publication year and availability', function () {
+    $user = User::factory()->create()->assignRole('secretaire');
+    $law = Category::create(['name' => 'Droit', 'slug' => 'droit', 'inventory_code' => 'DR']);
+    $politics = Category::create(['name' => 'Politique', 'slug' => 'politique', 'inventory_code' => 'POL']);
+    $matching = Book::factory()->create(['category_id' => $law->id, 'publication_year' => 2024]);
+    Book::factory()->create(['category_id' => $politics->id, 'publication_year' => 2023]);
+    app(CopyService::class)->create(['book_id' => $matching->id]);
+
+    $this->actingAs($user)->get(route('books.index', [
+        'category' => $law->id,
+        'year' => 2024,
+        'availability' => 'available',
+    ]))->assertInertia(fn (Assert $page) => $page
+        ->component('Books/Index')
+        ->has('books.data', 1)
+        ->where('books.data.0.id', $matching->id)
+        ->where('filters.category', $law->id)
+        ->where('filters.availability', 'available')
+        ->has('categories', 2));
 });
 
 it('allows students to browse the catalogue but not modify it', function () {

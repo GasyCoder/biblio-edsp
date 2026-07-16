@@ -1,20 +1,21 @@
 <?php
 
+use App\Http\Controllers\AiImageController;
 use App\Http\Controllers\BookController;
 use App\Http\Controllers\BookImportController;
 use App\Http\Controllers\CatalogReferenceController;
 use App\Http\Controllers\CopyController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeskController;
+use App\Http\Controllers\LoanController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ReportController;
+use App\Http\Controllers\SettingController;
 use App\Http\Controllers\StudentCardController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\StudentImportController;
-use App\Http\Controllers\VisitController;
-use App\Http\Controllers\LoanController;
-use App\Http\Controllers\ReportController;
 use App\Http\Controllers\UserController;
-use App\Http\Controllers\SettingController;
+use App\Http\Controllers\VisitController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/login');
@@ -45,6 +46,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/books', [BookController::class, 'index'])->middleware('permission:books.view|catalog.view')->name('books.index');
     Route::get('/books/create', [BookController::class, 'create'])->middleware('permission:books.create')->name('books.create');
     Route::post('/books', [BookController::class, 'store'])->middleware('permission:books.create')->name('books.store');
+    Route::post('/api/ai/images', AiImageController::class)->middleware('throttle:5,1')->name('ai.images.generate');
     Route::delete('/books/bulk', [BookController::class, 'destroyBulk'])->middleware('permission:catalog.manage')->name('books.destroy.bulk');
     Route::get('/books/{book}', [BookController::class, 'show'])->middleware('permission:books.view|catalog.view')->name('books.show');
     Route::get('/books/{book}/edit', [BookController::class, 'edit'])->middleware('permission:books.update')->name('books.edit');

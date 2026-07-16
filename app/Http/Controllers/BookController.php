@@ -17,6 +17,9 @@ class BookController extends Controller
     public function index(Request $request): Response
     {
         $search = trim($request->string('search')->toString());
+        $category = $request->integer('category') ?: null;
+        $availability = $request->string('availability')->toString();
+        $year = $request->integer('year') ?: null;
 
         return Inertia::render('Books/Index', [
             'books' => Book::query()
@@ -28,10 +31,16 @@ class BookController extends Controller
                         ->orWhereHas('copies', fn ($query) => $query->where('inventory_number', 'like', "%{$search}%"))
                         ->orWhereHas('authors', fn ($query) => $query->where('display_name', 'like', "%{$search}%"));
                 }))
+                ->when($category, fn ($query) => $query->where('category_id', $category))
+                ->when($year, fn ($query) => $query->where('publication_year', $year))
+                ->when($availability === 'no_copies', fn ($query) => $query->doesntHave('copies'))
+                ->when(in_array($availability, ['available', 'in_consultation', 'borrowed'], true), fn ($query) => $query->whereHas('copies', fn ($query) => $query->where('status', $availability)))
                 ->latest()
                 ->paginate(15)
                 ->withQueryString(),
-            'filters' => ['search' => $search],
+            'filters' => ['search' => $search, 'category' => $category, 'availability' => $availability, 'year' => $year],
+            'categories' => Category::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
+            'years' => Book::query()->whereNotNull('publication_year')->distinct()->orderByDesc('publication_year')->pluck('publication_year'),
         ]);
     }
 
@@ -39,6 +48,7 @@ class BookController extends Controller
     {
         return Inertia::render('Books/Create', [
             'categories' => Category::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
+            'aiAvailable' => filled(config('services.cloudflare.account_id')) && filled(config('services.cloudflare.api_token')),
         ]);
     }
 
@@ -53,7 +63,7 @@ class BookController extends Controller
 
     public function edit(Book $book): Response
     {
-        return Inertia::render('Books/Edit', ['book' => $book->load('authors:id,display_name'), 'categories' => Category::query()->where('is_active', true)->orderBy('name')->get(['id', 'name'])]);
+        return Inertia::render('Books/Edit', ['book' => $book->load('authors:id,display_name'), 'categories' => Category::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']), 'aiAvailable' => filled(config('services.cloudflare.account_id')) && filled(config('services.cloudflare.api_token'))]);
     }
 
     public function show(Book $book): Response

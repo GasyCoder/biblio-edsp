@@ -30,6 +30,7 @@ L’interface reprend le langage visuel du template Dashwind fourni localement d
 - export Excel du référentiel étudiant ;
 - import Excel des ouvrages avec reprise des catégories, auteurs multilignes et quantités ;
 - fiche détaillée des ouvrages avec couverture, métadonnées bibliographiques et inventaire des exemplaires ;
+- génération facultative de couvertures avec Cloudflare Workers AI, aperçu, téléchargement et réutilisation dans le formulaire ;
 - création automatique d’un exemplaire et d’un code unique pour chaque unité importée ;
 - sélection multiple des exemplaires avec impression unitaire en modale, planche de QR codes et suppression groupée sécurisée ;
 - planches A4 économes de 24 étiquettes QR autocollantes au format 63,5 × 33,9 mm ;
@@ -116,6 +117,20 @@ Puis initialiser la base et compiler l’interface :
 php artisan migrate --seed
 npm run build
 ```
+
+### Génération de couvertures avec Cloudflare Workers AI
+
+Dans le tableau de bord Cloudflare, ouvrir **Workers AI**, choisir **Use REST API**, puis **Create a Workers AI API Token**. Copier le jeton et l’identifiant du compte dans `.env` :
+
+```dotenv
+CLOUDFLARE_ACCOUNT_ID="identifiant-du-compte"
+CLOUDFLARE_API_TOKEN="jeton-workers-ai"
+CLOUDFLARE_AI_IMAGE_MODEL=@cf/black-forest-labs/flux-1-schnell
+```
+
+Un jeton créé manuellement doit disposer des autorisations de compte **Workers AI - Read** et **Workers AI - Edit**. Ces valeurs restent exclusivement côté Laravel et ne doivent jamais être préfixées par `VITE_`.
+
+Pour utiliser la fonctionnalité, ouvrir **Ouvrages → Ajouter un ouvrage**, renseigner le titre, puis utiliser **Composer depuis la fiche de l’ouvrage** ou saisir une description de 1 à 2 048 caractères. L’image générée peut être téléchargée, régénérée ou enregistrée comme couverture avec l’ouvrage.
 
 Les comptes initiaux utilisent par défaut les adresses suivantes :
 
