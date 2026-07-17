@@ -1,13 +1,90 @@
 <script setup lang="ts">
 import AppIcon from "@/Components/AppIcon.vue";
 import ApplicationLogo from "@/Components/ApplicationLogo.vue";
+import PageSkeleton from "@/Components/PageSkeleton.vue";
 import ThemeToggle from "@/Components/ThemeToggle.vue";
-import { Link, usePage } from "@inertiajs/vue3";
-import { computed, ref } from "vue";
+import { Link, router, usePage } from "@inertiajs/vue3";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 
 const page = usePage();
 const sidebarOpen = ref(false);
 const userMenuOpen = ref(false);
+
+type SkeletonVariant =
+    | "table"
+    | "form"
+    | "dashboard"
+    | "desk"
+    | "detail"
+    | "reference"
+    | "reference-overview";
+const resolveSkeletonVariant = (target: string): SkeletonVariant => {
+    const value = target.toLowerCase();
+    if (value.includes("dashboard")) return "dashboard";
+    if (value.includes("desk") || value.includes("attendance")) return "desk";
+    if (
+        value.includes("categories") ||
+        value.includes("authors") ||
+        value.includes("locations")
+    )
+        return "reference";
+    if (
+        value.includes("catalog-references") ||
+        value.includes("catalogreferences/index")
+    )
+        return "reference-overview";
+    if (value.includes("reports")) return "dashboard";
+    if (
+        value.includes("create") ||
+        value.includes("edit") ||
+        value.includes("settings")
+    )
+        return "form";
+    if (value.includes("show")) return "detail";
+    return "table";
+};
+const skeletonVariant = ref<SkeletonVariant>(
+    resolveSkeletonVariant(page.component),
+);
+
+const navigating = ref(true);
+let finishTimer: ReturnType<typeof setTimeout> | null = null;
+let loadingShownAt = Date.now();
+const clearSkeleton = () => {
+    if (finishTimer) clearTimeout(finishTimer);
+    const elapsed = loadingShownAt ? Date.now() - loadingShownAt : 320;
+    finishTimer = setTimeout(
+        () => {
+            navigating.value = false;
+            loadingShownAt = 0;
+            finishTimer = null;
+        },
+        Math.max(0, 320 - elapsed),
+    );
+};
+let stopStart: (() => void) | null = null;
+let stopFinish: (() => void) | null = null;
+onMounted(() => {
+    clearSkeleton();
+    stopStart = router.on("start", (event) => {
+        const visit = event.detail.visit;
+        if (visit.method !== "get" || visit.async) return;
+        skeletonVariant.value = resolveSkeletonVariant(String(visit.url));
+        if (finishTimer) {
+            clearTimeout(finishTimer);
+            finishTimer = null;
+        }
+        loadingShownAt = Date.now();
+        navigating.value = true;
+    });
+    stopFinish = router.on("finish", clearSkeleton);
+});
+onUnmounted(() => {
+    stopStart?.();
+    stopFinish?.();
+    if (finishTimer) clearTimeout(finishTimer);
+    navigating.value = false;
+});
 
 const roleLabel = computed(() => {
     const role = page.props.auth.roles[0];
@@ -181,7 +258,11 @@ const menuGroups = computed(() =>
         .map((group) => ({
             ...group,
             items: group.items.filter((item) =>
-                can("permission" in item && typeof item.permission === "string" ? item.permission : undefined),
+                can(
+                    "permission" in item && typeof item.permission === "string"
+                        ? item.permission
+                        : undefined,
+                ),
             ),
         }))
         .filter((group) => group.items.length > 0),
@@ -189,7 +270,9 @@ const menuGroups = computed(() =>
 </script>
 
 <template>
-    <div class="min-h-screen bg-gray-50 transition-colors duration-300 dark:bg-gray-1000">
+    <div
+        class="min-h-screen bg-gray-50 transition-colors duration-300 dark:bg-gray-1000"
+    >
         <div
             v-if="sidebarOpen"
             class="fixed inset-0 z-40 bg-slate-950/40 backdrop-blur-sm xl:hidden"
@@ -200,7 +283,9 @@ const menuGroups = computed(() =>
             :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
             class="fixed inset-y-0 start-0 z-50 flex w-72 flex-col border-e border-gray-200 bg-white transition duration-300 dark:border-gray-900 dark:bg-gray-950 xl:translate-x-0"
         >
-            <div class="flex h-16 items-center border-b border-gray-200 px-6 dark:border-gray-900">
+            <div
+                class="flex h-16 items-center border-b border-gray-200 px-6 dark:border-gray-900"
+            >
                 <Link
                     :href="route('dashboard')"
                     class="flex items-center gap-3 rounded-md"
@@ -210,12 +295,18 @@ const menuGroups = computed(() =>
                         <p
                             class="font-heading text-base font-bold leading-tight tracking-tight text-slate-700 dark:text-white"
                         >
-                            Bibliothèque EDSP
+                            {{
+                                $page.props.branding?.library_name ??
+                                "Bibliothèque EDSP"
+                            }}
                         </p>
                         <p
                             class="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400"
                         >
-                            Administration
+                            {{
+                                $page.props.branding?.institution_name ??
+                                "Administration"
+                            }}
                         </p>
                     </div>
                 </Link>
@@ -244,6 +335,8 @@ const menuGroups = computed(() =>
                             <Link
                                 v-if="item.href"
                                 :href="item.href"
+                                prefetch
+                                cache-for="10s"
                                 :class="
                                     item.active
                                         ? 'bg-primary-50 font-semibold text-primary-700 shadow-[inset_3px_0_0_0_var(--color-primary-600)] dark:bg-primary-950/45 dark:text-primary-300 dark:shadow-[inset_3px_0_0_0_var(--color-primary-500)]'
@@ -278,17 +371,23 @@ const menuGroups = computed(() =>
 
             <div class="border-t border-gray-200 p-4 dark:border-gray-900">
                 <div class="rounded-md bg-gray-50 p-3 dark:bg-gray-1000">
-                    <p class="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                    <p
+                        class="text-xs font-semibold text-slate-700 dark:text-slate-200"
+                    >
                         Besoin d’aide ?
                     </p>
-                    <p class="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                    <p
+                        class="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400"
+                    >
                         Contactez le super administrateur de la bibliothèque.
                     </p>
                 </div>
             </div>
         </aside>
 
-        <div class="flex min-h-screen flex-col transition-all duration-300 xl:ps-72">
+        <div
+            class="flex min-h-screen flex-col transition-all duration-300 xl:ps-72"
+        >
             <header
                 class="fixed inset-x-0 top-0 z-30 h-16 border-b border-gray-200 bg-white/95 backdrop-blur-md dark:border-gray-900 dark:bg-gray-950/95 xl:start-72"
             >
@@ -306,7 +405,8 @@ const menuGroups = computed(() =>
                         <AppIcon
                             name="search"
                             class="h-5 w-5 text-slate-500 dark:text-slate-400"
-                        /><span class="ms-3 text-sm text-slate-500 dark:text-slate-400"
+                        /><span
+                            class="ms-3 text-sm text-slate-500 dark:text-slate-400"
                             >Recherche rapide dans la bibliothèque…</span
                         ><kbd
                             class="ms-auto rounded border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] text-slate-500 dark:text-slate-400 dark:border-gray-800 dark:bg-gray-1000"
@@ -358,7 +458,9 @@ const menuGroups = computed(() =>
                                     >
                                         {{ $page.props.auth.user.name }}
                                     </p>
-                                    <p class="text-xs text-slate-500 dark:text-slate-400">
+                                    <p
+                                        class="text-xs text-slate-500 dark:text-slate-400"
+                                    >
                                         {{ roleLabel }}
                                     </p>
                                 </div>
@@ -382,13 +484,33 @@ const menuGroups = computed(() =>
                 </div>
             </header>
 
-            <main class="mt-16 flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+            <main
+                :aria-busy="navigating"
+                class="relative mt-16 flex-1 px-4 py-6 sm:px-6 sm:py-8 lg:px-8"
+            >
                 <div class="mx-auto w-full max-w-[1680px]">
                     <div v-if="$slots.header" class="mb-5 md:mb-7">
                         <slot name="header" />
                     </div>
                     <slot />
                 </div>
+                <Transition
+                    enter-active-class="transition-opacity duration-150 ease-out"
+                    enter-from-class="opacity-0"
+                    enter-to-class="opacity-100"
+                    leave-active-class="transition-opacity duration-100 ease-in"
+                    leave-from-class="opacity-100"
+                    leave-to-class="opacity-0"
+                >
+                    <div
+                        v-show="navigating"
+                        class="absolute inset-0 z-20 overflow-hidden bg-gray-50 px-4 py-6 dark:bg-gray-1000 sm:px-6 sm:py-8 lg:px-8"
+                    >
+                        <div class="mx-auto w-full max-w-[1680px]">
+                            <PageSkeleton :variant="skeletonVariant" />
+                        </div>
+                    </div>
+                </Transition>
             </main>
             <footer
                 class="border-t border-gray-200 bg-white px-6 py-4 text-center text-xs text-slate-500 dark:text-slate-400 dark:border-gray-900 dark:bg-gray-950"

@@ -79,6 +79,23 @@ defineProps<{ name: string }>();
         <template v-else-if="name === 'chevron-down'">
             <path d="m6 9 6 6 6-6" />
         </template>
+        <template v-else-if="name === 'arrow-up'">
+            <path d="M12 20V4M5 11l7-7 7 7" />
+        </template>
+        <template v-else-if="name === 'arrow-down'">
+            <path d="M12 4v16M5 13l7 7 7-7" />
+        </template>
+        <template v-else-if="name === 'login-vertical'">
+            <path d="M5 10V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5" />
+            <path d="M8 20V10M4 14l4-4 4 4" />
+        </template>
+        <template v-else-if="name === 'logout-vertical'">
+            <path d="M5 14V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7" />
+            <path d="M8 10v10M4 16l4 4 4-4" />
+        </template>
+        <template v-else-if="name === 'login'">
+            <path d="M15 21h4a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-4M8 17l-5-5 5-5M3 12h12" />
+        </template>
         <template v-else-if="name === 'logout'">
             <path
                 d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"
@@ -108,6 +125,10 @@ defineProps<{ name: string }>();
         <template v-else-if="name === 'download'">
             <path d="M12 3v12M7 10l5 5 5-5" />
             <path d="M5 21h14" />
+        </template>
+        <template v-else-if="name === 'upload'">
+            <path d="M12 21V9M7 14l5-5 5 5" />
+            <path d="M5 3h14" />
         </template>
         <template v-else-if="name === 'check'">
             <path d="m5 12 4 4L19 6" />

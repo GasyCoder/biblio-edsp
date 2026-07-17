@@ -1,4 +1,4 @@
-@import 'tailwindcss' source(none);
+@import "tailwindcss" source(none);
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -6,48 +6,48 @@
 @source '../js/**/*.vue';
 
 @font-face {
-    font-family: 'Roboto';
-    src: url('../fonts/Roboto-Regular.woff2') format('woff2');
+    font-family: "Roboto";
+    src: url("../fonts/Roboto-Regular.woff2") format("woff2");
     font-weight: 400;
     font-style: normal;
     font-display: swap;
 }
 
 @font-face {
-    font-family: 'Roboto';
-    src: url('../fonts/Roboto-Medium.woff2') format('woff2');
+    font-family: "Roboto";
+    src: url("../fonts/Roboto-Medium.woff2") format("woff2");
     font-weight: 500 600;
     font-style: normal;
     font-display: swap;
 }
 
 @font-face {
-    font-family: 'Roboto';
-    src: url('../fonts/Roboto-Bold.woff2') format('woff2');
+    font-family: "Roboto";
+    src: url("../fonts/Roboto-Bold.woff2") format("woff2");
     font-weight: 700 900;
     font-style: normal;
     font-display: swap;
 }
 
 @font-face {
-    font-family: 'Nunito';
-    src: url('../fonts/Nunito-Regular.woff2') format('woff2');
+    font-family: "Nunito";
+    src: url("../fonts/Nunito-Regular.woff2") format("woff2");
     font-weight: 400 600;
     font-style: normal;
     font-display: swap;
 }
 
 @font-face {
-    font-family: 'Nunito';
-    src: url('../fonts/Nunito-Bold.woff2') format('woff2');
+    font-family: "Nunito";
+    src: url("../fonts/Nunito-Bold.woff2") format("woff2");
     font-weight: 700 900;
     font-style: normal;
     font-display: swap;
 }
 
 @theme {
-    --font-sans: 'Roboto', ui-sans-serif, system-ui, sans-serif;
-    --font-heading: 'Nunito', ui-sans-serif, system-ui, sans-serif;
+    --font-sans: "Roboto", ui-sans-serif, system-ui, sans-serif;
+    --font-heading: "Nunito", ui-sans-serif, system-ui, sans-serif;
 
     --color-primary-50: #f7f8ff;
     --color-primary-100: #eff1ff;
@@ -159,59 +159,241 @@
 }
 
 @layer base {
-    html { @apply bg-gray-50; color-scheme: light; }
-    html.dark { @apply bg-gray-1000; color-scheme: dark; }
-    body { @apply min-w-80 bg-gray-50 font-sans text-sm leading-6 text-slate-600 antialiased transition-colors duration-300 dark:bg-gray-1000 dark:text-slate-300; }
-    h1, h2, h3, h4, h5, h6 { @apply font-heading leading-tight tracking-[-0.01em] text-slate-700 dark:text-white; }
-    strong { @apply font-medium; }
-    ::selection { @apply bg-primary-200 text-primary-900; }
-    button, a, input, select, textarea { @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-950; }
-    button, a { @apply transition-colors duration-200; }
-    input, select, textarea { @apply accent-primary-600; }
-    select option { @apply bg-white text-slate-700 dark:bg-gray-950 dark:text-slate-200; }
-    * { scrollbar-color: var(--color-slate-300) transparent; scrollbar-width: thin; }
-    .dark * { scrollbar-color: var(--color-gray-700) transparent; }
+    html {
+        @apply bg-gray-50;
+        color-scheme: light;
+    }
+    html.dark {
+        @apply bg-gray-1000;
+        color-scheme: dark;
+    }
+    body {
+        @apply min-w-80 bg-gray-50 font-sans text-sm leading-6 text-slate-600 antialiased transition-colors duration-300 dark:bg-gray-1000 dark:text-slate-300;
+    }
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        @apply font-heading leading-tight tracking-[-0.01em] text-slate-700 dark:text-white;
+    }
+    strong {
+        @apply font-medium;
+    }
+    ::selection {
+        @apply bg-primary-200 text-primary-900;
+    }
+    button,
+    a,
+    input,
+    select,
+    textarea {
+        @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-950;
+    }
+    button,
+    a {
+        @apply transition-colors duration-200;
+    }
+    input,
+    select,
+    textarea {
+        @apply accent-primary-600;
+    }
+    select option {
+        @apply bg-white text-slate-700 dark:bg-gray-950 dark:text-slate-200;
+    }
+    * {
+        scrollbar-color: var(--color-slate-300) transparent;
+        scrollbar-width: thin;
+    }
+    .dark * {
+        scrollbar-color: var(--color-gray-700) transparent;
+    }
 }
 
 @layer components {
-    .dw-card { @apply rounded-lg border border-gray-300 bg-white shadow-[0_1px_3px_rgba(15,23,42,0.05),0_1px_2px_rgba(15,23,42,0.04)] dark:border-gray-900 dark:bg-gray-950 dark:shadow-none; }
-    .dw-field { @apply h-11 w-full rounded-md border border-gray-300 bg-white px-3.5 text-sm leading-5 text-slate-700 placeholder:text-slate-400 transition duration-200 hover:border-slate-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 dark:border-gray-800 dark:bg-gray-950 dark:text-white dark:placeholder:text-slate-500 dark:hover:border-gray-700 dark:focus:border-primary-500 dark:focus:ring-primary-950; }
-    textarea.dw-field { @apply h-auto min-h-28 py-3; }
-    select.dw-field { @apply pe-10; }
-    .dw-btn-primary { @apply inline-flex h-10 items-center justify-center gap-2 rounded-md bg-primary-600 px-4 text-sm font-medium text-white shadow-sm hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50; }
-    .dw-btn-secondary { @apply inline-flex h-10 items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-4 text-sm font-medium text-slate-600 shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:border-primary-300 hover:text-primary-600 disabled:cursor-not-allowed dark:border-gray-800 dark:bg-gray-950 dark:text-slate-300 dark:shadow-none dark:hover:border-primary-700 dark:hover:text-primary-400; }
-    .dw-btn-danger { @apply inline-flex h-10 items-center justify-center gap-2 rounded-md bg-red-600 px-4 text-sm font-medium text-white shadow-sm hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50; }
-    .dw-page-kicker { @apply text-xs font-bold uppercase tracking-[0.14em] text-primary-600 dark:text-primary-400; }
-    .dw-page-title { @apply mt-1 font-heading text-2xl font-bold leading-tight tracking-[-0.02em] text-slate-700 dark:text-white sm:text-[1.75rem]; }
-    .dw-page-description { @apply mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400; }
-    .dw-table { @apply w-full text-sm; }
-    .dw-table thead { @apply border-b border-gray-200 bg-gray-50 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:border-gray-900 dark:bg-gray-1000 dark:text-slate-400; }
-    .dw-table tbody { @apply divide-y divide-gray-200 dark:divide-gray-900; }
-    .dw-table tbody tr { @apply transition-colors hover:bg-gray-50/80 dark:hover:bg-gray-900/60; }
+    .dw-card {
+        @apply rounded-lg border border-gray-300 bg-white shadow-[0_1px_3px_rgba(15,23,42,0.05),0_1px_2px_rgba(15,23,42,0.04)] dark:border-gray-900 dark:bg-gray-950 dark:shadow-none;
+    }
+    .dw-field {
+        @apply h-11 w-full rounded-md border border-gray-300 bg-white px-3.5 text-sm leading-5 text-slate-700 placeholder:text-slate-400 transition duration-200 hover:border-slate-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 dark:border-gray-800 dark:bg-gray-950 dark:text-white dark:placeholder:text-slate-500 dark:hover:border-gray-700 dark:focus:border-primary-500 dark:focus:ring-primary-950;
+    }
+    textarea.dw-field {
+        @apply h-auto min-h-28 py-3;
+    }
+    select.dw-field {
+        @apply pe-10;
+    }
+    .dw-btn-primary {
+        @apply inline-flex h-10 items-center justify-center gap-2 rounded-md bg-primary-600 px-4 text-sm font-medium text-white shadow-sm hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50;
+    }
+    .dw-btn-secondary {
+        @apply inline-flex h-10 items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-4 text-sm font-medium text-slate-600 shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:border-primary-300 hover:text-primary-600 disabled:cursor-not-allowed dark:border-gray-800 dark:bg-gray-950 dark:text-slate-300 dark:shadow-none dark:hover:border-primary-700 dark:hover:text-primary-400;
+    }
+    .dw-btn-danger {
+        @apply inline-flex h-10 items-center justify-center gap-2 rounded-md bg-red-600 px-4 text-sm font-medium text-white shadow-sm hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50;
+    }
+    .dw-page-kicker {
+        @apply text-xs font-bold uppercase tracking-[0.14em] text-primary-600 dark:text-primary-400;
+    }
+    .dw-page-title {
+        @apply mt-1 font-heading text-2xl font-bold leading-tight tracking-[-0.02em] text-slate-700 dark:text-white sm:text-[1.75rem];
+    }
+    .dw-page-description {
+        @apply mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400;
+    }
+    .dw-table {
+        @apply w-full text-sm;
+    }
+    .dw-table thead {
+        @apply border-b border-gray-200 bg-gray-50 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:border-gray-900 dark:bg-gray-1000 dark:text-slate-400;
+    }
+    .dw-table tbody {
+        @apply divide-y divide-gray-200 dark:divide-gray-900;
+    }
+    .dw-table tbody tr {
+        @apply transition-colors hover:bg-gray-50/80 dark:hover:bg-gray-900/60;
+    }
+    .dw-skeleton {
+        @apply relative isolate overflow-hidden rounded-md bg-gray-100 dark:bg-gray-900;
+    }
+    .dw-skeleton::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        transform: translateX(-100%);
+        background-image: linear-gradient(
+            90deg,
+            transparent,
+            rgb(255 255 255 / 0.65),
+            transparent
+        );
+        animation: dw-shimmer 1.4s ease-in-out infinite;
+    }
+    .dark .dw-skeleton::after {
+        background-image: linear-gradient(
+            90deg,
+            transparent,
+            rgb(255 255 255 / 0.06),
+            transparent
+        );
+    }
+}
+
+@keyframes dw-shimmer {
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dw-skeleton::after {
+        animation: none;
+    }
 }
 
 @layer utilities {
-    .dark .bg-white { background-color: var(--color-gray-950); }
-    .dark .bg-white\/95 { background-color: color-mix(in srgb, var(--color-gray-950) 95%, transparent); }
-    .dark .bg-slate-50, .dark .bg-gray-50, .dark .bg-gray-100 { background-color: var(--color-gray-1000); }
-    .dark .bg-slate-100 { background-color: var(--color-gray-900); }
-    .dark .bg-slate-900 { background-color: var(--color-gray-950); }
-    .dark .bg-slate-950 { background-color: var(--color-gray-1000); }
-    .dark .border-slate-100, .dark .border-slate-200, .dark .border-gray-200, .dark .border-gray-300 { border-color: var(--color-gray-900); }
-    .dark .divide-slate-100 > :not(:last-child), .dark .divide-gray-200 > :not(:last-child) { border-color: var(--color-gray-900); }
-    .dark .text-slate-800, .dark .text-gray-900, .dark .text-gray-800 { color: #fff; }
-    .dark .text-slate-700, .dark .text-gray-700 { color: var(--color-slate-200); }
-    .dark .text-slate-600, .dark .text-gray-600 { color: var(--color-slate-300); }
-    .dark .text-slate-500, .dark .text-gray-500 { color: var(--color-slate-400); }
-    .dark .hover\:bg-slate-50:hover, .dark .hover\:bg-slate-50\/70:hover, .dark .hover\:bg-slate-100:hover { background-color: var(--color-gray-900); }
-    .dark textarea:not(.dw-field), .dark select, .dark input { color-scheme: dark; }
+    .dark .bg-white {
+        background-color: var(--color-gray-950);
+    }
+    .dark .bg-white\/95 {
+        background-color: color-mix(
+            in srgb,
+            var(--color-gray-950) 95%,
+            transparent
+        );
+    }
+    .dark .bg-slate-50,
+    .dark .bg-gray-50,
+    .dark .bg-gray-100 {
+        background-color: var(--color-gray-1000);
+    }
+    .dark .bg-slate-100 {
+        background-color: var(--color-gray-900);
+    }
+    .dark .bg-slate-900 {
+        background-color: var(--color-gray-950);
+    }
+    .dark .bg-slate-950 {
+        background-color: var(--color-gray-1000);
+    }
+    .dark .border-slate-100,
+    .dark .border-slate-200,
+    .dark .border-gray-200,
+    .dark .border-gray-300 {
+        border-color: var(--color-gray-900);
+    }
+    .dark .divide-slate-100 > :not(:last-child),
+    .dark .divide-gray-200 > :not(:last-child) {
+        border-color: var(--color-gray-900);
+    }
+    .dark .text-slate-800,
+    .dark .text-gray-900,
+    .dark .text-gray-800 {
+        color: #fff;
+    }
+    .dark .text-slate-700,
+    .dark .text-gray-700 {
+        color: var(--color-slate-200);
+    }
+    .dark .text-slate-600,
+    .dark .text-gray-600 {
+        color: var(--color-slate-300);
+    }
+    .dark .text-slate-500,
+    .dark .text-gray-500 {
+        color: var(--color-slate-400);
+    }
+    .dark .hover\:bg-slate-50:hover,
+    .dark .hover\:bg-slate-50\/70:hover,
+    .dark .hover\:bg-slate-100:hover {
+        background-color: var(--color-gray-900);
+    }
+    .dark textarea:not(.dw-field),
+    .dark select,
+    .dark input {
+        color-scheme: dark;
+    }
 
-    .dw-card label { font-weight: 500; color: var(--color-slate-700); }
-    .dark .dw-card label { color: var(--color-slate-200); }
-    button.bg-primary-600, a.bg-primary-600 { font-weight: 500; box-shadow: 0 1px 2px rgb(15 23 42 / 0.08); }
-    button.bg-primary-600:hover, a.bg-primary-600:hover { background-color: var(--color-primary-700); }
-    input[type='file'] { border-color: var(--color-gray-300); background-color: #fff; color: var(--color-slate-500); }
-    input[type='file']::file-selector-button { margin-inline-end: .75rem; border: 0; border-inline-end: 1px solid var(--color-gray-300); background: var(--color-gray-50); padding: .5rem .75rem; color: var(--color-slate-600); font-weight: 500; }
-    .dark input[type='file'] { border-color: var(--color-gray-800); background-color: var(--color-gray-950); color: var(--color-slate-400); }
-    .dark input[type='file']::file-selector-button { border-color: var(--color-gray-800); background: var(--color-gray-1000); color: var(--color-slate-300); }
+    .dw-card label {
+        font-weight: 500;
+        color: var(--color-slate-700);
+    }
+    .dark .dw-card label {
+        color: var(--color-slate-200);
+    }
+    button.bg-primary-600,
+    a.bg-primary-600 {
+        font-weight: 500;
+        box-shadow: 0 1px 2px rgb(15 23 42 / 0.08);
+    }
+    button.bg-primary-600:hover,
+    a.bg-primary-600:hover {
+        background-color: var(--color-primary-700);
+    }
+    input[type="file"] {
+        border-color: var(--color-gray-300);
+        background-color: #fff;
+        color: var(--color-slate-500);
+    }
+    input[type="file"]::file-selector-button {
+        margin-inline-end: 0.75rem;
+        border: 0;
+        border-inline-end: 1px solid var(--color-gray-300);
+        background: var(--color-gray-50);
+        padding: 0.5rem 0.75rem;
+        color: var(--color-slate-600);
+        font-weight: 500;
+    }
+    .dark input[type="file"] {
+        border-color: var(--color-gray-800);
+        background-color: var(--color-gray-950);
+        color: var(--color-slate-400);
+    }
+    .dark input[type="file"]::file-selector-button {
+        border-color: var(--color-gray-800);
+        background: var(--color-gray-1000);
+        color: var(--color-slate-300);
+    }
 }

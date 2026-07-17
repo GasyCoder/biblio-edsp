@@ -2,7 +2,9 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Setting;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -38,8 +40,23 @@ class HandleInertiaRequests extends Middleware
             ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
+                'info' => fn () => $request->session()->get('info'),
                 'error' => fn () => $request->session()->get('error'),
             ],
+            'branding' => fn () => $this->branding(),
+        ];
+    }
+
+    private function branding(): array
+    {
+        $logoPath = Setting::getValue('logo_path');
+        $faviconPath = Setting::getValue('favicon_path');
+
+        return [
+            'library_name' => Setting::getValue('library_name', 'Bibliothèque EDSP'),
+            'institution_name' => Setting::getValue('institution_name', 'Université de Mahajanga'),
+            'logo_url' => $logoPath ? Storage::disk('public')->url($logoPath) : null,
+            'favicon_url' => $faviconPath ? Storage::disk('public')->url($faviconPath) : asset('favicon.ico'),
         ];
     }
 }

@@ -15,6 +15,13 @@ export type PageProps<
     };
     flash: {
         success?: string;
+        info?: string;
         error?: string;
+    };
+    branding: {
+        library_name: string;
+        institution_name: string;
+        logo_url: string | null;
+        favicon_url: string;
     };
 };
