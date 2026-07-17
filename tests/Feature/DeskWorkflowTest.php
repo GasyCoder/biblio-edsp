@@ -34,7 +34,9 @@ it('runs the complete desk workflow from card scan to checkout', function () {
     $this->post(route('desk.check-in', $student))->assertRedirect();
 
     $visit = Visit::query()->firstOrFail();
-    expect($visit->visit_number)->toStartWith('EDSP-PTG-'.now()->format('Ymd'));
+    expect($visit->visit_number)->toStartWith('EDSP-PTG-'.now()->format('Ymd'))
+        ->and($visit->checked_in_by)->toBe($secretary->id)
+        ->and($visit->checked_in_role)->toBe('secretaire');
 
     $this->post(route('desk.consultations.open', $visit))->assertRedirect();
     $session = ConsultationSession::query()->firstOrFail();
@@ -51,6 +53,8 @@ it('runs the complete desk workflow from card scan to checkout', function () {
     $this->post(route('desk.check-out', $visit))->assertRedirect(route('desk.index'));
 
     expect($visit->refresh()->checked_out_at)->not->toBeNull()
+        ->and($visit->checked_out_by)->toBe($secretary->id)
+        ->and($visit->checked_out_role)->toBe('secretaire')
         ->and($session->refresh()->closed_at)->not->toBeNull();
 });
 
@@ -67,6 +71,27 @@ it('opens another consultation during the same active presence', function () {
 
     expect($visit->consultationSessions()->count())->toBe(2)
         ->and($visit->consultationSessions()->whereNull('closed_at')->count())->toBe(1);
+});
+
+it('completes an active consultation and checkout in one desk action', function () {
+    $secretary = User::factory()->create()->assignRole('secretaire');
+    $student = Student::factory()->create();
+    $copy = app(CopyService::class)->create(['book_id' => Book::factory()->create()->id]);
+
+    $this->actingAs($secretary)->post(route('desk.check-in', $student));
+    $visit = Visit::query()->firstOrFail();
+    $this->post(route('desk.consultations.open', $visit));
+    $session = ConsultationSession::query()->firstOrFail();
+    $this->post(route('desk.consultations.copies.store', $session), ['barcode' => $copy->barcode_value]);
+
+    $this->post(route('desk.visits.complete', $visit))
+        ->assertRedirect(route('desk.index'))
+        ->assertSessionHas('success');
+
+    expect($visit->refresh()->checked_out_at)->not->toBeNull()
+        ->and($session->refresh()->closed_at)->not->toBeNull()
+        ->and(ConsultationItem::query()->firstOrFail()->returned_at)->not->toBeNull()
+        ->and($copy->refresh()->status)->toBe(CopyStatus::Available);
 });
 
 it('prevents duplicate open visits and duplicate copy scans', function () {
@@ -111,6 +136,50 @@ it('recognizes a library number without the BIB prefix', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->where('student.id', $student->id)
             ->where('student.registration_number', 'BIB-26-001'));
+});
+
+it('identifies a scanned card and opens the presence in one desk operation', function () {
+    $secretary = User::factory()->create()->assignRole('secretaire');
+    $student = Student::factory()->create([
+        'registration_number' => 'BIB-26-077',
+        'first_name' => 'Aina',
+        'last_name' => 'Rasoa',
+    ]);
+
+    $this->actingAs($secretary)
+        ->post(route('desk.identify'), ['code' => 'BIB-26-077'])
+        ->assertRedirect(route('desk.index', ['q' => 'BIB-26-077']))
+        ->assertSessionHas('success');
+
+    expect($student->visits()->whereNull('checked_out_at')->count())->toBe(1);
+
+    $this->post(route('desk.identify'), ['code' => 'BIB-26-077'])
+        ->assertSessionHas('info');
+
+    expect($student->visits()->count())->toBe(1);
+});
+
+it('supports rapid entry and exit modes from the same desk scanner', function () {
+    $secretary = User::factory()->create()->assignRole('secretaire');
+    $student = Student::factory()->create([
+        'registration_number' => 'BIB-26-078',
+        'first_name' => 'Fara',
+        'last_name' => 'Rabe',
+    ]);
+
+    $this->actingAs($secretary)
+        ->post(route('desk.identify'), ['code' => 'BIB-26-078', 'mode' => 'entry'])
+        ->assertRedirect(route('desk.index', ['mode' => 'entry']))
+        ->assertSessionHas('success');
+
+    $visit = $student->visits()->firstOrFail();
+    expect($visit->checked_out_at)->toBeNull();
+
+    $this->post(route('desk.identify'), ['code' => 'BIB-26-078', 'mode' => 'exit'])
+        ->assertRedirect(route('desk.index', ['mode' => 'exit']))
+        ->assertSessionHas('success');
+
+    expect($visit->refresh()->checked_out_at)->not->toBeNull();
 });
 
 it('accepts the former four-digit library card format', function () {

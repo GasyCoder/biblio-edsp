@@ -12,7 +12,10 @@ use Illuminate\Validation\ValidationException;
 
 class VisitService
 {
-    public function __construct(private readonly NumberGenerator $numbers) {}
+    public function __construct(
+        private readonly NumberGenerator $numbers,
+        private readonly ConsultationService $consultations,
+    ) {}
 
     public function checkIn(Student $student, User $operator): Visit
     {
@@ -31,6 +34,7 @@ class VisitService
                 'visit_number' => $this->numbers->next(NumberType::Visit),
                 'checked_in_at' => now(),
                 'checked_in_by' => $operator->id,
+                'checked_in_role' => $operator->getRoleNames()->first(),
             ]);
         }, 3);
     }
@@ -49,9 +53,31 @@ class VisitService
                 throw ValidationException::withMessages(['visit' => 'Clôturez la consultation avant d’enregistrer la sortie.']);
             }
 
-            $lockedVisit->update(['checked_out_at' => now(), 'checked_out_by' => $operator->id]);
+            $lockedVisit->update([
+                'checked_out_at' => now(),
+                'checked_out_by' => $operator->id,
+                'checked_out_role' => $operator->getRoleNames()->first(),
+            ]);
 
             return $lockedVisit->refresh();
+        }, 3);
+    }
+
+    public function complete(Visit $visit, User $operator): Visit
+    {
+        return DB::transaction(function () use ($visit, $operator): Visit {
+            $lockedVisit = Visit::query()->lockForUpdate()->findOrFail($visit->id);
+
+            if ($lockedVisit->checked_out_at) {
+                throw ValidationException::withMessages(['visit' => 'Cette présence est déjà clôturée.']);
+            }
+
+            $session = $lockedVisit->consultationSessions()->whereNull('closed_at')->lockForUpdate()->first();
+            if ($session) {
+                $this->consultations->close($session, $operator);
+            }
+
+            return $this->checkOut($lockedVisit, $operator);
         }, 3);
     }
 }

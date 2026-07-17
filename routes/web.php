@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AiImageController;
+use App\Http\Controllers\AttendanceStationController;
 use App\Http\Controllers\BookController;
 use App\Http\Controllers\BookImportController;
 use App\Http\Controllers\CatalogReferenceController;
@@ -96,6 +97,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/cards/{card}/print', [StudentCardController::class, 'print'])->middleware('permission:cards.print')->name('cards.print');
 
     Route::get('/desk', [DeskController::class, 'index'])->middleware('permission:cards.scan')->name('desk.index');
+    Route::post('/desk/identify', [DeskController::class, 'identify'])->middleware(['permission:cards.scan', 'permission:visits.check_in'])->name('desk.identify');
+    Route::get('/attendance/{mode}', [AttendanceStationController::class, 'show'])->middleware('permission:cards.scan')->name('attendance.station');
+    Route::post('/attendance/{mode}/scan', [AttendanceStationController::class, 'scan'])->middleware('permission:visits.check_in|visits.check_out')->name('attendance.scan');
     Route::get('/visits', [VisitController::class, 'index'])->middleware('permission:visits.view|visits.view_own')->name('visits.index');
     Route::get('/visits-export/xlsx', [VisitController::class, 'exportExcel'])->middleware('permission:reports.operational|reports.export')->name('visits.export.xlsx');
     Route::get('/visits-export/pdf', [VisitController::class, 'exportPdf'])->middleware('permission:reports.operational|reports.export')->name('visits.export.pdf');
@@ -112,6 +116,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('/settings', [SettingController::class, 'update'])->middleware('permission:settings.manage')->name('settings.update');
     Route::post('/desk/students/{student}/check-in', [DeskController::class, 'checkIn'])->middleware('permission:visits.check_in')->name('desk.check-in');
     Route::post('/desk/visits/{visit}/check-out', [DeskController::class, 'checkOut'])->middleware('permission:visits.check_out')->name('desk.check-out');
+    Route::post('/desk/visits/{visit}/complete', [DeskController::class, 'completeVisit'])->middleware(['permission:visits.check_out', 'permission:consultations.close'])->name('desk.visits.complete');
     Route::post('/desk/visits/{visit}/consultation', [DeskController::class, 'openConsultation'])->middleware('permission:consultations.open')->name('desk.consultations.open');
     Route::post('/desk/consultations/{session}/copies', [DeskController::class, 'addCopy'])->middleware('permission:consultations.add_copy')->name('desk.consultations.copies.store');
     Route::post('/desk/consultation-items/{item}/return', [DeskController::class, 'returnCopy'])->middleware('permission:consultations.return_copy')->name('desk.consultations.copies.return');

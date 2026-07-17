@@ -17,6 +17,8 @@ it('lists and filters visits for library staff', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->component('Visits/Index')
             ->has('studentGroups.data', 1)
+            ->where('studentGroups.data.0.visits.0.checked_in_by.name', $secretary->name)
+            ->where('studentGroups.data.0.visits.0.checked_in_role', 'secretaire')
             ->where('stats.active', 1)
             ->where('ownOnly', false));
 });

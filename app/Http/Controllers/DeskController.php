@@ -3,21 +3,23 @@
 namespace App\Http\Controllers;
 
 use App\Enums\CardStatus;
+use App\Enums\DeskMode;
 use App\Models\ConsultationItem;
 use App\Models\ConsultationSession;
 use App\Models\Copy;
 use App\Models\Loan;
 use App\Models\LoanItem;
+use App\Models\Setting;
 use App\Models\Student;
 use App\Models\StudentCard;
 use App\Models\Visit;
-use App\Models\Setting;
 use App\Services\ConsultationService;
 use App\Services\LoanService;
 use App\Services\VisitService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -25,6 +27,7 @@ class DeskController extends Controller
 {
     public function index(Request $request): Response
     {
+        $mode = $request->enum('mode', DeskMode::class)?->value ?? DeskMode::Counter->value;
         $query = trim((string) $request->query('q'));
         $student = $query === '' ? null : $this->findStudent($query);
         $matches = $query !== '' && ! $student ? $this->findCandidates($query) : collect();
@@ -40,11 +43,13 @@ class DeskController extends Controller
 
         return Inertia::render('Desk/Index', [
             'query' => $query,
+            'mode' => $mode,
             'student' => $student,
             'visit' => $student?->visits->first(),
             'loan' => $student?->loans->first(),
             'matches' => $matches,
             'activeVisits' => $this->activeVisits(),
+            'recentExits' => $this->recentExits(),
             'recentActivity' => $this->recentActivity(),
             'operationSettings' => ['defaultLoanDays' => (int) Setting::getValue('default_loan_days', 14), 'scannerInactivitySeconds' => (int) Setting::getValue('scanner_inactivity_seconds', 40)],
         ]);
@@ -57,11 +62,61 @@ class DeskController extends Controller
         return back()->with('success', 'Entrée enregistrée avec succès.');
     }
 
+    public function identify(Request $request, VisitService $service): RedirectResponse
+    {
+        $data = $request->validate([
+            'code' => ['required', 'string', 'max:150'],
+            'mode' => ['nullable', Rule::in(['counter', 'entry', 'exit'])],
+        ]);
+        $mode = $data['mode'] ?? 'counter';
+        $student = $this->findStudent($data['code']);
+
+        if (! $student) {
+            return back()->withErrors(['student' => 'Aucune carte active ne correspond à ce code.']);
+        }
+
+        $openVisit = $student->visits()->whereNull('checked_out_at')->first();
+
+        if ($mode === 'exit') {
+            if (! $openVisit) {
+                return to_route('desk.index', ['mode' => 'exit'])
+                    ->with('info', "Aucune présence ouverte pour {$student->first_name} {$student->last_name}. Aucun pointage modifié.");
+            }
+
+            $service->checkOut($openVisit, $request->user());
+
+            return to_route('desk.index', ['mode' => 'exit'])
+                ->with('success', "Sortie enregistrée pour {$student->first_name} {$student->last_name}. Les prêts à domicile restent ouverts.");
+        }
+
+        if (! $openVisit) {
+            $service->checkIn($student, $request->user());
+
+            return to_route('desk.index', $mode === 'entry' ? ['mode' => 'entry'] : ['q' => $student->registration_number])
+                ->with('success', "Étudiant identifié et entrée enregistrée pour {$student->first_name} {$student->last_name}.");
+        }
+
+        if ($mode === 'entry') {
+            return to_route('desk.index', ['mode' => 'entry'])
+                ->with('info', "{$student->first_name} {$student->last_name} est déjà présent(e). Aucun doublon créé.");
+        }
+
+        return to_route('desk.index', ['q' => $student->registration_number])
+            ->with('info', "{$student->first_name} {$student->last_name} est déjà présent(e). Vous pouvez poursuivre les opérations.");
+    }
+
     public function checkOut(Request $request, Visit $visit, VisitService $service): RedirectResponse
     {
         $service->checkOut($visit, $request->user());
 
         return redirect()->route('desk.index')->with('success', 'Sortie enregistrée avec succès.');
+    }
+
+    public function completeVisit(Request $request, Visit $visit, VisitService $service): RedirectResponse
+    {
+        $service->complete($visit, $request->user());
+
+        return redirect()->route('desk.index')->with('success', 'Consultation terminée et sortie enregistrée avec succès.');
     }
 
     public function openConsultation(Request $request, Visit $visit, ConsultationService $service): RedirectResponse
@@ -111,7 +166,9 @@ class DeskController extends Controller
         $data = $request->validate(['barcode' => ['required', 'string', 'max:100']]);
         $value = trim($data['barcode']);
         $copy = Copy::query()->where('barcode_value', $value)->orWhere('inventory_number', $value)->first();
-        if (! $copy) return back()->withErrors(['loan_copy' => 'Aucun exemplaire ne correspond à ce code.']);
+        if (! $copy) {
+            return back()->withErrors(['loan_copy' => 'Aucun exemplaire ne correspond à ce code.']);
+        }
         $service->addCopy($loan, $copy, $request->user());
 
         return back()->with('success', 'Exemplaire ajouté au prêt.');
@@ -205,6 +262,27 @@ class DeskController extends Controller
     }
 
     /** @return Collection<int, array<string, mixed>> */
+    private function recentExits(): Collection
+    {
+        return Visit::query()
+            ->whereDate('checked_out_at', today())
+            ->whereNotNull('checked_out_at')
+            ->with('student:id,registration_number,academic_number,last_name,first_name,photo_path')
+            ->withCount('consultationSessions')
+            ->latest('checked_out_at')
+            ->limit(20)
+            ->get()
+            ->map(fn (Visit $visit): array => [
+                'id' => $visit->id,
+                'visit_number' => $visit->visit_number,
+                'checked_in_at' => $visit->checked_in_at?->toIso8601String(),
+                'checked_out_at' => $visit->checked_out_at?->toIso8601String(),
+                'consultations_count' => $visit->consultation_sessions_count,
+                'student' => $visit->student,
+            ]);
+    }
+
+    /** @return Collection<int, array<string, mixed>> */
     private function recentActivity(): Collection
     {
         $visits = Visit::query()->with('student:id,registration_number,last_name,first_name')->latest('checked_in_at')->limit(12)->get()
@@ -214,29 +292,35 @@ class DeskController extends Controller
                     'occurred_at' => $visit->checked_in_at?->toIso8601String(), 'student' => $visit->student,
                     'book' => null, 'inventory_number' => null,
                 ]];
-                if ($visit->checked_out_at) $events[] = [
-                    'key' => "visit-out-{$visit->id}", 'type' => 'exit', 'label' => 'Sortie enregistrée',
-                    'occurred_at' => $visit->checked_out_at->toIso8601String(), 'student' => $visit->student,
-                    'book' => null, 'inventory_number' => null,
-                ];
+                if ($visit->checked_out_at) {
+                    $events[] = [
+                        'key' => "visit-out-{$visit->id}", 'type' => 'exit', 'label' => 'Sortie enregistrée',
+                        'occurred_at' => $visit->checked_out_at->toIso8601String(), 'student' => $visit->student,
+                        'book' => null, 'inventory_number' => null,
+                    ];
+                }
 
                 return $events;
             });
 
-        $consultations = ConsultationItem::query()->with(['session.student:id,registration_number,last_name,first_name', 'copy.book:id,title'])->latest('scanned_at')->limit(12)->get()
+        $consultations = ConsultationItem::query()->with(['session.student:id,registration_number,last_name,first_name', 'copy.book:id,title,cover_path'])->latest('scanned_at')->limit(12)->get()
             ->flatMap(function (ConsultationItem $item): array {
-                $base = ['student' => $item->session->student, 'book' => $item->copy->book?->title, 'inventory_number' => $item->copy->inventory_number];
+                $base = ['student' => $item->session->student, 'book' => $item->copy->book ? ['title' => $item->copy->book->title, 'cover_url' => $item->copy->book->cover_url] : null, 'inventory_number' => $item->copy->inventory_number];
                 $events = [[...$base, 'key' => "consultation-scan-{$item->id}", 'type' => 'consultation', 'label' => 'Livre scanné pour lecture', 'occurred_at' => $item->scanned_at?->toIso8601String()]];
-                if ($item->returned_at) $events[] = [...$base, 'key' => "consultation-return-{$item->id}", 'type' => 'return', 'label' => 'Livre restitué', 'occurred_at' => $item->returned_at->toIso8601String()];
+                if ($item->returned_at) {
+                    $events[] = [...$base, 'key' => "consultation-return-{$item->id}", 'type' => 'return', 'label' => 'Livre restitué', 'occurred_at' => $item->returned_at->toIso8601String()];
+                }
 
                 return $events;
             });
 
-        $loans = LoanItem::query()->with(['loan.student:id,registration_number,last_name,first_name', 'copy.book:id,title'])->latest('loaned_at')->limit(12)->get()
+        $loans = LoanItem::query()->with(['loan.student:id,registration_number,last_name,first_name', 'copy.book:id,title,cover_path'])->latest('loaned_at')->limit(12)->get()
             ->flatMap(function (LoanItem $item): array {
-                $base = ['student' => $item->loan->student, 'book' => $item->copy->book?->title, 'inventory_number' => $item->copy->inventory_number];
+                $base = ['student' => $item->loan->student, 'book' => $item->copy->book ? ['title' => $item->copy->book->title, 'cover_url' => $item->copy->book->cover_url] : null, 'inventory_number' => $item->copy->inventory_number];
                 $events = [[...$base, 'key' => "loan-scan-{$item->id}", 'type' => 'loan', 'label' => 'Livre scanné pour prêt', 'occurred_at' => $item->loaned_at?->toIso8601String()]];
-                if ($item->returned_at) $events[] = [...$base, 'key' => "loan-return-{$item->id}", 'type' => 'return', 'label' => 'Retour de prêt', 'occurred_at' => $item->returned_at->toIso8601String()];
+                if ($item->returned_at) {
+                    $events[] = [...$base, 'key' => "loan-return-{$item->id}", 'type' => 'return', 'label' => 'Retour de prêt', 'occurred_at' => $item->returned_at->toIso8601String()];
+                }
 
                 return $events;
             });

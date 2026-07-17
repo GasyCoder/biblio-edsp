@@ -3,12 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\Student;
+use App\Models\User;
 use App\Models\Visit;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -51,6 +53,7 @@ class VisitController extends Controller
                     ->orWhereHas('visits', fn (Builder $visits) => $visits->where('visit_number', 'like', "%{$search}%"));
             }))
             ->with(['visits' => fn ($query) => $visitFilter($query)
+                ->with(['checkedInBy:id,name,email', 'checkedInBy.roles:id,name', 'checkedOutBy:id,name,email', 'checkedOutBy.roles:id,name'])
                 ->withCount('consultationSessions')
                 ->latest('checked_in_at')])
             ->withCount([
@@ -85,8 +88,8 @@ class VisitController extends Controller
         $spreadsheet = new Spreadsheet;
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Présences');
-        $sheet->fromArray(['N° présence', 'N° bibliothèque', 'Matricule', 'Nom et prénoms', 'Entrée', 'Sortie', 'Durée', 'Statut', 'Consultations'], null, 'A1');
-        $sheet->getStyle('A1:I1')->getFont()->setBold(true);
+        $sheet->fromArray(['N° présence', 'N° bibliothèque', 'Matricule', 'Nom et prénoms', 'Entrée', 'Accueil entrée', 'Sortie', 'Accueil sortie', 'Durée', 'Statut', 'Consultations'], null, 'A1');
+        $sheet->getStyle('A1:K1')->getFont()->setBold(true);
         $sheet->freezePane('A2');
 
         foreach ($visits as $index => $visit) {
@@ -96,13 +99,17 @@ class VisitController extends Controller
                 $visit->student->academic_number,
                 "{$visit->student->last_name} {$visit->student->first_name}",
                 $visit->checked_in_at?->format('d/m/Y H:i:s'),
+                $this->operatorLabel($visit->checkedInBy, $visit->checked_in_role),
                 $visit->checked_out_at?->format('d/m/Y H:i:s'),
+                $visit->checked_out_at ? $this->operatorLabel($visit->checkedOutBy, $visit->checked_out_role) : null,
                 $this->durationLabel($visit),
                 $visit->checked_out_at ? 'Sorti' : 'Présent',
                 $visit->consultation_sessions_count,
             ], null, 'A'.($index + 2));
         }
-        foreach (range('A', 'I') as $column) $sheet->getColumnDimension($column)->setAutoSize(true);
+        foreach (range('A', 'K') as $column) {
+            $sheet->getColumnDimension($column)->setAutoSize(true);
+        }
         $path = tempnam(sys_get_temp_dir(), 'presences-edsp-').'.xlsx';
         (new Xlsx($spreadsheet))->save($path);
 
@@ -132,7 +139,7 @@ class VisitController extends Controller
         return view('reports.visits', compact('visits', 'filters'));
     }
 
-    /** @return array{0: \Illuminate\Support\Collection, 1: array<string, string>} */
+    /** @return array{0: Collection, 1: array<string, string>} */
     private function reportData(Request $request): array
     {
         $filters = $request->validate([
@@ -140,7 +147,13 @@ class VisitController extends Controller
             'from' => ['nullable', 'date'], 'to' => ['nullable', 'date', 'after_or_equal:from'],
         ]);
         $search = trim((string) ($filters['search'] ?? ''));
-        $visits = Visit::query()->with('student:id,registration_number,academic_number,last_name,first_name')
+        $visits = Visit::query()->with([
+            'student:id,registration_number,academic_number,last_name,first_name',
+            'checkedInBy:id,name,email',
+            'checkedInBy.roles:id,name',
+            'checkedOutBy:id,name,email',
+            'checkedOutBy.roles:id,name',
+        ])
             ->withCount('consultationSessions')
             ->when($search, fn (Builder $query) => $query->where(function (Builder $nested) use ($search) {
                 $nested->where('visit_number', 'like', "%{$search}%")->orWhereHas('student', fn (Builder $student) => $student
@@ -161,5 +174,12 @@ class VisitController extends Controller
         $minutes = (int) $visit->checked_in_at->diffInMinutes($visit->checked_out_at ?? now());
 
         return intdiv($minutes, 60).' h '.($minutes % 60).' min';
+    }
+
+    private function operatorLabel(?User $operator, ?string $role): string
+    {
+        $role ??= $operator?->roles->first()?->name;
+
+        return $role === 'superadmin' ? 'SuperAdmin' : ($operator?->name ?: 'Compte inconnu');
     }
 }
