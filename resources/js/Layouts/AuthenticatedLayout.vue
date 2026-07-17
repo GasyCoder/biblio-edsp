@@ -424,7 +424,7 @@ const menuGroups = computed(() =>
                         </button>
                         <div class="relative">
                             <button
-                                class="flex items-center gap-3 rounded-md p-1.5 hover:bg-gray-50 dark:hover:bg-gray-900"
+                                class="flex cursor-pointer items-center gap-3 rounded-md p-1.5 hover:bg-gray-50 dark:hover:bg-gray-900"
                                 @click="userMenuOpen = !userMenuOpen"
                             >
                                 <span
@@ -515,6 +515,10 @@ const menuGroups = computed(() =>
                 class="border-t border-gray-200 bg-white px-6 py-4 text-center text-xs text-slate-500 dark:text-slate-400 dark:border-gray-900 dark:bg-gray-950"
             >
                 © {{ new Date().getFullYear() }} EDSP — Université de Mahajanga
+                <span class="mx-1.5 text-slate-300 dark:text-slate-700">·</span>
+                <span class="whitespace-nowrap">Développé par
+                    <a href="https://www.linkedin.com/in/florentbezara/" target="_blank" rel="noopener noreferrer" class="font-semibold text-slate-600 transition hover:text-primary-600 hover:underline dark:text-slate-300 dark:hover:text-primary-400">M. Florent BEZARA</a>
+                </span>
             </footer>
         </div>
     </div>

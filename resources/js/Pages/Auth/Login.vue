@@ -180,7 +180,10 @@ const submit = () => {
                 class="mx-auto w-full max-w-md px-6 pb-8 text-xs text-slate-500 dark:text-slate-400 sm:px-8"
             >
                 © {{ new Date().getFullYear() }} EDSP — Gestion interne de la
-                bibliothèque
+                bibliothèque ·
+                <span class="whitespace-nowrap">Développé par
+                    <a href="https://www.linkedin.com/in/florentbezara/" target="_blank" rel="noopener noreferrer" class="font-semibold text-slate-600 transition hover:text-primary-600 hover:underline dark:text-slate-300 dark:hover:text-primary-400">M. Florent BEZARA</a>
+                </span>
             </footer>
         </section>
 
