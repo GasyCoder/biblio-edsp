@@ -232,7 +232,7 @@ const statusLabel: Record<string, string> = {
                             </td>
                             <td class="px-5 py-4 font-semibold text-slate-700">
                                 <div class="flex items-center gap-3">
-                                    <img
+                                    <img loading="lazy" decoding="async"
                                         v-if="student.photo_url"
                                         :src="student.photo_url"
                                         class="h-11 w-9 rounded object-cover"

@@ -166,7 +166,7 @@ const statusLabels: Record<string, string> = {
                         </td>
                         <td class="p-4">
                             <div class="flex items-center gap-3">
-                                <img
+                                <img loading="lazy" decoding="async"
                                     v-if="card.student.photo_url"
                                     :src="card.student.photo_url"
                                     class="h-10 w-9 rounded object-cover"

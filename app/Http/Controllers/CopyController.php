@@ -26,21 +26,38 @@ class CopyController extends Controller
     public function index(Request $request): Response
     {
         $search = trim($request->string('search')->toString());
+        $status = $request->string('status')->toString();
+        $condition = $request->string('condition')->toString();
+        $location = $request->string('location')->toString();
+
+        $status = in_array($status, array_column(CopyStatus::cases(), 'value'), true) ? $status : '';
+        $condition = in_array($condition, array_column(CopyCondition::cases(), 'value'), true) ? $condition : '';
 
         return Inertia::render('Copies/Index', [
             'copies' => Copy::query()
                 ->with([
-                    'book:id,title',
+                    'book:id,title,cover_path',
                     'location:id,code,type,number,name',
                     'activeConsultationItems.session.student:id,registration_number,first_name,last_name',
                     'activeLoanItems.loan.student:id,registration_number,first_name,last_name',
                 ])
-                ->when($search, fn ($query) => $query->where('inventory_number', 'like', "%{$search}%")
-                    ->orWhereHas('book', fn ($query) => $query->where('title', 'like', "%{$search}%")))
+                ->when($search, fn ($query) => $query->where(function ($query) use ($search) {
+                    $query->where('inventory_number', 'like', "%{$search}%")
+                        ->orWhere('barcode_value', 'like', "%{$search}%")
+                        ->orWhereHas('book', fn ($query) => $query->where('title', 'like', "%{$search}%")
+                            ->orWhereHas('authors', fn ($query) => $query->where('display_name', 'like', "%{$search}%")))
+                        ->orWhereHas('location', fn ($query) => $query->where('name', 'like', "%{$search}%")
+                            ->orWhere('code', 'like', "%{$search}%"));
+                }))
+                ->when($status, fn ($query) => $query->where('status', $status))
+                ->when($condition, fn ($query) => $query->where('condition', $condition))
+                ->when($location === 'unassigned', fn ($query) => $query->whereNull('location_id'))
+                ->when(ctype_digit($location), fn ($query) => $query->where('location_id', (int) $location))
                 ->latest()
                 ->paginate(20)
                 ->withQueryString(),
-            'filters' => ['search' => $search],
+            'filters' => ['search' => $search, 'status' => $status, 'condition' => $condition, 'location' => $location],
+            'locations' => Location::query()->where('is_active', true)->orderBy('code')->get(['id', 'code', 'name']),
             'conditionLabels' => collect(CopyCondition::cases())->mapWithKeys(fn ($case) => [$case->value => $case->label()]),
             'statusLabels' => collect(CopyStatus::cases())->mapWithKeys(fn ($case) => [$case->value => $case->label()]),
         ]);
@@ -48,7 +65,11 @@ class CopyController extends Controller
 
     public function create(): Response
     {
-        return Inertia::render('Copies/Create', ['books' => Book::query()->orderBy('title')->get(['id', 'title']), 'locations' => Location::query()->where('is_active', true)->orderBy('code')->get(['id', 'code', 'name']), 'conditions' => collect(CopyCondition::cases())->map(fn ($case) => ['value' => $case->value, 'label' => $case->label()])]);
+        return Inertia::render('Copies/Create', [
+            'books' => Book::query()->with(['category:id,name', 'authors:id,display_name'])->withCount('copies')->orderBy('title')->get(['id', 'category_id', 'title', 'cover_path']),
+            'locations' => Location::query()->where('is_active', true)->orderBy('code')->get(['id', 'code', 'type', 'number', 'name']),
+            'conditions' => collect(CopyCondition::cases())->map(fn ($case) => ['value' => $case->value, 'label' => $case->label()]),
+        ]);
     }
 
     public function store(Request $request, CopyService $copies): RedirectResponse
@@ -61,7 +82,7 @@ class CopyController extends Controller
 
     public function edit(Copy $copy): Response
     {
-        return Inertia::render('Copies/Edit', ['copy' => $copy->load('book:id,title'), 'locations' => Location::query()->where('is_active', true)->orderBy('code')->get(['id', 'code', 'type', 'number', 'name']), 'conditions' => collect(CopyCondition::cases())->map(fn ($case) => ['value' => $case->value, 'label' => $case->label()]), 'statuses' => collect([CopyStatus::Available, CopyStatus::Damaged, CopyStatus::Lost, CopyStatus::Archived])->map(fn ($case) => ['value' => $case->value, 'label' => $case->label()])]);
+        return Inertia::render('Copies/Edit', ['copy' => $copy->load('book:id,title,cover_path'), 'locations' => Location::query()->where('is_active', true)->orderBy('code')->get(['id', 'code', 'type', 'number', 'name']), 'conditions' => collect(CopyCondition::cases())->map(fn ($case) => ['value' => $case->value, 'label' => $case->label()]), 'statuses' => collect([CopyStatus::Available, CopyStatus::Damaged, CopyStatus::Lost, CopyStatus::Archived])->map(fn ($case) => ['value' => $case->value, 'label' => $case->label()])]);
     }
 
     public function update(Request $request, Copy $copy): RedirectResponse

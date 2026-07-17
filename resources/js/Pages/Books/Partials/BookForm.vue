@@ -2,7 +2,7 @@
 import AppIcon from "@/Components/AppIcon.vue";
 import InputError from "@/Components/InputError.vue";
 import { Link, useForm } from "@inertiajs/vue3";
-import { computed, onBeforeUnmount, ref } from "vue";
+import { computed, onBeforeUnmount, ref, watch } from "vue";
 
 const props = defineProps<{
     categories: { id: number; name: string }[];
@@ -39,6 +39,7 @@ const generating = ref(false);
 const aiError = ref("");
 const generatedImage = ref<string | null>(null);
 const generatedSeed = ref<number | null>(null);
+const promptManuallyEdited = ref(false);
 let objectUrl: string | null = null;
 
 const categoryName = computed(
@@ -47,17 +48,41 @@ const categoryName = computed(
             ?.name ?? "",
 );
 const promptLength = computed(() => aiPrompt.value.length);
+const visualDirection = computed(() => {
+    const category = categoryName.value.toLocaleLowerCase("fr");
+    if (category.includes("relation") || category.includes("international"))
+        return "globe stylisé, connexions diplomatiques, carte abstraite de l’océan Indien, bleu profond et touches dorées";
+    if (category.includes("commercial") || category.includes("affaire"))
+        return "architecture contemporaine, équilibre entre justice et économie, lignes géométriques, bleu marine et cuivre";
+    if (category.includes("droit") || category.includes("jurid"))
+        return "colonnes institutionnelles abstraites, balance de justice discrète, bibliothèque juridique, bleu nuit et or sobre";
+    if (category.includes("polit"))
+        return "institutions publiques abstraites, hémicycle stylisé, dialogue citoyen, indigo et bleu institutionnel";
+    if (category.includes("sociolog"))
+        return "réseau humain abstrait, silhouettes et liens sociaux, composition contemporaine, bleu et turquoise";
+
+    return "formes abstraites inspirées du savoir, de la recherche et de Madagascar, bleu nuit, indigo et or discret";
+});
 const composePrompt = () => {
     const authors = form.authors.filter(Boolean).join(", ");
+    promptManuallyEdited.value = false;
     aiPrompt.value = [
         `Couverture verticale professionnelle pour l’ouvrage universitaire « ${form.title || "Titre de l’ouvrage"} »`,
         authors ? `écrit par ${authors}` : "",
         categoryName.value ? `dans le domaine ${categoryName.value}` : "",
-        "style éditorial sobre, contemporain et institutionnel, adapté à une bibliothèque universitaire malgache, composition lisible, sans logo inventé ni code-barres",
+        visualDirection.value,
+        "style éditorial sobre, contemporain et institutionnel, adapté à une bibliothèque universitaire malgache, photographie ou illustration réaliste cohérente avec le sujet, composition verticale lisible, espace propre pour le titre, sans logo inventé, sans code-barres et sans texte parasite",
     ]
         .filter(Boolean)
         .join(", ");
 };
+watch(
+    [() => form.title, () => form.category_id, () => [...form.authors]],
+    () => {
+        if (!promptManuallyEdited.value) composePrompt();
+    },
+    { deep: true, immediate: true },
+);
 const setCover = (file?: File | null) => {
     if (!file) return;
     if (
@@ -355,7 +380,7 @@ onBeforeUnmount(() => objectUrl && URL.revokeObjectURL(objectUrl));
                         v-if="preview"
                         class="relative mx-auto mb-4 aspect-[2/3] max-h-[390px] overflow-hidden rounded-lg border border-gray-200 bg-slate-50 shadow-sm dark:border-gray-800 dark:bg-gray-900"
                     >
-                        <img
+                        <img loading="lazy" decoding="async"
                             :src="preview"
                             alt="Aperçu de la couverture"
                             class="h-full w-full object-cover"
@@ -454,14 +479,21 @@ onBeforeUnmount(() => objectUrl && URL.revokeObjectURL(objectUrl));
                         class="dw-field min-h-28 resize-y"
                         maxlength="2048"
                         placeholder="Décrivez précisément la couverture à générer…"
+                        @input="promptManuallyEdited = true"
                     ></textarea>
-                    <button
-                        type="button"
-                        class="mt-2 text-xs font-bold text-primary-600 hover:text-primary-700 dark:text-primary-400"
-                        @click="composePrompt"
-                    >
-                        Composer depuis la fiche de l’ouvrage
-                    </button>
+                    <div class="mt-2 flex items-center justify-between gap-3">
+                        <span class="text-[10px] leading-4 text-slate-400"
+                            >Suggestion adaptée automatiquement au titre et à la
+                            catégorie.</span
+                        >
+                        <button
+                            type="button"
+                            class="shrink-0 text-xs font-bold text-primary-600 hover:text-primary-700 dark:text-primary-400"
+                            @click="composePrompt"
+                        >
+                            Réinitialiser la suggestion
+                        </button>
+                    </div>
                     <div class="mt-4 grid grid-cols-2 gap-3">
                         <div>
                             <label

@@ -21,7 +21,7 @@ const statusLabels: Record<string, string> = { available: 'Disponible', in_consu
 
         <div class="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
             <aside class="dw-card p-5">
-                <img v-if="book.cover_url" :src="book.cover_url" :alt="`Couverture de ${book.title}`" class="mx-auto aspect-[2/3] w-full max-w-56 rounded-lg border border-slate-200 object-cover shadow-sm" />
+                <img loading="lazy" decoding="async" v-if="book.cover_url" :src="book.cover_url" :alt="`Couverture de ${book.title}`" class="mx-auto aspect-[2/3] w-full max-w-56 rounded-lg border border-slate-200 object-cover shadow-sm" />
                 <div v-else class="mx-auto flex aspect-[2/3] w-full max-w-56 flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50 text-center text-slate-500 dark:text-slate-400 dark:border-slate-700 dark:bg-slate-900"><AppIcon name="books" class="h-12 w-12"/><span class="mt-3 text-xs font-bold">Aucune couverture</span></div>
                 <dl class="mt-5 space-y-3 border-t border-slate-100 pt-5 text-sm"><div><dt class="text-xs font-bold uppercase text-slate-500 dark:text-slate-400">Catégorie</dt><dd class="mt-1 font-semibold text-slate-700">{{ book.category?.name || 'Non classé' }}</dd></div><div><dt class="text-xs font-bold uppercase text-slate-500 dark:text-slate-400">ISBN</dt><dd class="mt-1 font-mono text-slate-700">{{ book.isbn || 'Non renseigné' }}</dd></div><div><dt class="text-xs font-bold uppercase text-slate-500 dark:text-slate-400">Langue</dt><dd class="mt-1 text-slate-700">{{ book.language || 'Non renseignée' }}</dd></div></dl>
             </aside>

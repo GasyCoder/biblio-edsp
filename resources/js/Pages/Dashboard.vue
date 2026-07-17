@@ -338,7 +338,7 @@ const toneClasses: Record<string, string> = {
                         :key="activity.id"
                         class="flex items-center gap-3 px-5 py-3.5 sm:px-6"
                     >
-                        <img
+                        <img loading="lazy" decoding="async"
                             v-if="activity.photo"
                             :src="activity.photo"
                             :alt="activity.student"

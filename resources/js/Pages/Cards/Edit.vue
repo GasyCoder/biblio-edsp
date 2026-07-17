@@ -37,7 +37,7 @@ const form = useForm({
             <div
                 class="mb-6 flex items-center gap-4 rounded-lg bg-slate-50 p-4 dark:bg-slate-900"
             >
-                <img
+                <img loading="lazy" decoding="async"
                     v-if="card.student.photo_url"
                     :src="card.student.photo_url"
                     class="h-20 w-16 rounded object-cover"

@@ -89,7 +89,7 @@ const selectPhoto = (event: Event) => {
                     <div
                         class="flex flex-col gap-4 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4 sm:flex-row sm:items-center dark:border-slate-700 dark:bg-slate-900/50"
                     >
-                        <img
+                        <img loading="lazy" decoding="async"
                             v-if="photoPreview"
                             :src="photoPreview"
                             class="h-32 w-28 rounded-lg border border-slate-200 object-cover shadow-sm"

@@ -1,10 +1,313 @@
 <script setup lang="ts">
-import AppIcon from '@/Components/AppIcon.vue';import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';import {Head,Link,router} from '@inertiajs/vue3';import {computed,reactive} from 'vue';
-const props=defineProps<{filters:{from:string;to:string};metrics:any;alerts:any;topBooks:any[];topCategories:any[];topStudents:any[];trend:any[];inventory:any[]}>();const filters=reactive({...props.filters});const apply=()=>router.get(route('reports.index'),filters,{preserveState:true,replace:true});const maxBook=computed(()=>Math.max(1,...props.topBooks.map(x=>x.total)));const maxStudent=computed(()=>Math.max(1,...props.topStudents.map(x=>x.activity_total)));const trendMax=computed(()=>Math.max(1,...props.trend.flatMap(x=>[x.visits,x.consultations])));
+import AppIcon from "@/Components/AppIcon.vue";
+import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
+import { Head, Link, router } from "@inertiajs/vue3";
+import { computed, reactive } from "vue";
+const props = defineProps<{
+    filters: { from: string; to: string };
+    metrics: any;
+    alerts: any;
+    topBooks: any[];
+    topCategories: any[];
+    topStudents: any[];
+    trend: any[];
+    inventory: any[];
+}>();
+const filters = reactive({ ...props.filters });
+const apply = () =>
+    router.get(route("reports.index"), filters, {
+        preserveState: true,
+        replace: true,
+    });
+const maxBook = computed(() =>
+    Math.max(1, ...props.topBooks.map((x) => x.total)),
+);
+const maxStudent = computed(() =>
+    Math.max(1, ...props.topStudents.map((x) => x.activity_total)),
+);
+const trendMax = computed(() =>
+    Math.max(1, ...props.trend.flatMap((x) => [x.visits, x.consultations])),
+);
 </script>
-<template><Head title="Rapports"/><AuthenticatedLayout><template #header><div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"><div><p class="dw-page-kicker">Pilotage de la bibliothèque</p><h1 class="dw-page-title">Rapports</h1><p class="dw-page-description">Indicateurs calculés à partir des présences, consultations, prêts et exemplaires.</p></div><form class="flex flex-wrap items-end gap-2" @submit.prevent="apply"><label class="text-xs font-bold text-slate-500">Du<input v-model="filters.from" type="date" class="dw-field mt-1 w-40"/></label><label class="text-xs font-bold text-slate-500">Au<input v-model="filters.to" type="date" class="dw-field mt-1 w-40"/></label><button class="dw-btn-primary">Actualiser</button></form></div></template>
-<div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><div v-for="m in [{l:'Entrées',v:metrics.visits,i:'visits',t:'bg-primary-50 text-primary-600 dark:bg-primary-950'},{l:'Étudiants distincts',v:metrics.uniqueStudents,i:'students',t:'bg-emerald-50 text-emerald-600 dark:bg-emerald-950'},{l:'Livres consultés',v:metrics.consultations,i:'books',t:'bg-cyan-50 text-cyan-600 dark:bg-cyan-950'},{l:'Prêts ouverts',v:metrics.loans,i:'loans',t:'bg-amber-50 text-amber-600 dark:bg-amber-950'}]" :key="m.l" class="dw-card flex items-center gap-4 p-5"><span class="flex h-11 w-11 items-center justify-center rounded-lg" :class="m.t"><AppIcon :name="m.i" class="h-5 w-5"/></span><span><strong class="block text-2xl text-slate-700 dark:text-white">{{m.v}}</strong><span class="text-xs text-slate-500">{{m.l}}</span></span></div></div>
-<div class="mt-6 grid gap-4 md:grid-cols-3"><Link :href="route('visits.index',{status:'active'})" class="dw-card flex items-center justify-between p-5"><span><strong class="text-2xl text-emerald-600">{{alerts.present}}</strong><span class="ms-3 text-sm text-slate-500">présent(s)</span></span><AppIcon name="chevron-down" class="h-4 w-4 -rotate-90 text-slate-500 dark:text-slate-400"/></Link><Link :href="route('loans.index',{status:'overdue'})" class="dw-card flex items-center justify-between p-5"><span><strong class="text-2xl text-red-600">{{alerts.overdueLoans}}</strong><span class="ms-3 text-sm text-slate-500">prêt(s) en retard</span></span><AppIcon name="chevron-down" class="h-4 w-4 -rotate-90 text-slate-500 dark:text-slate-400"/></Link><Link :href="route('copies.index')" class="dw-card flex items-center justify-between p-5"><span><strong class="text-2xl text-amber-600">{{alerts.unavailableCopies}}</strong><span class="ms-3 text-sm text-slate-500">abîmé(s) ou perdu(s)</span></span><AppIcon name="chevron-down" class="h-4 w-4 -rotate-90 text-slate-500 dark:text-slate-400"/></Link></div>
-<div class="mt-6 grid gap-6 xl:grid-cols-[1.4fr_1fr]"><section class="dw-card p-5"><h2 class="font-heading font-bold text-slate-700">Évolution quotidienne</h2><p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Entrées et livres consultés</p><div class="mt-6 flex h-56 items-end gap-1 overflow-hidden"><div v-for="d in trend" :key="d.day" class="group flex h-full min-w-0 flex-1 items-end justify-center gap-px" :title="`${d.day}: ${d.visits} entrées, ${d.consultations} consultations`"><span class="w-1/2 rounded-t bg-primary-500" :style="{height:`${Math.max(d.visits?4:0,d.visits/trendMax*100)}%`}"/><span class="w-1/2 rounded-t bg-cyan-400" :style="{height:`${Math.max(d.consultations?4:0,d.consultations/trendMax*100)}%`}"/></div></div><div class="mt-3 flex gap-4 text-xs text-slate-500"><span><i class="me-1 inline-block h-2 w-2 bg-primary-500"/>Entrées</span><span><i class="me-1 inline-block h-2 w-2 bg-cyan-400"/>Consultations</span></div></section><section class="dw-card p-5"><h2 class="font-heading font-bold text-slate-700">État de l’inventaire</h2><div class="mt-5 space-y-3"><div v-for="item in inventory" :key="item.status" class="flex items-center justify-between border-b border-gray-100 pb-3 last:border-0 dark:border-gray-900"><span class="text-sm text-slate-500">{{item.label}}</span><strong class="text-slate-700 dark:text-white">{{item.total}}</strong></div></div></section></div>
-<div class="mt-6 grid gap-6 xl:grid-cols-2"><section class="dw-card p-5"><h2 class="font-heading font-bold text-slate-700">Ouvrages les plus utilisés</h2><div class="mt-5 space-y-4"><div v-for="(book,i) in topBooks" :key="book.id" class="grid grid-cols-[24px_1fr_auto] items-center gap-3"><span class="text-xs font-bold text-slate-500 dark:text-slate-400">{{i+1}}</span><div class="min-w-0"><p class="truncate text-sm font-semibold text-slate-700 dark:text-slate-200">{{book.title}}</p><div class="mt-2 h-1.5 rounded bg-gray-100 dark:bg-gray-900"><div class="h-full rounded bg-primary-500" :style="{width:`${book.total/maxBook*100}%`}"/></div></div><span class="text-xs font-bold text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300">{{book.total}}</span></div><p v-if="!topBooks.length" class="text-sm text-slate-500 dark:text-slate-400">Aucune activité sur cette période.</p></div></section><section class="dw-card p-5"><h2 class="font-heading font-bold text-slate-700">Étudiants les plus actifs</h2><div class="mt-5 space-y-4"><div v-for="(student,i) in topStudents" :key="student.id" class="flex items-center gap-3"><span class="w-5 text-xs font-bold text-slate-500 dark:text-slate-400">{{i+1}}</span><img v-if="student.photo_url" :src="student.photo_url" class="h-9 w-8 rounded object-cover" alt=""/><span v-else class="flex h-8 w-8 items-center justify-center rounded-full bg-primary-50 text-[11px] font-bold text-primary-700 dark:bg-primary-950 dark:text-primary-300">{{student.first_name[0]}}{{student.last_name[0]}}</span><div class="min-w-0 flex-1"><Link :href="route('students.show',student.id)" class="truncate text-sm font-semibold text-slate-700 dark:text-slate-200">{{student.last_name}} {{student.first_name}}</Link><div class="mt-1 h-1.5 rounded bg-gray-100 dark:bg-gray-900"><div class="h-full rounded bg-emerald-500" :style="{width:`${student.activity_total/maxStudent*100}%`}"/></div></div><strong class="text-xs text-emerald-600">{{student.activity_total}}</strong></div></div></section></div>
-</AuthenticatedLayout></template>
+<template>
+    <Head title="Rapports" /><AuthenticatedLayout
+        ><template #header
+            ><div
+                class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"
+            >
+                <div>
+                    <p class="dw-page-kicker">Pilotage de la bibliothèque</p>
+                    <h1 class="dw-page-title">Rapports</h1>
+                    <p class="dw-page-description">
+                        Indicateurs calculés à partir des présences,
+                        consultations, prêts et exemplaires.
+                    </p>
+                </div>
+                <form
+                    class="flex flex-wrap items-end gap-2"
+                    @submit.prevent="apply"
+                >
+                    <label class="text-xs font-bold text-slate-500"
+                        >Du<input
+                            v-model="filters.from"
+                            type="date"
+                            class="dw-field mt-1 w-40" /></label
+                    ><label class="text-xs font-bold text-slate-500"
+                        >Au<input
+                            v-model="filters.to"
+                            type="date"
+                            class="dw-field mt-1 w-40" /></label
+                    ><button class="dw-btn-primary">Actualiser</button>
+                </form>
+            </div></template
+        >
+        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div
+                v-for="m in [
+                    {
+                        l: 'Entrées',
+                        v: metrics.visits,
+                        i: 'visits',
+                        t: 'bg-primary-50 text-primary-600 dark:bg-primary-950',
+                    },
+                    {
+                        l: 'Étudiants distincts',
+                        v: metrics.uniqueStudents,
+                        i: 'students',
+                        t: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950',
+                    },
+                    {
+                        l: 'Livres consultés',
+                        v: metrics.consultations,
+                        i: 'books',
+                        t: 'bg-cyan-50 text-cyan-600 dark:bg-cyan-950',
+                    },
+                    {
+                        l: 'Prêts ouverts',
+                        v: metrics.loans,
+                        i: 'loans',
+                        t: 'bg-amber-50 text-amber-600 dark:bg-amber-950',
+                    },
+                ]"
+                :key="m.l"
+                class="dw-card flex items-center gap-4 p-5"
+            >
+                <span
+                    class="flex h-11 w-11 items-center justify-center rounded-lg"
+                    :class="m.t"
+                    ><AppIcon :name="m.i" class="h-5 w-5" /></span
+                ><span
+                    ><strong
+                        class="block text-2xl text-slate-700 dark:text-white"
+                        >{{ m.v }}</strong
+                    ><span class="text-xs text-slate-500">{{ m.l }}</span></span
+                >
+            </div>
+        </div>
+        <div class="mt-6 grid gap-4 md:grid-cols-3">
+            <Link
+                :href="route('visits.index', { status: 'active' })"
+                class="dw-card flex items-center justify-between p-5"
+                ><span
+                    ><strong class="text-2xl text-emerald-600">{{
+                        alerts.present
+                    }}</strong
+                    ><span class="ms-3 text-sm text-slate-500"
+                        >présent(s)</span
+                    ></span
+                ><AppIcon
+                    name="chevron-down"
+                    class="h-4 w-4 -rotate-90 text-slate-500 dark:text-slate-400" /></Link
+            ><Link
+                :href="route('loans.index', { status: 'overdue' })"
+                class="dw-card flex items-center justify-between p-5"
+                ><span
+                    ><strong class="text-2xl text-red-600">{{
+                        alerts.overdueLoans
+                    }}</strong
+                    ><span class="ms-3 text-sm text-slate-500"
+                        >prêt(s) en retard</span
+                    ></span
+                ><AppIcon
+                    name="chevron-down"
+                    class="h-4 w-4 -rotate-90 text-slate-500 dark:text-slate-400" /></Link
+            ><Link
+                :href="route('copies.index')"
+                class="dw-card flex items-center justify-between p-5"
+                ><span
+                    ><strong class="text-2xl text-amber-600">{{
+                        alerts.unavailableCopies
+                    }}</strong
+                    ><span class="ms-3 text-sm text-slate-500"
+                        >abîmé(s) ou perdu(s)</span
+                    ></span
+                ><AppIcon
+                    name="chevron-down"
+                    class="h-4 w-4 -rotate-90 text-slate-500 dark:text-slate-400"
+            /></Link>
+        </div>
+        <div class="mt-6 grid gap-6 xl:grid-cols-[1.4fr_1fr]">
+            <section class="dw-card p-5">
+                <h2 class="font-heading font-bold text-slate-700">
+                    Évolution quotidienne
+                </h2>
+                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    Entrées et livres consultés
+                </p>
+                <div class="mt-6 flex h-56 items-end gap-1 overflow-hidden">
+                    <div
+                        v-for="d in trend"
+                        :key="d.day"
+                        class="group flex h-full min-w-0 flex-1 items-end justify-center gap-px"
+                        :title="`${d.day}: ${d.visits} entrées, ${d.consultations} consultations`"
+                    >
+                        <span
+                            class="w-1/2 rounded-t bg-primary-500"
+                            :style="{
+                                height: `${Math.max(d.visits ? 4 : 0, (d.visits / trendMax) * 100)}%`,
+                            }"
+                        /><span
+                            class="w-1/2 rounded-t bg-cyan-400"
+                            :style="{
+                                height: `${Math.max(d.consultations ? 4 : 0, (d.consultations / trendMax) * 100)}%`,
+                            }"
+                        />
+                    </div>
+                </div>
+                <div class="mt-3 flex gap-4 text-xs text-slate-500">
+                    <span
+                        ><i
+                            class="me-1 inline-block h-2 w-2 bg-primary-500"
+                        />Entrées</span
+                    ><span
+                        ><i
+                            class="me-1 inline-block h-2 w-2 bg-cyan-400"
+                        />Consultations</span
+                    >
+                </div>
+            </section>
+            <section class="dw-card p-5">
+                <h2 class="font-heading font-bold text-slate-700">
+                    État de l’inventaire
+                </h2>
+                <div class="mt-5 space-y-3">
+                    <div
+                        v-for="item in inventory"
+                        :key="item.status"
+                        class="flex items-center justify-between border-b border-gray-100 pb-3 last:border-0 dark:border-gray-900"
+                    >
+                        <span class="text-sm text-slate-500">{{
+                            item.label
+                        }}</span
+                        ><strong class="text-slate-700 dark:text-white">{{
+                            item.total
+                        }}</strong>
+                    </div>
+                </div>
+            </section>
+        </div>
+        <div class="mt-6 grid gap-6 xl:grid-cols-2">
+            <section class="dw-card p-5">
+                <h2 class="font-heading font-bold text-slate-700">
+                    Ouvrages les plus utilisés
+                </h2>
+                <div class="mt-5 space-y-4">
+                    <div
+                        v-for="(book, i) in topBooks"
+                        :key="book.id"
+                        class="grid grid-cols-[24px_40px_1fr_auto] items-center gap-3"
+                    >
+                        <span
+                            class="text-xs font-bold text-slate-500 dark:text-slate-400"
+                            >{{ i + 1 }}</span
+                        ><img loading="lazy" decoding="async"
+                            v-if="book.cover_url"
+                            :src="book.cover_url"
+                            :alt="`Couverture de ${book.title}`"
+                            class="h-14 w-10 rounded border border-gray-200 object-cover shadow-sm dark:border-gray-800"
+                        /><span
+                            v-else
+                            class="flex h-14 w-10 items-center justify-center rounded border border-dashed border-gray-300 text-primary-500 dark:border-gray-800"
+                            ><AppIcon name="books" class="h-4 w-4"
+                        /></span>
+                        <div class="min-w-0">
+                            <p
+                                class="truncate text-sm font-semibold text-slate-700 dark:text-slate-200"
+                            >
+                                {{ book.title }}
+                            </p>
+                            <div
+                                class="mt-2 h-1.5 rounded bg-gray-100 dark:bg-gray-900"
+                            >
+                                <div
+                                    class="h-full rounded bg-primary-500"
+                                    :style="{
+                                        width: `${(book.total / maxBook) * 100}%`,
+                                    }"
+                                />
+                            </div>
+                        </div>
+                        <span
+                            class="text-xs font-bold text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
+                            >{{ book.total }}</span
+                        >
+                    </div>
+                    <p
+                        v-if="!topBooks.length"
+                        class="text-sm text-slate-500 dark:text-slate-400"
+                    >
+                        Aucune activité sur cette période.
+                    </p>
+                </div>
+            </section>
+            <section class="dw-card p-5">
+                <h2 class="font-heading font-bold text-slate-700">
+                    Étudiants les plus actifs
+                </h2>
+                <div class="mt-5 space-y-4">
+                    <div
+                        v-for="(student, i) in topStudents"
+                        :key="student.id"
+                        class="flex items-center gap-3"
+                    >
+                        <span
+                            class="w-5 text-xs font-bold text-slate-500 dark:text-slate-400"
+                            >{{ i + 1 }}</span
+                        ><img loading="lazy" decoding="async"
+                            v-if="student.photo_url"
+                            :src="student.photo_url"
+                            class="h-9 w-8 rounded object-cover"
+                            alt=""
+                        /><span
+                            v-else
+                            class="flex h-8 w-8 items-center justify-center rounded-full bg-primary-50 text-[11px] font-bold text-primary-700 dark:bg-primary-950 dark:text-primary-300"
+                            >{{ student.first_name[0]
+                            }}{{ student.last_name[0] }}</span
+                        >
+                        <div class="min-w-0 flex-1">
+                            <Link
+                                :href="route('students.show', student.id)"
+                                class="truncate text-sm font-semibold text-slate-700 dark:text-slate-200"
+                                >{{ student.last_name }}
+                                {{ student.first_name }}</Link
+                            >
+                            <div
+                                class="mt-1 h-1.5 rounded bg-gray-100 dark:bg-gray-900"
+                            >
+                                <div
+                                    class="h-full rounded bg-emerald-500"
+                                    :style="{
+                                        width: `${(student.activity_total / maxStudent) * 100}%`,
+                                    }"
+                                />
+                            </div>
+                        </div>
+                        <strong class="text-xs text-emerald-600">{{
+                            student.activity_total
+                        }}</strong>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </AuthenticatedLayout>
+</template>

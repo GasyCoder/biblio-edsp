@@ -31,14 +31,17 @@ const props = defineProps<{
     filters: {
         search: string;
         category: number | null;
+        author: number | null;
         availability: string;
         year: number | null;
     };
     categories: { id: number; name: string }[];
+    authors: { id: number; display_name: string }[];
     years: number[];
 }>();
 const search = ref(props.filters.search);
 const category = ref(props.filters.category ?? "");
+const author = ref(props.filters.author ?? "");
 const availability = ref(props.filters.availability ?? "");
 const year = ref(props.filters.year ?? "");
 const selected = ref<number[]>([]);
@@ -83,7 +86,9 @@ const removeSelected = () => {
 };
 const activeFilterCount = computed(
     () =>
-        [category.value, availability.value, year.value].filter(Boolean).length,
+        [category.value, author.value, availability.value, year.value].filter(
+            Boolean,
+        ).length,
 );
 const submitSearch = () =>
     router.get(
@@ -91,6 +96,7 @@ const submitSearch = () =>
         {
             search: search.value,
             category: category.value,
+            author: author.value,
             availability: availability.value,
             year: year.value,
         },
@@ -99,6 +105,7 @@ const submitSearch = () =>
 const resetFilters = () => {
     search.value = "";
     category.value = "";
+    author.value = "";
     availability.value = "";
     year.value = "";
     submitSearch();
@@ -185,7 +192,7 @@ const resetFilters = () => {
                 class="border-b border-gray-200 p-4 dark:border-gray-800 sm:p-5"
             >
                 <form
-                    class="grid gap-3 lg:grid-cols-[minmax(280px,1fr)_220px_200px_150px_auto]"
+                    class="grid gap-3 lg:grid-cols-2 2xl:grid-cols-[minmax(260px,1fr)_190px_190px_180px_150px_auto]"
                     @submit.prevent="submitSearch"
                 >
                     <div class="relative flex-1">
@@ -210,6 +217,20 @@ const resetFilters = () => {
                             :value="item.id"
                         >
                             {{ item.name }}
+                        </option>
+                    </select>
+                    <select
+                        v-model="author"
+                        class="dw-field"
+                        aria-label="Filtrer par auteur"
+                    >
+                        <option value="">Tous les auteurs</option>
+                        <option
+                            v-for="item in authors"
+                            :key="item.id"
+                            :value="item.id"
+                        >
+                            {{ item.display_name }}
                         </option>
                     </select>
                     <select
@@ -302,7 +323,7 @@ const resetFilters = () => {
                             </td>
                             <td class="px-5 py-4">
                                 <div class="flex items-center gap-3">
-                                    <img
+                                    <img loading="lazy" decoding="async"
                                         v-if="book.cover_url"
                                         :src="book.cover_url"
                                         :alt="`Couverture de ${book.title}`"

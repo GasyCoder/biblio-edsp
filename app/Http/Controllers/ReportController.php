@@ -3,10 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Enums\CopyStatus;
+use App\Models\Book;
 use App\Models\ConsultationItem;
 use App\Models\Copy;
 use App\Models\Loan;
-use App\Models\LoanItem;
 use App\Models\Student;
 use App\Models\Visit;
 use Carbon\Carbon;
@@ -33,8 +33,12 @@ class ReportController extends Controller
         $loanedByBook = DB::table('loan_items')->join('copies', 'copies.id', '=', 'loan_items.copy_id')
             ->whereBetween('loan_items.loaned_at', [$from, $to])->groupBy('copies.book_id')->selectRaw('copies.book_id, count(*) as total')->pluck('total', 'book_id');
         $bookIds = $consultedByBook->keys()->merge($loanedByBook->keys())->unique();
-        $books = DB::table('books')->whereIn('id', $bookIds)->get(['id', 'title'])->map(function ($book) use ($consultedByBook, $loanedByBook) {
-            $book->consultations = (int) ($consultedByBook[$book->id] ?? 0); $book->loans = (int) ($loanedByBook[$book->id] ?? 0); $book->total = $book->consultations + $book->loans; return $book;
+        $books = Book::query()->whereKey($bookIds)->get(['id', 'title', 'cover_path'])->map(function (Book $book) use ($consultedByBook, $loanedByBook) {
+            $book->consultations = (int) ($consultedByBook[$book->id] ?? 0);
+            $book->loans = (int) ($loanedByBook[$book->id] ?? 0);
+            $book->total = $book->consultations + $book->loans;
+
+            return $book;
         })->sortByDesc('total')->take(8)->values();
 
         $categories = DB::table('consultation_items')->join('copies', 'copies.id', '=', 'consultation_items.copy_id')->join('books', 'books.id', '=', 'copies.book_id')->leftJoin('categories', 'categories.id', '=', 'books.category_id')
@@ -45,13 +49,17 @@ class ReportController extends Controller
             'consultationSessions' => fn (Builder $query) => $query->whereBetween('opened_at', [$from, $to]),
             'loans' => fn (Builder $query) => $query->whereBetween('opened_at', [$from, $to]),
         ])->get(['id', 'registration_number', 'last_name', 'first_name', 'photo_path'])->map(function (Student $student) {
-            $student->activity_total = $student->visits_count + $student->consultation_sessions_count + $student->loans_count; return $student;
+            $student->activity_total = $student->visits_count + $student->consultation_sessions_count + $student->loans_count;
+
+            return $student;
         })->sortByDesc('activity_total')->take(8)->values();
 
         $dailyVisits = Visit::query()->whereBetween('checked_in_at', [$from, $to])->selectRaw('date(checked_in_at) as day, count(*) as total')->groupBy('day')->pluck('total', 'day');
         $dailyConsultations = ConsultationItem::query()->whereBetween('scanned_at', [$from, $to])->selectRaw('date(scanned_at) as day, count(*) as total')->groupBy('day')->pluck('total', 'day');
         $trend = collect(range(0, $from->diffInDays($to)))->map(function (int $offset) use ($from, $dailyVisits, $dailyConsultations) {
-            $day = $from->copy()->addDays($offset)->toDateString(); return ['day' => $day, 'visits' => (int) ($dailyVisits[$day] ?? 0), 'consultations' => (int) ($dailyConsultations[$day] ?? 0)];
+            $day = $from->copy()->addDays($offset)->toDateString();
+
+            return ['day' => $day, 'visits' => (int) ($dailyVisits[$day] ?? 0), 'consultations' => (int) ($dailyConsultations[$day] ?? 0)];
         });
 
         $inventory = Copy::query()->select('status', DB::raw('count(*) as total'))->groupBy('status')->pluck('total', 'status');

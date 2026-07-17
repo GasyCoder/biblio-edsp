@@ -173,6 +173,33 @@ it('shows and searches copy registration numbers in the books catalog', function
             ->where('books.data.0.copies.0.inventory_number', $copy->inventory_number));
 });
 
+it('filters the physical inventory by search status condition and location', function () {
+    $user = User::factory()->create()->assignRole('secretaire');
+    $location = Location::factory()->create(['name' => 'Étagère recherche', 'code' => 'ETA-R']);
+    $matchingBook = Book::factory()->create(['title' => 'Ouvrage inventaire recherché']);
+    $matching = app(CopyService::class)->create([
+        'book_id' => $matchingBook->id,
+        'location_id' => $location->id,
+        'status' => 'damaged',
+        'condition' => 'fair',
+    ]);
+    app(CopyService::class)->create(['book_id' => Book::factory()->create()->id]);
+
+    $this->actingAs($user)->get(route('copies.index', [
+        'search' => 'inventaire recherché',
+        'status' => 'damaged',
+        'condition' => 'fair',
+        'location' => $location->id,
+    ]))->assertInertia(fn (Assert $page) => $page
+        ->component('Copies/Index')
+        ->has('copies.data', 1)
+        ->where('copies.data.0.id', $matching->id)
+        ->where('filters.status', 'damaged')
+        ->where('filters.condition', 'fair')
+        ->where('filters.location', (string) $location->id)
+        ->has('locations'));
+});
+
 it('updates copy status condition and cabinet location', function () {
     $user = User::factory()->create()->assignRole('secretaire');
     $book = Book::factory()->create();

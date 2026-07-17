@@ -150,6 +150,24 @@ it('filters books by category publication year and availability', function () {
         ->has('categories', 2));
 });
 
+it('filters books by author from the author reference page', function () {
+    $user = User::factory()->create()->assignRole('secretaire');
+    $author = Author::create(['display_name' => 'Auteur recherché']);
+    $otherAuthor = Author::create(['display_name' => 'Autre auteur']);
+    $matching = Book::factory()->create();
+    $other = Book::factory()->create();
+    $matching->authors()->attach($author, ['position' => 1]);
+    $other->authors()->attach($otherAuthor, ['position' => 1]);
+
+    $this->actingAs($user)->get(route('books.index', ['author' => $author->id]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Books/Index')
+            ->has('books.data', 1)
+            ->where('books.data.0.id', $matching->id)
+            ->where('filters.author', $author->id)
+            ->has('authors', 2));
+});
+
 it('allows students to browse the catalogue but not modify it', function () {
     $user = User::factory()->create()->assignRole('etudiant');
 
