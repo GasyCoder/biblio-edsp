@@ -2,7 +2,8 @@
 import AppIcon from "@/Components/AppIcon.vue";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import { Head, Link, usePage } from "@inertiajs/vue3";
-defineProps<{ student: any; consultedBooks: any; borrowedBooks: any }>();
+import { computed } from "vue";
+const props = defineProps<{ student: any; consultedBooks: any; borrowedBooks: any }>();
 const page = usePage();
 const canUpdate = page.props.auth.permissions.includes("students.update");
 const statusLabels: Record<string, string> = {
@@ -11,6 +12,14 @@ const statusLabels: Record<string, string> = {
     suspended: "Suspendu",
     graduated: "Diplômé",
 };
+const statusTones: Record<string, string> = {
+    active: "bg-emerald-500/20 text-emerald-100 ring-emerald-300/30",
+    inactive: "bg-slate-500/25 text-slate-100 ring-white/20",
+    suspended: "bg-red-500/20 text-red-100 ring-red-300/30",
+    graduated: "bg-cyan-500/20 text-cyan-100 ring-cyan-300/30",
+};
+const statusTone = computed(() => statusTones[props.student.status] || "bg-white/15 text-white ring-white/20");
+const formatDate = (value?: string) => value ? new Date(value).toLocaleDateString("fr-FR") : "Non renseignée";
 </script>
 <template>
     <Head
@@ -34,7 +43,7 @@ const statusLabels: Record<string, string> = {
                     <h1
                         class="dw-page-title"
                     >
-                        {{ student.last_name }} {{ student.first_name }}
+                        Fiche de l’étudiant
                     </h1>
                 </div>
                 <Link
@@ -45,46 +54,45 @@ const statusLabels: Record<string, string> = {
                 >
             </div></template
         >
-        <div class="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-            <aside class="dw-card p-5">
-                <img loading="lazy" decoding="async"
-                    v-if="student.photo_url"
-                    :src="student.photo_url"
-                    class="mx-auto h-64 w-52 rounded-xl border border-slate-200 object-cover shadow-sm"
-                    alt="Photo de profil"
-                />
-                <div
-                    v-else
-                    class="mx-auto flex h-64 w-52 flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50 text-slate-500 dark:text-slate-400 dark:border-slate-700 dark:bg-slate-900"
-                >
-                    <AppIcon name="user" class="h-16 w-16" /><span
-                        class="mt-3 text-xs font-bold"
-                        >Aucune photo</span
-                    >
-                </div>
-                <div class="mt-5 text-center">
-                    <p class="font-mono text-sm font-bold text-primary-700">
-                        {{ student.registration_number }}
-                    </p>
-                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                        {{
-                            student.academic_number || "Matricule non renseigné"
-                        }}
-                    </p>
-                    <span
-                        class="mt-3 inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
-                        >{{
-                            statusLabels[student.status] || student.status
-                        }}</span
-                    >
+        <div class="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
+            <aside class="dw-card self-start overflow-hidden lg:sticky lg:top-24">
+                <div class="relative min-h-[330px] overflow-hidden p-6 text-white">
+                    <img src="/images/desk/student-profile-cover.png" alt="" class="absolute inset-0 h-full w-full object-cover" />
+                    <div class="absolute inset-0 bg-gradient-to-b from-slate-950/20 via-primary-950/60 to-slate-950"></div>
+                    <div class="relative z-10 flex min-h-[282px] flex-col justify-end">
+                        <img
+                            v-if="student.photo_url"
+                            :src="student.photo_url"
+                            :alt="`Photo de ${student.last_name} ${student.first_name}`"
+                            class="mb-5 h-32 w-28 rounded-xl border-2 border-white/80 object-cover shadow-2xl"
+                        />
+                        <div v-else class="mb-5 flex h-32 w-28 items-center justify-center rounded-xl border-2 border-dashed border-white/50 bg-white/10 backdrop-blur-sm">
+                            <AppIcon name="user" class="h-12 w-12 text-white/80" />
+                        </div>
+                        <div class="flex items-end justify-between gap-3">
+                            <div class="min-w-0">
+                                <h2 class="font-heading text-2xl font-bold leading-tight !text-white [text-shadow:0_2px_8px_rgba(0,0,0,0.85)]">{{ student.last_name }} {{ student.first_name }}</h2>
+                                <p class="mt-2 font-mono text-sm font-bold !text-white [text-shadow:0_1px_5px_rgba(0,0,0,0.8)]">{{ student.registration_number }}</p>
+                            </div>
+                            <span class="shrink-0 rounded-full px-3 py-1 text-[11px] font-bold ring-1" :class="statusTone">{{ statusLabels[student.status] || student.status }}</span>
+                        </div>
+                    </div>
                 </div>
             </aside>
             <div class="space-y-6">
+                <section class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    <div class="dw-card flex items-center gap-3 p-4"><span class="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950"><AppIcon name="visits" class="h-5 w-5" /></span><span><strong class="block text-xl text-slate-800 dark:text-white">{{ student.visits.length }}</strong><small class="text-slate-500">Présences récentes</small></span></div>
+                    <div class="dw-card flex items-center gap-3 p-4"><span class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-50 text-primary-600 dark:bg-primary-950"><AppIcon name="books" class="h-5 w-5" /></span><span><strong class="block text-xl text-slate-800 dark:text-white">{{ consultedBooks.total }}</strong><small class="text-slate-500">Livres consultés</small></span></div>
+                    <div class="dw-card flex items-center gap-3 p-4"><span class="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-950"><AppIcon name="loans" class="h-5 w-5" /></span><span><strong class="block text-xl text-slate-800 dark:text-white">{{ borrowedBooks.total }}</strong><small class="text-slate-500">Livres empruntés</small></span></div>
+                    <div class="dw-card flex items-center gap-3 p-4"><span class="flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-50 text-cyan-600 dark:bg-cyan-950"><AppIcon name="scan" class="h-5 w-5" /></span><span><strong class="block text-xl text-slate-800 dark:text-white">{{ student.cards.length }}</strong><small class="text-slate-500">Carte(s) créée(s)</small></span></div>
+                </section>
                 <section class="dw-card p-6">
-                    <h2 class="font-heading text-lg font-bold text-slate-800">
-                        Informations personnelles et académiques
-                    </h2>
+                    <div class="flex items-center gap-3 border-b border-gray-200 pb-4 dark:border-gray-800"><span class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-50 text-primary-600 dark:bg-primary-950"><AppIcon name="user" class="h-5 w-5" /></span><div><p class="dw-page-kicker">Dossier étudiant</p><h2 class="mt-1 font-heading text-lg font-bold text-slate-800 dark:text-white">Informations personnelles</h2></div></div>
                     <dl class="mt-5 grid gap-5 sm:grid-cols-2">
+                        <div>
+                            <dt class="text-xs font-bold uppercase text-slate-500 dark:text-slate-400">Matricule administratif</dt>
+                            <dd class="mt-1 text-slate-700 dark:text-slate-200">{{ student.academic_number || 'Non renseigné' }}</dd>
+                        </div>
                         <div>
                             <dt
                                 class="text-xs font-bold uppercase text-slate-500 dark:text-slate-400"
@@ -92,7 +100,7 @@ const statusLabels: Record<string, string> = {
                                 Date de naissance
                             </dt>
                             <dd class="mt-1 text-slate-700">
-                                {{ student.birth_date || "Non renseignée" }}
+                                {{ formatDate(student.birth_date) }}
                             </dd>
                         </div>
                         <div>

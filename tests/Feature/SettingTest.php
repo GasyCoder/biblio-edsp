@@ -41,6 +41,7 @@ it('uploads and shares the library logo and favicon', function () {
     Storage::disk('public')->assertExists(Setting::getValue('favicon_path'));
 
     $this->get(route('settings.edit'))->assertInertia(fn (Assert $page) => $page
+        ->where('application.version', fn ($version) => preg_match('/^\d+\.\d+\.\d+$/', $version) === 1)
         ->where('branding.library_name', 'Bibliothèque Test')
         ->where('branding.institution_name', 'EDSP')
         ->where('branding.logo_url', fn ($url) => str_contains($url, '/storage/branding/logo/'))

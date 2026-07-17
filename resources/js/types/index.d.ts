@@ -24,4 +24,7 @@ export type PageProps<
         logo_url: string | null;
         favicon_url: string;
     };
+    application: {
+        version: string;
+    };
 };

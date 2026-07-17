@@ -371,11 +371,10 @@ const menuGroups = computed(() =>
 
             <div class="border-t border-gray-200 p-4 dark:border-gray-900">
                 <div class="rounded-md bg-gray-50 p-3 dark:bg-gray-1000">
-                    <p
-                        class="text-xs font-semibold text-slate-700 dark:text-slate-200"
-                    >
-                        Besoin d’aide ?
-                    </p>
+                    <div class="flex items-center justify-between gap-3">
+                        <p class="text-xs font-semibold text-slate-700 dark:text-slate-200">Besoin d’aide ?</p>
+                        <span class="rounded-full bg-primary-50 px-2 py-0.5 font-mono text-[10px] font-bold text-primary-700 dark:bg-primary-950 dark:text-primary-300">v{{ $page.props.application.version }}</span>
+                    </div>
                     <p
                         class="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400"
                     >

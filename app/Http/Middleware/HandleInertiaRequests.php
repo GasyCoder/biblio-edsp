@@ -6,6 +6,7 @@ use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Middleware;
+use Symfony\Component\Process\Process;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -44,6 +45,7 @@ class HandleInertiaRequests extends Middleware
                 'error' => fn () => $request->session()->get('error'),
             ],
             'branding' => fn () => $this->branding(),
+            'application' => fn () => ['version' => $this->applicationVersion()],
         ];
     }
 
@@ -58,5 +60,27 @@ class HandleInertiaRequests extends Middleware
             'logo_url' => $logoPath ? Storage::disk('public')->url($logoPath) : null,
             'favicon_url' => $faviconPath ? Storage::disk('public')->url($faviconPath) : asset('favicon.ico'),
         ];
+    }
+
+    private function applicationVersion(): string
+    {
+        static $version;
+
+        if ($version) {
+            return $version;
+        }
+
+        $configured = (string) config('app.version', '1.0.0');
+
+        if (is_dir(base_path('.git'))) {
+            $process = new Process(['git', 'describe', '--tags', '--abbrev=0'], base_path());
+            $process->run();
+
+            if ($process->isSuccessful() && trim($process->getOutput()) !== '') {
+                return $version = ltrim(trim($process->getOutput()), 'vV');
+            }
+        }
+
+        return $version = ltrim($configured, 'vV');
     }
 }
