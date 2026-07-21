@@ -46,4 +46,31 @@ class Copy extends Model
     {
         return $this->hasMany(LoanItem::class)->whereNull('returned_at');
     }
+
+    public function unavailabilityReason(): string
+    {
+        if ($this->status === CopyStatus::InConsultation) {
+            $holder = $this->activeConsultationItems()
+                ->with('session.student:id,first_name,last_name')
+                ->latest('scanned_at')
+                ->first()?->session?->student;
+
+            return $holder
+                ? "Cet exemplaire est déjà en consultation par {$holder->first_name} {$holder->last_name}."
+                : 'Cet exemplaire est déjà en consultation.';
+        }
+
+        if ($this->status === CopyStatus::Borrowed) {
+            $loan = $this->activeLoanItems()
+                ->with('loan.student:id,first_name,last_name')
+                ->latest('loaned_at')
+                ->first()?->loan;
+
+            return $loan
+                ? "Cet exemplaire est emprunté par {$loan->student->first_name} {$loan->student->last_name} (retour prévu le {$loan->due_at?->format('d/m/Y')})."
+                : 'Cet exemplaire est actuellement emprunté.';
+        }
+
+        return "Cet exemplaire est indisponible ({$this->status->label()}).";
+    }
 }

@@ -69,10 +69,19 @@ class DeskController extends Controller
             'mode' => ['nullable', Rule::in(['counter', 'entry', 'exit'])],
         ]);
         $mode = $data['mode'] ?? 'counter';
+
+        if (str_starts_with(strtoupper(trim($data['code'])), 'EDSP:COPY:')) {
+            return back()
+                ->withErrors(['student' => 'Ce code est l’étiquette d’un exemplaire, pas une carte d’étudiant.'])
+                ->with('lastScan', $this->lastScan('unknown', null, $data['code']));
+        }
+
         $student = $this->findStudent($data['code']);
 
         if (! $student) {
-            return back()->withErrors(['student' => 'Aucune carte active ne correspond à ce code.']);
+            return back()
+                ->withErrors(['student' => 'Aucune carte active ne correspond à ce code.'])
+                ->with('lastScan', $this->lastScan('unknown', null, $data['code']));
         }
 
         $openVisit = $student->visits()->whereNull('checked_out_at')->first();
@@ -80,25 +89,29 @@ class DeskController extends Controller
         if ($mode === 'exit') {
             if (! $openVisit) {
                 return to_route('desk.index', ['mode' => 'exit'])
-                    ->with('info', "Aucune présence ouverte pour {$student->first_name} {$student->last_name}. Aucun pointage modifié.");
+                    ->with('info', "Aucune présence ouverte pour {$student->first_name} {$student->last_name}. Aucun pointage modifié.")
+                    ->with('lastScan', $this->lastScan('no_visit', $student));
             }
 
             $service->checkOut($openVisit, $request->user());
 
             return to_route('desk.index', ['mode' => 'exit'])
-                ->with('success', "Sortie enregistrée pour {$student->first_name} {$student->last_name}. Les prêts à domicile restent ouverts.");
+                ->with('success', "Sortie enregistrée pour {$student->first_name} {$student->last_name}. Les prêts à domicile restent ouverts.")
+                ->with('lastScan', $this->lastScan('exit', $student));
         }
 
         if (! $openVisit) {
             $service->checkIn($student, $request->user());
 
             return to_route('desk.index', $mode === 'entry' ? ['mode' => 'entry'] : ['q' => $student->registration_number])
-                ->with('success', "Étudiant identifié et entrée enregistrée pour {$student->first_name} {$student->last_name}.");
+                ->with('success', "Étudiant identifié et entrée enregistrée pour {$student->first_name} {$student->last_name}.")
+                ->with('lastScan', $this->lastScan('entry', $student));
         }
 
         if ($mode === 'entry') {
             return to_route('desk.index', ['mode' => 'entry'])
-                ->with('info', "{$student->first_name} {$student->last_name} est déjà présent(e). Aucun doublon créé.");
+                ->with('info', "{$student->first_name} {$student->last_name} est déjà présent(e). Aucun doublon créé.")
+                ->with('lastScan', $this->lastScan('already_present', $student));
         }
 
         return to_route('desk.index', ['q' => $student->registration_number])
@@ -129,14 +142,32 @@ class DeskController extends Controller
     public function addCopy(Request $request, ConsultationSession $session, ConsultationService $service): RedirectResponse
     {
         $validated = $request->validate(['barcode' => ['required', 'string', 'max:100']]);
-        $copy = Copy::query()->where('barcode_value', trim($validated['barcode']))->orWhere('inventory_number', trim($validated['barcode']))->first();
+        $copy = $this->findCopy($validated['barcode']);
         if (! $copy) {
-            return back()->withErrors(['barcode' => 'Aucun exemplaire ne correspond à ce code.']);
+            return back()->withErrors(['barcode' => $this->copyLookupError($validated['barcode'])]);
         }
 
         $service->addCopy($session, $copy, $request->user());
 
         return back()->with('success', 'Exemplaire ajouté à la consultation.');
+    }
+
+    public function addVisitCopy(Request $request, Visit $visit, ConsultationService $service): RedirectResponse
+    {
+        $validated = $request->validate(['barcode' => ['required', 'string', 'max:100']]);
+        $copy = $this->findCopy($validated['barcode']);
+        if (! $copy) {
+            return back()->withErrors(['barcode' => $this->copyLookupError($validated['barcode'])]);
+        }
+
+        $session = $visit->consultationSessions()->whereNull('closed_at')->first();
+        $opened = $session === null;
+        $session ??= $service->open($visit, $request->user());
+        $service->addCopy($session, $copy, $request->user());
+
+        return back()->with('success', $opened
+            ? 'Consultation ouverte et exemplaire ajouté.'
+            : 'Exemplaire ajouté à la consultation.');
     }
 
     public function returnCopy(Request $request, ConsultationItem $item, ConsultationService $service): RedirectResponse
@@ -164,10 +195,9 @@ class DeskController extends Controller
     public function addLoanCopy(Request $request, Loan $loan, LoanService $service): RedirectResponse
     {
         $data = $request->validate(['barcode' => ['required', 'string', 'max:100']]);
-        $value = trim($data['barcode']);
-        $copy = Copy::query()->where('barcode_value', $value)->orWhere('inventory_number', $value)->first();
+        $copy = $this->findCopy($data['barcode']);
         if (! $copy) {
-            return back()->withErrors(['loan_copy' => 'Aucun exemplaire ne correspond à ce code.']);
+            return back()->withErrors(['loan_copy' => $this->copyLookupError($data['barcode'])]);
         }
         $service->addCopy($loan, $copy, $request->user());
 
@@ -186,6 +216,34 @@ class DeskController extends Controller
         $service->close($loan, $request->user());
 
         return back()->with('success', 'Prêt clôturé.');
+    }
+
+    private function findCopy(string $barcode): ?Copy
+    {
+        $value = trim($barcode);
+
+        return Copy::query()
+            ->where('barcode_value', $value)
+            ->orWhere('inventory_number', $value)
+            ->first();
+    }
+
+    private function copyLookupError(string $barcode): string
+    {
+        return str_starts_with(strtoupper(trim($barcode)), 'EDSP:CARD:')
+            ? 'Ce code est une carte d’étudiant, pas l’étiquette d’un exemplaire.'
+            : 'Aucun exemplaire ne correspond à ce code.';
+    }
+
+    /** @return array<string, mixed> */
+    private function lastScan(string $status, ?Student $student, ?string $code = null): array
+    {
+        return [
+            'status' => $status,
+            'code' => $code,
+            'scanned_at' => now()->toIso8601String(),
+            'student' => $student?->only(['id', 'first_name', 'last_name', 'registration_number', 'photo_url']),
+        ];
     }
 
     private function findStudent(string $query): ?Student

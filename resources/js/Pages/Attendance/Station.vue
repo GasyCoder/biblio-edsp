@@ -2,6 +2,8 @@
 import AppIcon from '@/Components/AppIcon.vue';
 import CameraQrScanner from '@/Components/CameraQrScanner.vue';
 import InputError from '@/Components/InputError.vue';
+import ScanFeedbackCard from '@/Components/ScanFeedbackCard.vue';
+import { useScanFeedback } from '@/Composables/useScanFeedback';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed, nextTick, onMounted, ref } from 'vue';
@@ -14,18 +16,31 @@ const input = ref<HTMLInputElement>();
 const cameraOpen = ref(false);
 const form = useForm({ code: '' });
 const isEntry = computed(() => props.mode === 'entry');
+const { lastScan } = useScanFeedback();
 
+const lastSubmit = { code: '', at: 0 };
 const submit = () => {
-    if (!form.code.trim() || form.processing) return;
+    const value = form.code.trim();
+    if (!value || form.processing) return;
+
+    // Une douchette ou la caméra continue peut relire le même code deux fois de suite.
+    const now = Date.now();
+    if (value === lastSubmit.code && now - lastSubmit.at < 3000) {
+        form.reset();
+        return;
+    }
+    lastSubmit.code = value;
+    lastSubmit.at = now;
+
     form.post(route('attendance.scan', props.mode), {
         preserveScroll: true,
         onSuccess: () => form.reset(),
+        onError: () => nextTick(() => input.value?.select()),
         onFinish: () => nextTick(() => input.value?.focus()),
     });
 };
 
 const cameraResult = (code: string) => {
-    cameraOpen.value = false;
     form.code = code;
     submit();
 };
@@ -51,8 +66,9 @@ onMounted(() => input.value?.focus());
         </template>
 
         <div class="mx-auto max-w-6xl space-y-6">
-            <div v-if="$page.props.flash?.success" class="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-200">{{ $page.props.flash.success }}</div>
-            <div v-if="$page.props.flash?.info" class="rounded-lg border border-sky-200 bg-sky-50 p-4 text-sm font-semibold text-sky-800 dark:border-sky-900 dark:bg-sky-950 dark:text-sky-200">{{ $page.props.flash.info }}</div>
+            <ScanFeedbackCard v-if="lastScan" :scan="lastScan" />
+            <div v-if="$page.props.flash?.success && !lastScan" class="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-200">{{ $page.props.flash.success }}</div>
+            <div v-if="$page.props.flash?.info && !lastScan" class="rounded-lg border border-sky-200 bg-sky-50 p-4 text-sm font-semibold text-sky-800 dark:border-sky-900 dark:bg-sky-950 dark:text-sky-200">{{ $page.props.flash.info }}</div>
 
             <section class="dw-card overflow-hidden">
                 <div class="flex flex-col items-center px-6 py-10 text-center sm:py-14">
@@ -91,6 +107,6 @@ onMounted(() => input.value?.focus());
             </section>
         </div>
 
-        <CameraQrScanner :open="cameraOpen" title="Scanner la carte de bibliothèque" help="Présentez le QR unique de la carte devant la caméra." :continuous="false" @detected="cameraResult" @close="cameraOpen = false" />
+        <CameraQrScanner :open="cameraOpen" title="Scanner la carte de bibliothèque" help="Présentez le QR unique de la carte devant la caméra." :continuous="true" @detected="cameraResult" @close="cameraOpen = false" />
     </AuthenticatedLayout>
 </template>

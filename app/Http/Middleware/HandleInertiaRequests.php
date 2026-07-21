@@ -43,6 +43,7 @@ class HandleInertiaRequests extends Middleware
                 'success' => fn () => $request->session()->get('success'),
                 'info' => fn () => $request->session()->get('info'),
                 'error' => fn () => $request->session()->get('error'),
+                'lastScan' => fn () => $request->session()->get('lastScan'),
             ],
             'branding' => fn () => $this->branding(),
             'application' => fn () => ['version' => $this->applicationVersion()],

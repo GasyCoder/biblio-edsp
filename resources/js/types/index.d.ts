@@ -1,3 +1,5 @@
+import type { LastScan } from '@/Composables/useScanFeedback';
+
 export interface User {
     id: number;
     name: string;
@@ -17,6 +19,7 @@ export type PageProps<
         success?: string;
         info?: string;
         error?: string;
+        lastScan?: LastScan | null;
     };
     branding: {
         library_name: string;

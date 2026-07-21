@@ -43,6 +43,8 @@ class AttendanceStationController extends Controller
         $student = $this->resolveStudent($data['code']);
 
         if (! $student) {
+            $request->session()->flash('lastScan', $this->lastScan('unknown', null, $data['code']));
+
             throw ValidationException::withMessages(['code' => 'Carte inconnue ou inactive. Vérifiez le QR code présenté.']);
         }
 
@@ -50,21 +52,40 @@ class AttendanceStationController extends Controller
 
         if ($mode === 'entry') {
             if ($openVisit) {
-                return back()->with('info', "{$student->first_name} {$student->last_name} est déjà présent(e). Aucun doublon créé.");
+                return back()
+                    ->with('info', "{$student->first_name} {$student->last_name} est déjà présent(e). Aucun doublon créé.")
+                    ->with('lastScan', $this->lastScan('already_present', $student));
             }
 
             $visits->checkIn($student, $request->user());
 
-            return back()->with('success', "Entrée enregistrée pour {$student->first_name} {$student->last_name}.");
+            return back()
+                ->with('success', "Entrée enregistrée pour {$student->first_name} {$student->last_name}.")
+                ->with('lastScan', $this->lastScan('entry', $student));
         }
 
         if (! $openVisit) {
-            return back()->with('info', "Aucune présence ouverte pour {$student->first_name} {$student->last_name}. Aucun pointage modifié.");
+            return back()
+                ->with('info', "Aucune présence ouverte pour {$student->first_name} {$student->last_name}. Aucun pointage modifié.")
+                ->with('lastScan', $this->lastScan('no_visit', $student));
         }
 
         $visits->checkOut($openVisit, $request->user());
 
-        return back()->with('success', "Sortie enregistrée pour {$student->first_name} {$student->last_name}. Les prêts à domicile restent ouverts.");
+        return back()
+            ->with('success', "Sortie enregistrée pour {$student->first_name} {$student->last_name}. Les prêts à domicile restent ouverts.")
+            ->with('lastScan', $this->lastScan('exit', $student));
+    }
+
+    /** @return array<string, mixed> */
+    private function lastScan(string $status, ?Student $student, ?string $code = null): array
+    {
+        return [
+            'status' => $status,
+            'code' => $code,
+            'scanned_at' => now()->toIso8601String(),
+            'student' => $student?->only(['id', 'first_name', 'last_name', 'registration_number', 'photo_url']),
+        ];
     }
 
     private function resolveStudent(string $code): ?Student

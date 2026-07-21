@@ -47,11 +47,14 @@ class ConsultationService
             if ($lockedSession->closed_at) {
                 throw ValidationException::withMessages(['copy' => 'Cette consultation est clôturée.']);
             }
+            if ($lockedSession->items()->where('copy_id', $lockedCopy->id)->whereNull('returned_at')->exists()) {
+                throw ValidationException::withMessages(['copy' => 'Cet exemplaire est déjà dans cette session. Utilisez « Restituer » pour enregistrer son retour.']);
+            }
             if ($lockedCopy->status !== CopyStatus::Available) {
-                throw ValidationException::withMessages(['copy' => 'Cet exemplaire n’est pas disponible.']);
+                throw ValidationException::withMessages(['copy' => $lockedCopy->unavailabilityReason()]);
             }
             if ($lockedSession->items()->where('copy_id', $lockedCopy->id)->exists()) {
-                throw ValidationException::withMessages(['copy' => 'Cet exemplaire a déjà été scanné dans cette session.']);
+                throw ValidationException::withMessages(['copy' => 'Cet exemplaire a déjà été consulté puis restitué dans cette session.']);
             }
 
             $item = $lockedSession->items()->create([

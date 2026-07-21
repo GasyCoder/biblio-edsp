@@ -43,9 +43,10 @@ class LoanService
             $lockedLoan = Loan::query()->lockForUpdate()->findOrFail($loan->id);
             $lockedCopy = Copy::query()->lockForUpdate()->findOrFail($copy->id);
             if ($lockedLoan->closed_at) throw ValidationException::withMessages(['loan_copy' => 'Ce prêt est clôturé.']);
+            if ($lockedLoan->items()->where('copy_id', $lockedCopy->id)->whereNull('returned_at')->exists()) throw ValidationException::withMessages(['loan_copy' => 'Cet exemplaire figure déjà dans ce prêt. Utilisez « Enregistrer le retour » pour le rendre.']);
             if ($lockedLoan->items()->whereNull('returned_at')->count() >= (int) Setting::getValue('max_books_per_loan', 5)) throw ValidationException::withMessages(['loan_copy' => 'Le nombre maximal de livres autorisés pour un prêt est atteint.']);
-            if ($lockedCopy->status !== CopyStatus::Available) throw ValidationException::withMessages(['loan_copy' => 'Cet exemplaire n’est pas disponible.']);
-            if ($lockedLoan->items()->where('copy_id', $lockedCopy->id)->exists()) throw ValidationException::withMessages(['loan_copy' => 'Cet exemplaire figure déjà dans ce prêt.']);
+            if ($lockedCopy->status !== CopyStatus::Available) throw ValidationException::withMessages(['loan_copy' => $lockedCopy->unavailabilityReason()]);
+            if ($lockedLoan->items()->where('copy_id', $lockedCopy->id)->exists()) throw ValidationException::withMessages(['loan_copy' => 'Cet exemplaire a déjà été emprunté puis rendu dans ce prêt.']);
 
             $item = $lockedLoan->items()->create(['copy_id' => $lockedCopy->id, 'loaned_at' => now(), 'loaned_by' => $operator->id]);
             $lockedCopy->update(['status' => CopyStatus::Borrowed, 'lock_version' => $lockedCopy->lock_version + 1]);

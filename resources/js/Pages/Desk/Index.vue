@@ -3,6 +3,8 @@ import AppIcon from "@/Components/AppIcon.vue";
 import CameraQrScanner from "@/Components/CameraQrScanner.vue";
 import InputError from "@/Components/InputError.vue";
 import Modal from "@/Components/Modal.vue";
+import ScanFeedbackCard from "@/Components/ScanFeedbackCard.vue";
+import { playBeep, useScanFeedback } from "@/Composables/useScanFeedback";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import { Head, Link, router, useForm } from "@inertiajs/vue3";
 import { computed, nextTick, onMounted, ref } from "vue";
@@ -10,6 +12,8 @@ import { computed, nextTick, onMounted, ref } from "vue";
 type Item = {
     id: number;
     returned_at?: string;
+    scanned_at?: string;
+    loaned_at?: string;
     copy: {
         inventory_number: string;
         book: { title: string; cover_url?: string };
@@ -109,8 +113,8 @@ const modeTitle = computed(() =>
 );
 const modeOptions = [
     { value: "counter", label: "Comptoir", help: "Consultations, prêts et retours", icon: "scan", iconClass: "" },
-    { value: "entry", label: "Entrées", help: "Pointage automatique des arrivées", icon: "logout", iconClass: "-rotate-90" },
-    { value: "exit", label: "Sorties", help: "Pointage automatique des départs", icon: "logout", iconClass: "rotate-90" },
+    { value: "entry", label: "Entrées", help: "Pointage automatique des arrivées", icon: "login", iconClass: "" },
+    { value: "exit", label: "Sorties", help: "Pointage automatique des départs", icon: "logout", iconClass: "" },
 ] as const;
 const modeTabClass = (value: string) => {
     if (value === "entry")
@@ -139,10 +143,12 @@ const modeSecondaryClass = computed(() =>
           ? "border-red-300 text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950"
           : "border-primary-300 text-primary-600 hover:bg-primary-50 dark:border-primary-800 dark:text-primary-300 dark:hover:bg-primary-950",
 );
+const { lastScan } = useScanFeedback();
 const scan = ref(props.query);
 const presenceTab = ref<"present" | "exited">("present");
 const scanInput = ref<HTMLInputElement>();
 const copyInput = ref<HTMLInputElement>();
+const loanCopyInput = ref<HTMLInputElement>();
 const copyForm = useForm({ barcode: "" });
 const defaultDueDate = () => {
     const date = new Date();
@@ -195,6 +201,21 @@ const completedDuration = (entry: string, exit: string) => {
 };
 const timeOnly = (value: string) =>
     new Date(value).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+const shortDateTime = (value: string) =>
+    new Date(value).toLocaleString("fr-FR", {
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+const isOverdue = (dueAt?: string) => {
+    if (!dueAt) return false;
+    const due = new Date(dueAt);
+    due.setHours(23, 59, 59, 999);
+    return due.getTime() < Date.now();
+};
+const overdueDays = (dueAt: string) =>
+    Math.max(1, Math.floor((Date.now() - new Date(dueAt).getTime()) / 86400000));
 const filteredActivity = computed(() => {
     const ids = new Set(
         (presenceTab.value === "present" ? props.activeVisits : props.recentExits).map(
@@ -203,31 +224,102 @@ const filteredActivity = computed(() => {
     );
     return props.recentActivity.filter((activity) => ids.has(activity.student.id));
 });
+const latestEntries = computed(() =>
+    [...props.activeVisits]
+        .sort((a, b) => b.checked_in_at.localeCompare(a.checked_in_at))
+        .slice(0, 6),
+);
+const latestExits = computed(() => props.recentExits.slice(0, 6));
 
 const findStudent = () =>
     router.get(
         route("desk.index"),
-        { q: scan.value },
+        isCounterMode.value
+            ? { q: scan.value }
+            : { q: scan.value, mode: props.mode },
         { preserveState: false, replace: true },
     );
+const lastIdentify = { code: "", at: 0 };
 const identifyFromCard = () => {
     const value = scan.value.trim();
     if (!value) return;
 
+    // Une douchette ou la caméra continue peut relire le même code deux fois de suite.
+    const now = Date.now();
+    if (value === lastIdentify.code && now - lastIdentify.at < 3000) {
+        scan.value = "";
+        return;
+    }
+    lastIdentify.code = value;
+    lastIdentify.at = now;
+
     router.post(
         route("desk.identify"),
         { code: value, mode: props.mode },
-        { preserveScroll: false },
+        {
+            preserveScroll: false,
+            onSuccess: () => (scan.value = ""),
+            onError: () => nextTick(() => scanInput.value?.select()),
+            onFinish: () => nextTick(() => scanInput.value?.focus()),
+        },
     );
 };
 const looksLikeCardCode = (value: string) =>
     /^(?:BIB-)?\d{2}-\d+$/i.test(value.trim()) ||
     /^EDSP:CARD:/i.test(value.trim());
-const identifyOrSearch = () =>
-    !isCounterMode.value || looksLikeCardCode(scan.value)
-        ? identifyFromCard()
-        : findStudent();
+const looksLikeCopyCode = (value: string) => /^EDSP:COPY:/i.test(value.trim());
+const looksLikeName = (value: string) =>
+    /^[\p{L}][\p{L}\s'’.-]*$/u.test(value.trim());
+const identifyOrSearch = () => {
+    // Un livre scanné dans le champ carte pendant qu'une présence est ouverte
+    // rejoint directement la consultation de l'étudiant affiché.
+    if (isCounterMode.value && looksLikeCopyCode(scan.value)) {
+        if (props.visit) {
+            copyForm.barcode = scan.value.trim();
+            scan.value = "";
+            addCopy();
+        } else {
+            identifyFromCard();
+        }
+        return;
+    }
+
+    if (isCounterMode.value)
+        return looksLikeCardCode(scan.value)
+            ? identifyFromCard()
+            : findStudent();
+
+    return looksLikeName(scan.value) ? findStudent() : identifyFromCard();
+};
+const pendingCardSwitch = ref<string | null>(null);
+const cancelCardSwitch = () => {
+    pendingCardSwitch.value = null;
+    nextTick(() => (copyInput.value ?? loanCopyInput.value)?.focus());
+};
+const confirmCardSwitch = () => {
+    if (!pendingCardSwitch.value) return;
+    scan.value = pendingCardSwitch.value;
+    pendingCardSwitch.value = null;
+    identifyFromCard();
+};
+const selectMatch = (match: Student) => {
+    if (isCounterMode.value) {
+        router.get(route("desk.index"), { q: match.registration_number });
+        return;
+    }
+
+    scan.value = "";
+    router.post(
+        route("desk.identify"),
+        { code: match.registration_number, mode: props.mode },
+        { onFinish: () => nextTick(() => scanInput.value?.focus()) },
+    );
+};
 const post = (url: string) => router.post(url, {}, { preserveScroll: true });
+const openPresence = (presence: ActiveVisit) =>
+    router.get(route("desk.index"), {
+        q: presence.student.registration_number,
+    });
 const completePresence = (presence: ActiveVisit) => {
     pendingCompletion.value = presence;
 };
@@ -245,14 +337,49 @@ const confirmCompletion = () => {
         },
     );
 };
+const duplicateGuard = () => {
+    const seen = { value: "", at: 0 };
+    return (value: string) => {
+        const now = Date.now();
+        if (value === seen.value && now - seen.at < 3000) return true;
+        seen.value = value;
+        seen.at = now;
+        return false;
+    };
+};
+const isDuplicateCopyScan = duplicateGuard();
+const isDuplicateLoanScan = duplicateGuard();
 const addCopy = () => {
-    if (!session.value) return;
-    copyForm.post(route("desk.consultations.copies.store", session.value.id), {
+    if (!props.visit) return;
+    const value = copyForm.barcode.trim();
+    if (!value || copyForm.processing) return;
+    if (looksLikeCardCode(value)) {
+        playBeep("warning");
+        pendingCardSwitch.value = value;
+        copyForm.reset();
+        return;
+    }
+    // Une douchette ou la caméra continue peut relire le même code deux fois de suite.
+    if (isDuplicateCopyScan(value)) {
+        copyForm.reset();
+        return;
+    }
+
+    const url =
+        session.value && !session.value.closed_at
+            ? route("desk.consultations.copies.store", session.value.id)
+            : route("desk.visits.copies.store", props.visit.id);
+    copyForm.post(url, {
         preserveScroll: true,
         onSuccess: () => {
+            playBeep("success");
             copyForm.reset();
-            nextTick(() => copyInput.value?.focus());
         },
+        onError: () => {
+            playBeep("error");
+            nextTick(() => copyInput.value?.select());
+        },
+        onFinish: () => nextTick(() => copyInput.value?.focus()),
     });
 };
 const openLoan = () => {
@@ -263,18 +390,37 @@ const openLoan = () => {
 };
 const addLoanCopy = () => {
     if (!props.loan) return;
+    const value = loanCopyForm.barcode.trim();
+    if (!value || loanCopyForm.processing) return;
+    if (looksLikeCardCode(value)) {
+        playBeep("warning");
+        pendingCardSwitch.value = value;
+        loanCopyForm.reset("barcode");
+        return;
+    }
+    if (isDuplicateLoanScan(value)) {
+        loanCopyForm.reset("barcode");
+        return;
+    }
+
     loanCopyForm.post(route("desk.loans.copies.store", props.loan.id), {
         preserveScroll: true,
         onSuccess: () => {
+            playBeep("success");
             loanCopyForm.reset("barcode");
-            nextTick(() => copyInput.value?.focus());
         },
+        onError: () => {
+            playBeep("error");
+            nextTick(() => loanCopyInput.value?.select());
+        },
+        onFinish: () => nextTick(() => loanCopyInput.value?.focus()),
     });
 };
 const useCameraResult = (value: string) => {
     const target = cameraTarget.value;
     if (target === "student") {
-        cameraTarget.value = null;
+        // En mode pointage, la caméra reste ouverte pour scanner l'étudiant suivant.
+        if (isCounterMode.value) cameraTarget.value = null;
         scan.value = value;
         identifyFromCard();
         return;
@@ -292,11 +438,16 @@ const useCameraResult = (value: string) => {
     }
 };
 
-onMounted(() => scanInput.value?.focus());
+onMounted(() => {
+    scanInput.value?.focus();
+    // Le champ peut encore contenir le code précédent (q en URL) :
+    // tout sélectionner pour que le scan suivant l'écrase.
+    if (scan.value) scanInput.value?.select();
+});
 </script>
 
 <template>
-    <Head title="Comptoir de la bibliothèque" />
+    <Head :title="modeTitle" />
     <AuthenticatedLayout>
         <template #header>
             <div
@@ -322,14 +473,15 @@ onMounted(() => scanInput.value?.focus());
             </div>
         </template>
 
+        <ScanFeedbackCard v-if="lastScan" :scan="lastScan" class="mb-5" />
         <div
-            v-if="$page.props.flash?.success"
+            v-if="$page.props.flash?.success && !lastScan"
             class="mb-5 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300"
         >
             {{ $page.props.flash.success }}
         </div>
         <div
-            v-if="$page.props.flash?.info"
+            v-if="$page.props.flash?.info && !lastScan"
             class="mb-5 rounded-md border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-semibold text-sky-700 dark:border-sky-900 dark:bg-sky-950 dark:text-sky-300"
         >
             {{ $page.props.flash.info }}
@@ -362,8 +514,9 @@ onMounted(() => scanInput.value?.focus());
                         ref="scanInput"
                         v-model="scan"
                         class="dw-field ps-12 text-base"
-                        :placeholder="isCounterMode ? 'Carte BIB-26-001, 26-001, matricule ou nom…' : 'Scannez la carte BIB de l’étudiant…'"
+                        :placeholder="isCounterMode ? 'Carte BIB-26-001, 26-001, matricule ou nom…' : 'Scannez la carte BIB… ou tapez un nom si carte oubliée'"
                         autocomplete="off"
+                        @focus="scanInput?.select()"
                     />
                 </div>
                 <button
@@ -383,6 +536,169 @@ onMounted(() => scanInput.value?.focus());
             </form>
             <InputError class="mt-2" :message="$page.props.errors?.student" />
         </section>
+
+        <template v-if="!isCounterMode && !query">
+            <section class="mt-6 grid gap-6 lg:grid-cols-[300px_1fr]">
+                <article
+                    class="dw-card flex flex-col justify-center gap-3 p-6 text-center"
+                >
+                    <span
+                        class="mx-auto flex h-12 w-12 items-center justify-center rounded-xl"
+                        :class="
+                            mode === 'entry'
+                                ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300'
+                                : 'bg-red-50 text-red-600 dark:bg-red-950 dark:text-red-300'
+                        "
+                    >
+                        <AppIcon
+                            :name="mode === 'entry' ? 'login' : 'logout'"
+                            class="h-6 w-6"
+                        />
+                    </span>
+                    <p
+                        class="font-heading text-4xl font-bold text-slate-800 dark:text-white"
+                    >
+                        {{ mode === 'entry' ? activeVisits.length : recentExits.length }}
+                    </p>
+                    <p
+                        class="text-sm font-semibold text-slate-600 dark:text-slate-300"
+                    >
+                        {{ mode === 'entry' ? 'présent(s) actuellement' : 'sortie(s) aujourd’hui' }}
+                    </p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">
+                        {{
+                            mode === 'entry'
+                                ? 'Étudiants dont la sortie n’est pas encore pointée.'
+                                : `${activeVisits.length} étudiant(s) encore présent(s).`
+                        }}
+                    </p>
+                </article>
+
+                <article class="dw-card overflow-hidden">
+                    <div
+                        class="border-b border-gray-200 px-5 py-4 dark:border-gray-800"
+                    >
+                        <p class="dw-page-kicker">Derniers pointages</p>
+                        <h2
+                            class="mt-1 font-heading text-lg font-bold text-slate-800 dark:text-white"
+                        >
+                            {{ mode === 'entry' ? 'Dernières entrées' : 'Dernières sorties' }}
+                        </h2>
+                    </div>
+                    <div
+                        v-if="mode === 'entry' && latestEntries.length"
+                        class="divide-y divide-gray-200 dark:divide-gray-800"
+                    >
+                        <div
+                            v-for="presence in latestEntries"
+                            :key="presence.id"
+                            class="flex items-center gap-4 px-5 py-3.5"
+                        >
+                            <img loading="lazy" decoding="async"
+                                v-if="presence.student.photo_url"
+                                :src="presence.student.photo_url"
+                                :alt="`Photo de ${presence.student.first_name} ${presence.student.last_name}`"
+                                class="h-11 w-10 shrink-0 rounded-md border border-gray-200 object-cover dark:border-gray-700"
+                            />
+                            <span
+                                v-else
+                                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-xs font-bold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+                                >{{ presence.student.first_name[0]
+                                }}{{ presence.student.last_name[0] }}</span
+                            >
+                            <div class="min-w-0 flex-1">
+                                <p
+                                    class="truncate text-sm font-bold text-slate-700 dark:text-slate-200"
+                                >
+                                    {{ presence.student.last_name }}
+                                    {{ presence.student.first_name }}
+                                </p>
+                                <p
+                                    class="mt-0.5 font-mono text-xs text-primary-600"
+                                >
+                                    {{ presence.student.registration_number }}
+                                </p>
+                            </div>
+                            <div class="flex shrink-0 flex-col items-end gap-1">
+                                <span
+                                    class="rounded bg-emerald-50 px-2 py-1 text-[11px] font-bold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+                                    >Entré(e) à
+                                    {{ timeOnly(presence.checked_in_at) }}</span
+                                >
+                                <span
+                                    class="text-[11px] font-semibold text-slate-500 dark:text-slate-400"
+                                    >il y a
+                                    {{ presenceDuration(presence.checked_in_at) }}</span
+                                >
+                            </div>
+                        </div>
+                    </div>
+                    <div
+                        v-else-if="mode === 'exit' && latestExits.length"
+                        class="divide-y divide-gray-200 dark:divide-gray-800"
+                    >
+                        <div
+                            v-for="visit in latestExits"
+                            :key="visit.id"
+                            class="flex items-center gap-4 px-5 py-3.5"
+                        >
+                            <img loading="lazy" decoding="async"
+                                v-if="visit.student.photo_url"
+                                :src="visit.student.photo_url"
+                                :alt="`Photo de ${visit.student.first_name} ${visit.student.last_name}`"
+                                class="h-11 w-10 shrink-0 rounded-md border border-gray-200 object-cover dark:border-gray-700"
+                            />
+                            <span
+                                v-else
+                                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50 text-xs font-bold text-red-700 dark:bg-red-950 dark:text-red-300"
+                                >{{ visit.student.first_name[0]
+                                }}{{ visit.student.last_name[0] }}</span
+                            >
+                            <div class="min-w-0 flex-1">
+                                <p
+                                    class="truncate text-sm font-bold text-slate-700 dark:text-slate-200"
+                                >
+                                    {{ visit.student.last_name }}
+                                    {{ visit.student.first_name }}
+                                </p>
+                                <p
+                                    class="mt-0.5 font-mono text-xs text-primary-600"
+                                >
+                                    {{ visit.student.registration_number }}
+                                </p>
+                            </div>
+                            <div class="flex shrink-0 flex-col items-end gap-1">
+                                <span
+                                    class="rounded bg-slate-100 px-2 py-1 text-[11px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                                    >{{ timeOnly(visit.checked_in_at) }} →
+                                    {{ timeOnly(visit.checked_out_at) }}</span
+                                >
+                                <span
+                                    class="text-[11px] font-semibold text-slate-500 dark:text-slate-400"
+                                    >{{
+                                        completedDuration(
+                                            visit.checked_in_at,
+                                            visit.checked_out_at,
+                                        )
+                                    }}
+                                    sur place</span
+                                >
+                            </div>
+                        </div>
+                    </div>
+                    <p
+                        v-else
+                        class="p-8 text-center text-sm text-slate-500 dark:text-slate-400"
+                    >
+                        {{
+                            mode === 'entry'
+                                ? 'Aucun étudiant présent pour le moment. Scannez la première carte.'
+                                : 'Aucune sortie enregistrée aujourd’hui.'
+                        }}
+                    </p>
+                </article>
+            </section>
+        </template>
 
         <details
             v-if="!student && isCounterMode"
@@ -442,74 +758,78 @@ onMounted(() => scanInput.value?.focus());
                     <div
                         v-for="presence in activeVisits"
                         :key="presence.id"
-                        role="button"
-                        tabindex="0"
-                        class="group/presence flex min-w-0 cursor-pointer items-start gap-4 rounded-lg border border-gray-200 bg-white p-4 text-start shadow-sm transition hover:-translate-y-0.5 hover:border-primary-200 hover:shadow-md dark:border-gray-800 dark:bg-gray-950 dark:hover:border-primary-800 dark:hover:bg-primary-950/20 sm:p-5"
-                        @click="
-                            router.get(route('desk.index'), {
-                                q: presence.student.registration_number,
-                            })
-                        "
-                        @keydown.enter="
-                            router.get(route('desk.index'), {
-                                q: presence.student.registration_number,
-                            })
-                        "
+                        class="group/presence flex min-w-0 items-start gap-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-primary-200 hover:shadow-md dark:border-gray-800 dark:bg-gray-950 dark:hover:border-primary-800 dark:hover:bg-primary-950/20 sm:p-5"
                     >
-                        <img loading="lazy" decoding="async"
-                            v-if="presence.student.photo_url"
-                            :src="presence.student.photo_url"
-                            :alt="`Photo de ${presence.student.first_name} ${presence.student.last_name}`"
-                            class="h-14 w-12 shrink-0 rounded-md border border-gray-200 object-cover shadow-sm dark:border-gray-700"
-                        />
-                        <span
-                            v-else
-                            class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary-50 text-xs font-bold text-primary-700 dark:bg-primary-950 dark:text-primary-300"
-                            >{{ presence.student.first_name[0]
-                            }}{{ presence.student.last_name[0] }}</span
-                        >
-                        <span class="min-w-0 flex-1"
-                            ><span
-                                class="block truncate text-sm font-bold text-slate-700 dark:text-slate-200"
-                                >{{ presence.student.last_name }}
-                                {{ presence.student.first_name }}</span
-                            ><span
-                                class="mt-1 block font-mono text-xs text-primary-600"
-                                >{{
-                                    presence.student.registration_number
-                                }}</span
-                            ><span class="mt-2 flex flex-wrap gap-1.5"
-                                ><span
-                                    class="rounded bg-emerald-50 px-2 py-1 text-[11px] font-bold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
-                                    >Depuis
-                                    {{
-                                        presenceDuration(presence.checked_in_at)
-                                    }}</span
-                                ><span
-                                    v-if="presence.consultation?.is_open"
-                                    class="rounded bg-primary-50 px-2 py-1 text-[11px] font-bold text-primary-700 dark:bg-primary-950 dark:text-primary-300"
-                                    >{{
-                                        presence.consultation.active_copies
-                                    }}
-                                    en consultation</span
-                                ><span
-                                    v-if="presence.loan"
-                                    class="rounded bg-amber-50 px-2 py-1 text-[11px] font-bold text-amber-700 dark:bg-amber-950 dark:text-amber-300"
-                                    >{{ presence.loan.active_copies }} en
-                                    prêt</span
-                                ></span
-                            ></span
-                        >
                         <button
                             type="button"
-                            class="ms-auto inline-flex h-10 shrink-0 cursor-pointer items-center gap-2 rounded-md border border-red-200 px-3 text-xs font-bold text-red-600 transition hover:bg-red-50 disabled:cursor-wait disabled:opacity-60 dark:border-red-900 dark:hover:bg-red-950"
+                            class="flex min-w-0 flex-1 cursor-pointer items-start gap-4 text-start"
+                            :title="`Ouvrir la fiche de ${presence.student.first_name} ${presence.student.last_name}`"
+                            @click="openPresence(presence)"
+                        >
+                            <img loading="lazy" decoding="async"
+                                v-if="presence.student.photo_url"
+                                :src="presence.student.photo_url"
+                                :alt="`Photo de ${presence.student.first_name} ${presence.student.last_name}`"
+                                class="h-14 w-12 shrink-0 rounded-md border border-gray-200 object-cover shadow-sm dark:border-gray-700"
+                            />
+                            <span
+                                v-else
+                                class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary-50 text-xs font-bold text-primary-700 dark:bg-primary-950 dark:text-primary-300"
+                                >{{ presence.student.first_name[0]
+                                }}{{ presence.student.last_name[0] }}</span
+                            >
+                            <span class="min-w-0 flex-1"
+                                ><span
+                                    class="block truncate text-sm font-bold text-slate-700 dark:text-slate-200"
+                                    >{{ presence.student.last_name }}
+                                    {{ presence.student.first_name }}</span
+                                ><span
+                                    class="mt-1 block font-mono text-xs text-primary-600"
+                                    >{{
+                                        presence.student.registration_number
+                                    }}</span
+                                ><span class="mt-2 flex flex-wrap gap-1.5"
+                                    ><span
+                                        class="rounded bg-emerald-50 px-2 py-1 text-[11px] font-bold text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+                                        >Depuis
+                                        {{
+                                            presenceDuration(presence.checked_in_at)
+                                        }}</span
+                                    ><span
+                                        v-if="presence.consultation?.is_open"
+                                        class="rounded bg-primary-50 px-2 py-1 text-[11px] font-bold text-primary-700 dark:bg-primary-950 dark:text-primary-300"
+                                        >{{
+                                            presence.consultation.active_copies
+                                        }}
+                                        en consultation</span
+                                    ><span
+                                        v-if="presence.loan && presence.loan.active_copies > 0"
+                                        class="rounded px-2 py-1 text-[11px] font-bold"
+                                        :class="
+                                            isOverdue(presence.loan.due_at)
+                                                ? 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300'
+                                                : 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300'
+                                        "
+                                        >{{ presence.loan.active_copies }} en
+                                        prêt{{
+                                            isOverdue(presence.loan.due_at)
+                                                ? " · en retard"
+                                                : ""
+                                        }}</span
+                                    ></span
+                                ></span
+                            >
+                        </button>
+                        <button
+                            type="button"
+                            class="inline-flex h-10 shrink-0 cursor-pointer items-center gap-2 rounded-md border border-red-200 px-3 text-xs font-bold text-red-600 transition hover:bg-red-50 disabled:cursor-wait disabled:opacity-60 dark:border-red-900 dark:hover:bg-red-950"
                             :disabled="completingVisitId === presence.id"
                             :title="
                                 presence.consultation?.active_copies
                                     ? 'Terminer la consultation et enregistrer la sortie'
                                     : 'Enregistrer la sortie'
                             "
-                            @click.stop="completePresence(presence)"
+                            @click="completePresence(presence)"
                         >
                             <AppIcon name="logout" class="h-4 w-4" />
                             <span class="hidden xl:inline">{{
@@ -520,7 +840,7 @@ onMounted(() => scanInput.value?.focus());
                         </button>
                         <AppIcon
                             name="chevron-down"
-                            class="mt-1 h-4 w-4 -rotate-90 text-slate-400 transition-transform group-hover/presence:translate-x-0.5 group-hover/presence:text-primary-500"
+                            class="mt-1 h-4 w-4 shrink-0 -rotate-90 text-slate-400 transition-transform group-hover/presence:translate-x-0.5 group-hover/presence:text-primary-500"
                         />
                     </div>
                 </div>
@@ -765,25 +1085,60 @@ onMounted(() => scanInput.value?.focus());
                         >
                             Enregistrer la sortie
                         </button>
+                        <p
+                            v-else
+                            class="ms-auto max-w-56 text-end text-xs text-slate-500 dark:text-slate-400"
+                        >
+                            Clôturez la consultation en cours pour pouvoir
+                            enregistrer la sortie.
+                        </p>
                     </article>
 
-                    <article v-if="!session" class="dw-card p-6 text-center">
-                        <h2
-                            class="font-heading text-lg font-bold text-slate-800"
-                        >
-                            Consultation sur place
-                        </h2>
-                        <p class="dw-page-description">
-                            Ouvrez une session avant de scanner les exemplaires.
-                        </p>
-                        <button
-                            class="mt-5 rounded-md bg-primary-600 px-5 py-2.5 text-sm font-bold text-white"
-                            @click="
-                                post(route('desk.consultations.open', visit.id))
-                            "
-                        >
-                            Ouvrir la consultation
-                        </button>
+                    <article v-if="!session" class="dw-card overflow-hidden">
+                        <div class="p-5">
+                            <p class="dw-page-kicker">Consultation sur place</p>
+                            <h2
+                                class="mt-1 font-heading font-bold text-slate-800"
+                            >
+                                Exemplaires consultés
+                            </h2>
+                            <p
+                                class="mt-1 text-xs text-slate-500 dark:text-slate-400"
+                            >
+                                Scannez le premier livre : la session de
+                                consultation s’ouvre automatiquement.
+                            </p>
+                            <form
+                                class="mt-5 flex flex-col gap-2 sm:flex-row"
+                                @submit.prevent="addCopy"
+                            >
+                                <input
+                                    ref="copyInput"
+                                    v-model="copyForm.barcode"
+                                    class="dw-field flex-1"
+                                    placeholder="Scanner le code de l’exemplaire…"
+                                    autocomplete="off"
+                                /><button
+                                    type="button"
+                                    class="flex h-11 items-center justify-center gap-2 rounded-md border border-primary-300 px-4 text-sm font-semibold text-primary-600 transition-colors hover:bg-primary-50 dark:border-primary-800 dark:text-primary-300 dark:hover:bg-primary-950"
+                                    @click="cameraTarget = 'copy'"
+                                >
+                                    <AppIcon name="scan" class="h-5 w-5" />
+                                    Caméra</button
+                                ><button
+                                    class="h-11 rounded-md bg-slate-800 px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-900 dark:bg-primary-600 dark:hover:bg-primary-700"
+                                >
+                                    Ajouter
+                                </button>
+                            </form>
+                            <InputError
+                                class="mt-2"
+                                :message="
+                                    copyForm.errors.barcode ||
+                                    $page.props.errors?.copy
+                                "
+                            />
+                        </div>
                     </article>
 
                     <article v-else class="dw-card overflow-hidden">
@@ -877,13 +1232,18 @@ onMounted(() => scanInput.value?.focus());
                                     <p
                                         class="mt-1 font-mono text-xs text-slate-500 dark:text-slate-400"
                                     >
-                                        {{ item.copy.inventory_number }}
+                                        {{ item.copy.inventory_number
+                                        }}<template v-if="item.scanned_at">
+                                            · scanné à
+                                            {{ timeOnly(item.scanned_at) }}</template
+                                        >
                                     </p>
                                 </div>
                                 <span
                                     v-if="item.returned_at"
                                     class="ms-auto text-xs font-bold text-emerald-600"
-                                    >Restitué</span
+                                    >Restitué à
+                                    {{ timeOnly(item.returned_at) }}</span
                                 ><button
                                     v-else
                                     class="ms-auto rounded-md border border-primary-200 px-3 py-2 text-xs font-bold text-primary-600 dark:border-primary-800"
@@ -933,26 +1293,43 @@ onMounted(() => scanInput.value?.focus());
                         </div>
                         <div
                             v-else
-                            class="flex flex-col gap-3 border-t border-slate-100 p-5 sm:flex-row sm:items-center sm:justify-between dark:border-slate-800"
+                            class="border-t border-slate-100 p-5 dark:border-slate-800"
                         >
                             <p class="text-sm text-slate-500">
                                 L’étudiant veut consulter d’autres livres ?
-                                Ouvrez une nouvelle session sans enregistrer une
-                                nouvelle entrée.
+                                Scannez un exemplaire : une nouvelle session
+                                s’ouvre automatiquement, sans nouvelle entrée.
                             </p>
-                            <button
-                                class="shrink-0 rounded-md bg-primary-600 px-5 py-2.5 text-sm font-bold text-white"
-                                @click="
-                                    post(
-                                        route(
-                                            'desk.consultations.open',
-                                            visit.id,
-                                        ),
-                                    )
-                                "
+                            <form
+                                class="mt-4 flex flex-col gap-2 sm:flex-row"
+                                @submit.prevent="addCopy"
                             >
-                                Nouvelle consultation
-                            </button>
+                                <input
+                                    ref="copyInput"
+                                    v-model="copyForm.barcode"
+                                    class="dw-field flex-1"
+                                    placeholder="Scanner le code de l’exemplaire…"
+                                    autocomplete="off"
+                                /><button
+                                    type="button"
+                                    class="flex h-11 items-center justify-center gap-2 rounded-md border border-primary-300 px-4 text-sm font-semibold text-primary-600 transition-colors hover:bg-primary-50 dark:border-primary-800 dark:text-primary-300 dark:hover:bg-primary-950"
+                                    @click="cameraTarget = 'copy'"
+                                >
+                                    <AppIcon name="scan" class="h-5 w-5" />
+                                    Caméra</button
+                                ><button
+                                    class="h-11 rounded-md bg-primary-600 px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary-700"
+                                >
+                                    Nouvelle consultation
+                                </button>
+                            </form>
+                            <InputError
+                                class="mt-2"
+                                :message="
+                                    copyForm.errors.barcode ||
+                                    $page.props.errors?.copy
+                                "
+                            />
                         </div>
                     </article>
 
@@ -975,8 +1352,19 @@ onMounted(() => scanInput.value?.focus());
                                 </div>
                                 <span
                                     v-if="loan"
-                                    class="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700 dark:bg-amber-950 dark:text-amber-300"
-                                    >{{ activeLoanItems.length }} en prêt</span
+                                    class="rounded-full px-3 py-1 text-xs font-bold"
+                                    :class="
+                                        isOverdue(loan.due_at) &&
+                                        activeLoanItems.length
+                                            ? 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300'
+                                            : 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300'
+                                    "
+                                    >{{ activeLoanItems.length }} en prêt{{
+                                        isOverdue(loan.due_at) &&
+                                        activeLoanItems.length
+                                            ? " · en retard"
+                                            : ""
+                                    }}</span
                                 >
                             </div>
 
@@ -1012,16 +1400,27 @@ onMounted(() => scanInput.value?.focus());
 
                             <template v-if="loan">
                                 <div
-                                    class="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-slate-500 dark:text-slate-400"
+                                    class="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-slate-500 dark:text-slate-400"
                                 >
                                     <span>{{ loan.loan_number }}</span
                                     ><span
+                                        :class="
+                                            isOverdue(loan.due_at)
+                                                ? 'font-bold text-red-600 dark:text-red-400'
+                                                : ''
+                                        "
                                         >Retour avant le
                                         {{
                                             new Date(
                                                 loan.due_at,
                                             ).toLocaleDateString("fr-FR")
                                         }}</span
+                                    ><span
+                                        v-if="isOverdue(loan.due_at) && activeLoanItems.length"
+                                        class="rounded bg-red-50 px-2 py-1 text-[11px] font-bold text-red-700 dark:bg-red-950 dark:text-red-300"
+                                        >En retard de
+                                        {{ overdueDays(loan.due_at) }}
+                                        jour(s)</span
                                     >
                                 </div>
                                 <form
@@ -1029,6 +1428,7 @@ onMounted(() => scanInput.value?.focus());
                                     @submit.prevent="addLoanCopy"
                                 >
                                     <input
+                                        ref="loanCopyInput"
                                         v-model="loanCopyForm.barcode"
                                         class="dw-field flex-1"
                                         placeholder="Scanner l’exemplaire à prêter…"
@@ -1087,13 +1487,18 @@ onMounted(() => scanInput.value?.focus());
                                     <p
                                         class="mt-1 font-mono text-xs text-slate-500 dark:text-slate-400"
                                     >
-                                        {{ item.copy.inventory_number }}
+                                        {{ item.copy.inventory_number
+                                        }}<template v-if="item.loaned_at">
+                                            · prêté le
+                                            {{ shortDateTime(item.loaned_at) }}</template
+                                        >
                                     </p>
                                 </div>
                                 <span
                                     v-if="item.returned_at"
                                     class="ms-auto text-xs font-bold text-emerald-600"
-                                    >Rendu</span
+                                    >Rendu le
+                                    {{ shortDateTime(item.returned_at) }}</span
                                 ><button
                                     v-else
                                     class="ms-auto rounded-md border border-amber-200 px-3 py-2 text-xs font-bold text-amber-700 dark:border-amber-800"
@@ -1135,10 +1540,14 @@ onMounted(() => scanInput.value?.focus());
         >
             <div class="border-b border-slate-100 p-5">
                 <h2 class="font-heading font-bold text-slate-800">
-                    Plusieurs étudiants correspondent
+                    {{ isCounterMode ? 'Plusieurs étudiants correspondent' : 'Carte oubliée ? Résultats de la recherche' }}
                 </h2>
                 <p class="mt-1 text-sm text-slate-500">
-                    Sélectionnez la bonne fiche à partir de son numéro.
+                    {{
+                        isCounterMode
+                            ? 'Sélectionnez la bonne fiche à partir de son numéro.'
+                            : `Sélectionnez l’étudiant pour ${mode === 'entry' ? 'enregistrer directement son entrée' : 'enregistrer directement sa sortie'}.`
+                    }}
                 </p>
             </div>
             <div class="divide-y divide-slate-100">
@@ -1146,11 +1555,7 @@ onMounted(() => scanInput.value?.focus());
                     v-for="match in matches"
                     :key="match.id"
                     class="flex w-full items-center gap-4 p-4 text-start transition hover:bg-slate-50 sm:px-5"
-                    @click="
-                        router.get(route('desk.index'), {
-                            q: match.registration_number,
-                        })
-                    "
+                    @click="selectMatch(match)"
                 >
                     <span
                         class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-50 text-xs font-bold text-primary-700 dark:bg-primary-900/30 dark:text-primary-300"
@@ -1166,14 +1571,22 @@ onMounted(() => scanInput.value?.focus());
                                 match.academic_number || "sans matricule"
                             }}</span
                         ></span
-                    ><span
-                        class="ms-auto hidden text-xs text-slate-500 dark:text-slate-400 sm:block"
-                        >{{
-                            [match.level, match.program]
-                                .filter(Boolean)
-                                .join(" · ")
-                        }}</span
-                    >
+                    ><span class="ms-auto flex shrink-0 flex-col items-end gap-2">
+                        <span
+                            v-if="!isCounterMode"
+                            class="rounded-md px-3 py-2 text-xs font-bold text-white shadow-sm"
+                            :class="mode === 'entry' ? 'bg-emerald-600' : 'bg-red-600'"
+                            >{{ mode === 'entry' ? 'Enregistrer l’entrée' : 'Enregistrer la sortie' }}</span
+                        >
+                        <span
+                            class="hidden text-xs text-slate-500 dark:text-slate-400 sm:block"
+                            >{{
+                                [match.level, match.program]
+                                    .filter(Boolean)
+                                    .join(" · ")
+                            }}</span
+                        >
+                    </span>
                 </button>
             </div>
         </section>
@@ -1409,7 +1822,10 @@ onMounted(() => scanInput.value?.focus());
                                 </p>
                             </div>
                         </div>
-                        <div v-if="pendingCompletion.loan" class="flex gap-3">
+                        <div
+                            v-if="pendingCompletion.loan && pendingCompletion.loan.active_copies > 0"
+                            class="flex gap-3"
+                        >
                             <span
                                 class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-50 text-amber-600 dark:bg-amber-950 dark:text-amber-300"
                                 ><AppIcon name="loans" class="h-3.5 w-3.5"
@@ -1463,10 +1879,71 @@ onMounted(() => scanInput.value?.focus());
             </div>
         </Modal>
 
+        <Modal
+            :show="pendingCardSwitch !== null"
+            max-width="md"
+            @close="cancelCardSwitch"
+        >
+            <div class="p-5 sm:p-6">
+                <div class="flex items-start gap-4">
+                    <span
+                        class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-amber-50 text-amber-600 ring-8 ring-amber-50/60 dark:bg-amber-950 dark:text-amber-300 dark:ring-amber-950/40"
+                    >
+                        <AppIcon name="students" class="h-6 w-6" />
+                    </span>
+                    <div class="min-w-0 flex-1">
+                        <p
+                            class="text-xs font-bold uppercase tracking-[0.16em] text-amber-600 dark:text-amber-400"
+                        >
+                            Carte d’étudiant détectée
+                        </p>
+                        <h2
+                            class="mt-1 font-heading text-xl font-bold text-slate-800 dark:text-white"
+                        >
+                            Changer d’étudiant ?
+                        </h2>
+                        <p
+                            class="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400"
+                        >
+                            Le code scanné est une carte de bibliothèque, pas
+                            l’étiquette d’un exemplaire. Voulez-vous ouvrir la
+                            fiche de cet étudiant ?
+                        </p>
+                        <p
+                            class="mt-2 break-all font-mono text-xs text-slate-500 dark:text-slate-400"
+                        >
+                            {{ pendingCardSwitch }}
+                        </p>
+                    </div>
+                </div>
+                <div
+                    class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"
+                >
+                    <button
+                        type="button"
+                        class="dw-btn-secondary justify-center"
+                        @click="cancelCardSwitch"
+                    >
+                        Annuler
+                    </button>
+                    <button
+                        type="button"
+                        class="dw-btn-primary justify-center"
+                        @click="confirmCardSwitch"
+                    >
+                        <AppIcon name="students" class="h-4 w-4" />
+                        Ouvrir la fiche de l’étudiant
+                    </button>
+                </div>
+            </div>
+        </Modal>
+
         <CameraQrScanner
             :open="cameraTarget !== null"
             :continuous="
-                cameraTarget === 'copy' || cameraTarget === 'loan-copy'
+                cameraTarget === 'copy' ||
+                cameraTarget === 'loan-copy' ||
+                (cameraTarget === 'student' && !isCounterMode)
             "
             :inactivity-seconds="operationSettings.scannerInactivitySeconds"
             :title="

@@ -118,6 +118,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/desk/visits/{visit}/check-out', [DeskController::class, 'checkOut'])->middleware('permission:visits.check_out')->name('desk.check-out');
     Route::post('/desk/visits/{visit}/complete', [DeskController::class, 'completeVisit'])->middleware(['permission:visits.check_out', 'permission:consultations.close'])->name('desk.visits.complete');
     Route::post('/desk/visits/{visit}/consultation', [DeskController::class, 'openConsultation'])->middleware('permission:consultations.open')->name('desk.consultations.open');
+    Route::post('/desk/visits/{visit}/copies', [DeskController::class, 'addVisitCopy'])->middleware(['permission:consultations.open', 'permission:consultations.add_copy'])->name('desk.visits.copies.store');
     Route::post('/desk/consultations/{session}/copies', [DeskController::class, 'addCopy'])->middleware('permission:consultations.add_copy')->name('desk.consultations.copies.store');
     Route::post('/desk/consultation-items/{item}/return', [DeskController::class, 'returnCopy'])->middleware('permission:consultations.return_copy')->name('desk.consultations.copies.return');
     Route::post('/desk/consultations/{session}/close', [DeskController::class, 'closeConsultation'])->middleware('permission:consultations.close')->name('desk.consultations.close');

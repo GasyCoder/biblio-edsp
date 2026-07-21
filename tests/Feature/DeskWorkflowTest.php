@@ -211,3 +211,67 @@ it('manages a home loan from book scan through return', function () {
     expect($copy->refresh()->status)->toBe(CopyStatus::Available);
     expect($loan->refresh()->closed_at)->not->toBeNull();
 });
+
+it('opens a consultation session automatically on the first copy scan', function () {
+    $secretary = User::factory()->create()->assignRole('secretaire');
+    $student = Student::factory()->create();
+    $copy = app(CopyService::class)->create(['book_id' => Book::factory()->create()->id]);
+
+    $this->actingAs($secretary)->post(route('desk.check-in', $student));
+    $visit = Visit::query()->firstOrFail();
+
+    $this->post(route('desk.visits.copies.store', $visit), ['barcode' => $copy->barcode_value])->assertRedirect();
+
+    $session = ConsultationSession::query()->firstOrFail();
+    expect($session->closed_at)->toBeNull()
+        ->and($session->items()->count())->toBe(1)
+        ->and($copy->refresh()->status)->toBe(CopyStatus::InConsultation);
+
+    $secondCopy = app(CopyService::class)->create(['book_id' => Book::factory()->create()->id]);
+    $this->post(route('desk.visits.copies.store', $visit), ['barcode' => $secondCopy->barcode_value])->assertRedirect();
+
+    expect(ConsultationSession::query()->count())->toBe(1)
+        ->and($session->refresh()->items()->count())->toBe(2);
+});
+
+it('opens a fresh session automatically when the previous one is closed', function () {
+    $secretary = User::factory()->create()->assignRole('secretaire');
+    $student = Student::factory()->create();
+    $copy = app(CopyService::class)->create(['book_id' => Book::factory()->create()->id]);
+
+    $this->actingAs($secretary)->post(route('desk.check-in', $student));
+    $visit = Visit::query()->firstOrFail();
+    $this->post(route('desk.visits.copies.store', $visit), ['barcode' => $copy->barcode_value]);
+    $firstSession = ConsultationSession::query()->firstOrFail();
+    $this->post(route('desk.consultations.close', $firstSession));
+
+    $this->post(route('desk.visits.copies.store', $visit), ['barcode' => $copy->barcode_value])->assertRedirect();
+
+    expect(ConsultationSession::query()->count())->toBe(2)
+        ->and(ConsultationSession::query()->whereNull('closed_at')->count())->toBe(1);
+});
+
+it('explains why a copy cannot be scanned', function () {
+    $secretary = User::factory()->create()->assignRole('secretaire');
+    $reader = Student::factory()->create(['first_name' => 'Ismael', 'last_name' => 'MAMY']);
+    $other = Student::factory()->create();
+    $copy = app(CopyService::class)->create(['book_id' => Book::factory()->create()->id]);
+
+    $this->actingAs($secretary)->post(route('desk.check-in', $reader));
+    $visit = Visit::query()->firstOrFail();
+    $this->post(route('desk.visits.copies.store', $visit), ['barcode' => $copy->barcode_value]);
+
+    // Rescan dans la même session : message dédié, pas « non disponible ».
+    $this->post(route('desk.visits.copies.store', $visit), ['barcode' => $copy->barcode_value])
+        ->assertSessionHasErrors(['copy' => 'Cet exemplaire est déjà dans cette session. Utilisez « Restituer » pour enregistrer son retour.']);
+
+    // Scan par un autre étudiant : le détenteur est nommé.
+    $this->post(route('desk.check-in', $other));
+    $otherVisit = Visit::query()->where('student_id', $other->id)->firstOrFail();
+    $this->post(route('desk.visits.copies.store', $otherVisit), ['barcode' => $copy->barcode_value])
+        ->assertSessionHasErrors(['copy' => 'Cet exemplaire est déjà en consultation par Ismael MAMY.']);
+
+    // Une carte étudiant scannée dans le champ livre est signalée comme telle.
+    $this->post(route('desk.visits.copies.store', $visit), ['barcode' => 'EDSP:CARD:1:ABC'])
+        ->assertSessionHasErrors(['barcode' => 'Ce code est une carte d’étudiant, pas l’étiquette d’un exemplaire.']);
+});
