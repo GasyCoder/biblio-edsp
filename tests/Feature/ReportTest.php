@@ -231,3 +231,44 @@ it('exports presences and absences as flat tables', function () {
     $pdf->assertOk()->assertHeader('Content-Type', 'application/pdf');
     expect($pdf->getContent())->toStartWith('%PDF-');
 });
+
+it('names the operator who recorded entry and exit in the presence export', function () {
+    $staff = User::factory()->create(['name' => 'Hanta RASOA'])->assignRole('secretaire');
+    $student = Student::factory()->create(['status' => 'active', 'last_name' => 'ANDRY']);
+    $visit = app(VisitService::class)->checkIn($student, $staff);
+    app(VisitService::class)->checkOut($visit, $staff);
+
+    $this->actingAs($staff)->get(route('reports.print', ['tab' => 'presence']))
+        ->assertOk()
+        ->assertSee('Accueil entrée', false)
+        ->assertSee('Accueil sortie', false)
+        ->assertSee('Hanta RASOA');
+});
+
+it('exports every tab in its own format', function () {
+    $staff = User::factory()->create()->assignRole('secretaire');
+    $student = Student::factory()->create(['status' => 'active']);
+    app(VisitService::class)->checkIn($student, $staff);
+
+    // Vue d'ensemble : tableau de l'activité quotidienne
+    $this->actingAs($staff)->get(route('reports.print', ['tab' => 'overview']))
+        ->assertOk()->assertSee('Activité quotidienne')->assertSee('Passages');
+
+    // Documents : tableau des ouvrages
+    $this->actingAs($staff)->get(route('reports.print', ['tab' => 'documents']))
+        ->assertOk()->assertSee('Ouvrages les plus utilisés');
+
+    // Assiduité : vue imprimable du rapport analytique
+    $this->actingAs($staff)->get(route('reports.attendance.print'))
+        ->assertOk()->assertSee('Rapport d’assiduité des étudiants', false);
+
+    // Les classeurs Excel portent le bon nom de feuille par onglet
+    foreach ([['overview', 'Activité'], ['documents', 'Documents']] as [$tab, $sheet]) {
+        $response = $this->actingAs($staff)->get(route('reports.export.xlsx', ['tab' => $tab]));
+        $response->assertOk();
+        $path = tempnam(sys_get_temp_dir(), "tab-{$tab}-").'.xlsx';
+        file_put_contents($path, $response->streamedContent());
+        expect(\PhpOffice\PhpSpreadsheet\IOFactory::load($path)->getSheetNames())->toContain($sheet);
+        unlink($path);
+    }
+});

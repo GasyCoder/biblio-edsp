@@ -17,10 +17,17 @@
         .kpis{width:100%;border-collapse:collapse;margin-top:6px}
         .kpis td{border:.5px solid #cbd5e1;padding:6px;width:25%}
         .kpis strong{display:block;font-size:15px;margin-bottom:2px}
+        @media screen{body{padding:14px}}
+        @media print{.noprint{display:none}}
         .foot{margin-top:14px;font-size:8px;color:#64748b;text-align:center}
     </style>
 </head>
 <body>
+@if($printable ?? false)
+    <div class="noprint" style="margin-bottom:12px">
+        <button onclick="window.print()" style="border:0;border-radius:6px;background:#4f46e5;color:#fff;padding:9px 14px;font-weight:700;cursor:pointer">Imprimer</button>
+    </div>
+@endif
 <div class="head">
     <h1>Rapport d’assiduité des étudiants</h1>
     <div class="muted">

@@ -4,9 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Services\AttendanceReport;
 use App\Services\AttendanceScore;
-use Carbon\Carbon;
 use Dompdf\Dompdf;
 use Dompdf\Options;
+use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -93,6 +93,24 @@ class AttendanceReportController extends Controller
         (new Xlsx($spreadsheet))->save($path);
 
         return response()->download($path, 'assiduite-edsp-'.now()->format('Ymd-His').'.xlsx')->deleteFileAfterSend(true);
+    }
+
+    /** Vue imprimable du rapport analytique (équivalent HTML du PDF). */
+    public function print(Request $request): View
+    {
+        [$filters, $data] = $this->data($request);
+
+        return view('reports.attendance', [
+            'filters' => $filters,
+            'kpis' => $data['kpis'],
+            'breakdown' => $data['breakdown'],
+            'ranking' => $data['ranking'],
+            'absentees' => $data['absentees'],
+            'groupLabel' => $this->report->groupByLabel($filters['group_by']),
+            'granularityLabel' => $this->report->granularityLabel($filters['granularity']),
+            'weights' => AttendanceScore::weights(),
+            'printable' => true,
+        ]);
     }
 
     public function exportPdf(Request $request): HttpResponse

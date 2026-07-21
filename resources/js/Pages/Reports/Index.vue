@@ -98,14 +98,9 @@ const apply = (tab: Tab = props.tab) =>
         replace: true,
     });
 
-// Présences et Absences exportent la liste affichée (tableau brut) ;
-// Assiduité exporte son rapport analytique.
-const isTableTab = computed(
-    () => props.tab === "presence" || props.tab === "absences",
-);
-const canExport = computed(
-    () => isTableTab.value || props.tab === "attendance",
-);
+// Chaque onglet s'exporte dans son format : tableau brut pour les listes,
+// rapport analytique pour l'assiduité.
+const isTableTab = computed(() => props.tab !== "attendance");
 const exportUrl = (format: "xlsx" | "pdf") =>
     route(
         isTableTab.value
@@ -117,7 +112,12 @@ const exportUrl = (format: "xlsx" | "pdf") =>
               : "reports.attendance.pdf",
         query(),
     );
-const printUrl = computed(() => route("reports.print", query()));
+const printUrl = computed(() =>
+    route(
+        isTableTab.value ? "reports.print" : "reports.attendance.print",
+        query(),
+    ),
+);
 
 const groupByLabel = computed(
     () =>
@@ -192,9 +192,8 @@ const timeLabel = (value?: string | null) =>
                         tout sur une seule page, avec une période commune.
                     </p>
                 </div>
-                <div v-if="canExport" class="flex flex-wrap gap-2">
+                <div class="flex flex-wrap gap-2">
                     <a
-                        v-if="isTableTab"
                         :href="printUrl"
                         target="_blank"
                         rel="noopener"

@@ -113,6 +113,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/reports/attendance', [AttendanceReportController::class, 'index'])->middleware('permission:reports.operational|reports.statistics')->name('reports.attendance');
     Route::get('/reports/attendance/export/xlsx', [AttendanceReportController::class, 'exportExcel'])->middleware('permission:reports.operational|reports.export')->name('reports.attendance.xlsx');
     Route::get('/reports/attendance/export/pdf', [AttendanceReportController::class, 'exportPdf'])->middleware('permission:reports.operational|reports.export')->name('reports.attendance.pdf');
+    Route::get('/reports/attendance/print', [AttendanceReportController::class, 'print'])->middleware('permission:reports.operational|reports.export')->name('reports.attendance.print');
     Route::get('/users', [UserController::class, 'index'])->middleware('permission:users.manage')->name('users.index');
     Route::get('/users/create', [UserController::class, 'create'])->middleware('permission:users.manage')->name('users.create');
     Route::post('/users', [UserController::class, 'store'])->middleware('permission:users.manage')->name('users.store');

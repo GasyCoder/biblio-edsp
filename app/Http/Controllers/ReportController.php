@@ -11,6 +11,7 @@ use App\Models\ConsultationItem;
 use App\Models\Copy;
 use App\Models\Loan;
 use App\Models\Student;
+use App\Models\User;
 use App\Models\Visit;
 use App\Services\AttendanceReport;
 use App\Services\AttendanceScore;
@@ -190,6 +191,52 @@ class ReportController extends Controller
             ];
         }
 
+        if (($validated['tab'] ?? null) === 'overview') {
+            $overview = $this->overview($from, $to);
+
+            return [
+                'title' => 'Activité quotidienne',
+                'subtitle' => $period,
+                'context' => sprintf(
+                    '%d passage(s) · %d étudiant(s) unique(s) · %d consultation(s) · %d prêt(s).',
+                    $overview['metrics']['visits'],
+                    $overview['metrics']['uniqueStudents'],
+                    $overview['metrics']['consultations'],
+                    $overview['metrics']['loans'],
+                ),
+                'sheet' => 'Activité',
+                'file' => 'activite-edsp',
+                'columns' => ['Date', 'Passages', 'Consultations'],
+                'numeric' => [1, 2],
+                'rows' => $overview['trend']->map(fn (array $row) => [
+                    Carbon::parse($row['day'])->format('d/m/Y'),
+                    $row['visits'],
+                    $row['consultations'],
+                ])->all(),
+            ];
+        }
+
+        if (($validated['tab'] ?? null) === 'documents') {
+            $documents = $this->documents($from, $to);
+
+            return [
+                'title' => 'Ouvrages les plus utilisés',
+                'subtitle' => $period,
+                'context' => 'Consultations sur place et prêts à domicile, du plus utilisé au moins utilisé.',
+                'sheet' => 'Documents',
+                'file' => 'documents-edsp',
+                'columns' => ['Rang', 'Titre', 'Consultations', 'Prêts', 'Total'],
+                'numeric' => [0, 2, 3, 4],
+                'rows' => $documents['topBooks']->values()->map(fn ($book, $index) => [
+                    $index + 1,
+                    $book->title,
+                    $book->consultations,
+                    $book->loans,
+                    $book->total,
+                ])->all(),
+            ];
+        }
+
         $visits = $this->presenceQuery($from, $to, $validated)->get();
 
         return [
@@ -198,20 +245,30 @@ class ReportController extends Controller
             'context' => 'Registre des passages enregistrés au comptoir.',
             'sheet' => 'Présences',
             'file' => 'presences-edsp',
-            'columns' => ['N° passage', 'N° bibliothèque', 'Matricule', 'Nom et prénoms', 'Entrée', 'Sortie', 'Durée', 'Consultations', 'Statut'],
-            'numeric' => [7],
+            'columns' => ['N° passage', 'N° bibliothèque', 'Matricule', 'Nom et prénoms', 'Entrée', 'Accueil entrée', 'Sortie', 'Accueil sortie', 'Durée', 'Consultations', 'Statut'],
+            'numeric' => [9],
             'rows' => $visits->map(fn (Visit $visit) => [
                 $visit->visit_number,
                 $visit->student?->registration_number,
                 $visit->student?->academic_number ?: '—',
                 trim(($visit->student?->last_name ?? '').' '.($visit->student?->first_name ?? '')),
                 $visit->checked_in_at?->format('d/m/Y H:i'),
+                $this->operatorLabel($visit->checkedInBy, $visit->checked_in_role),
                 $visit->checked_out_at?->format('d/m/Y H:i') ?: '—',
+                $visit->checked_out_at ? $this->operatorLabel($visit->checkedOutBy, $visit->checked_out_role) : '—',
                 $this->duration($visit),
                 $visit->consultation_sessions_count,
                 $visit->checked_out_at ? 'Sorti' : 'Présent',
             ])->all(),
         ];
+    }
+
+    /** Nom de l'agent ayant enregistré l'entrée ou la sortie. */
+    private function operatorLabel(?User $operator, ?string $role): string
+    {
+        $role ??= $operator?->roles->first()?->name;
+
+        return $role === 'superadmin' ? 'SuperAdmin' : ($operator?->name ?: 'Compte inconnu');
     }
 
     private function duration(Visit $visit): string
@@ -344,7 +401,11 @@ class ReportController extends Controller
                         ->orWhere('last_name', 'like', "%{$search}%")
                         ->orWhere('first_name', 'like', "%{$search}%"));
             }))
-            ->with(['student:id,registration_number,academic_number,last_name,first_name,photo_path', 'checkedInBy:id,name', 'checkedOutBy:id,name'])
+            ->with([
+                'student:id,registration_number,academic_number,last_name,first_name,photo_path',
+                'checkedInBy:id,name', 'checkedInBy.roles:id,name',
+                'checkedOutBy:id,name', 'checkedOutBy.roles:id,name',
+            ])
             ->withCount('consultationSessions')
             ->latest('checked_in_at');
     }
