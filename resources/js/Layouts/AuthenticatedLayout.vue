@@ -140,13 +140,19 @@ const menuGroups = computed(() =>
                     active: route().current("cards.*"),
                 },
                 {
-                    label: "Présences",
-                    icon: "visits",
-                    href: route("visits.index"),
+                    // Les étudiants n'ont pas accès aux rapports : ils gardent
+                    // leur historique personnel sur /visits.
+                    label: page.props.auth.roles.includes("etudiant")
+                        ? "Mes présences"
+                        : "Rapports",
+                    icon: "reports",
+                    href: page.props.auth.roles.includes("etudiant")
+                        ? route("visits.index")
+                        : route("reports.index"),
                     permission: page.props.auth.roles.includes("etudiant")
                         ? "visits.view_own"
-                        : "visits.view",
-                    active: route().current("visits.*"),
+                        : "reports.operational",
+                    active: route().current("reports.*") || route().current("visits.*"),
                 },
                 {
                     label: "Prêts et retours",
@@ -186,19 +192,6 @@ const menuGroups = computed(() =>
                     href: route("students.index"),
                     permission: "students.view",
                     active: route().current("students.*"),
-                },
-                {
-                    label: page.props.auth.roles.includes("etudiant")
-                        ? "Mon historique"
-                        : "Rapports",
-                    icon: "reports",
-                    href: page.props.auth.roles.includes("etudiant")
-                        ? route("visits.index")
-                        : route("reports.index"),
-                    permission: page.props.auth.roles.includes("etudiant")
-                        ? "consultations.view_own"
-                        : "reports.operational",
-                    active: route().current("reports.*"),
                 },
             ],
         },

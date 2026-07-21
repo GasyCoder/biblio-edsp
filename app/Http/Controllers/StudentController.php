@@ -4,10 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Enums\StudentStatus;
 use App\Models\ConsultationItem;
+use App\Models\ConsultationSession;
+use App\Models\Loan;
 use App\Models\LoanItem;
 use App\Models\Student;
+use App\Models\Visit;
 use App\Services\AcademicReferenceService;
+use App\Services\AttendanceScore;
 use App\Services\StudentService;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -80,7 +85,109 @@ class StudentController extends Controller
                 ->latest('loaned_at')
                 ->paginate(12, ['*'], 'loans_page')
                 ->withQueryString(),
+            'attendance' => $this->attendance($student),
         ]);
+    }
+
+    /**
+     * Assiduité individuelle sur les 30 derniers jours, avec le même modèle
+     * que le rapport global : « présent un jour » = au moins un passage ce jour-là.
+     *
+     * @return array<string, mixed>
+     */
+    private function attendance(Student $student): array
+    {
+        $to = now()->endOfDay();
+        $from = now()->subDays(29)->startOfDay();
+
+        $daysPresent = (int) Visit::query()->where('student_id', $student->id)
+            ->whereBetween('checked_in_at', [$from, $to])
+            ->selectRaw('count(distinct date(checked_in_at)) as total')->value('total');
+        $visits = (int) Visit::query()->where('student_id', $student->id)
+            ->whereBetween('checked_in_at', [$from, $to])->count();
+        $consultations = (int) ConsultationSession::query()->where('student_id', $student->id)
+            ->whereBetween('opened_at', [$from, $to])->count();
+        $loans = (int) Loan::query()->where('student_id', $student->id)
+            ->whereBetween('opened_at', [$from, $to])->count();
+        $openDays = (int) Visit::query()->whereBetween('checked_in_at', [$from, $to])
+            ->selectRaw('count(distinct date(checked_in_at)) as total')->value('total');
+
+        [$rank, $cohortSize] = $this->rankInCohort($student, $from, $to);
+
+        return [
+            'from' => $from->toDateString(),
+            'to' => $to->toDateString(),
+            'daysPresent' => $daysPresent,
+            'visits' => $visits,
+            'consultations' => $consultations,
+            'loans' => $loans,
+            'openDays' => $openDays,
+            'rate' => $openDays ? (int) round($daysPresent / $openDays * 100) : 0,
+            'score' => AttendanceScore::compute($daysPresent, $consultations, $loans),
+            'weights' => AttendanceScore::weights(),
+            'rank' => $rank,
+            'cohortSize' => $cohortSize,
+            'cohortLabel' => $student->academicLevel?->name ?? ($student->level ?: 'tous niveaux'),
+            'weeks' => $this->weeklyPresence($student),
+        ];
+    }
+
+    /**
+     * Rang de l'étudiant parmi les étudiants actifs de son niveau, au score combiné.
+     *
+     * @return array{0: int|null, 1: int}
+     */
+    private function rankInCohort(Student $student, Carbon $from, Carbon $to): array
+    {
+        $cohortIds = Student::query()->where('status', StudentStatus::Active)
+            ->when($student->level_id, fn ($query) => $query->where('level_id', $student->level_id))
+            ->pluck('id');
+
+        if ($cohortIds->count() < 2 || ! $cohortIds->contains($student->id)) {
+            return [null, $cohortIds->count()];
+        }
+
+        $days = Visit::query()->whereIn('student_id', $cohortIds)->whereBetween('checked_in_at', [$from, $to])
+            ->selectRaw('student_id, count(distinct date(checked_in_at)) as total')->groupBy('student_id')->pluck('total', 'student_id');
+        $consultations = ConsultationSession::query()->whereIn('student_id', $cohortIds)->whereBetween('opened_at', [$from, $to])
+            ->selectRaw('student_id, count(*) as total')->groupBy('student_id')->pluck('total', 'student_id');
+        $loans = Loan::query()->whereIn('student_id', $cohortIds)->whereBetween('opened_at', [$from, $to])
+            ->selectRaw('student_id, count(*) as total')->groupBy('student_id')->pluck('total', 'student_id');
+
+        $scores = $cohortIds->mapWithKeys(fn (int $id) => [$id => AttendanceScore::compute(
+            (int) ($days[$id] ?? 0),
+            (int) ($consultations[$id] ?? 0),
+            (int) ($loans[$id] ?? 0),
+        )]);
+
+        $mine = $scores[$student->id] ?? 0;
+        $rank = $mine > 0 ? $scores->filter(fn (int $score) => $score > $mine)->count() + 1 : null;
+
+        return [$rank, $cohortIds->count()];
+    }
+
+    /**
+     * Jours de présence par semaine sur les 8 dernières semaines.
+     *
+     * @return array<int, array{label: string, days: int}>
+     */
+    private function weeklyPresence(Student $student): array
+    {
+        $start = now()->subWeeks(7)->startOfWeek();
+        $presenceDays = Visit::query()->where('student_id', $student->id)
+            ->where('checked_in_at', '>=', $start)
+            ->selectRaw('date(checked_in_at) as day')->distinct()->pluck('day');
+
+        $byWeek = $presenceDays->groupBy(fn (string $day) => Carbon::parse($day)->isoFormat('GGGG-[W]WW'));
+        $weeks = [];
+        $cursor = $start->copy();
+        while ($cursor <= now()) {
+            $key = $cursor->isoFormat('GGGG-[W]WW');
+            $weeks[] = ['label' => 'S'.$cursor->isoWeek(), 'days' => $byWeek->get($key)?->count() ?? 0];
+            $cursor->addWeek();
+        }
+
+        return $weeks;
     }
 
     public function update(Request $request, Student $student, AcademicReferenceService $academicReferences): RedirectResponse

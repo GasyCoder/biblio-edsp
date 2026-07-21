@@ -3,7 +3,31 @@ import AppIcon from "@/Components/AppIcon.vue";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import { Head, Link, usePage } from "@inertiajs/vue3";
 import { computed } from "vue";
-const props = defineProps<{ student: any; consultedBooks: any; borrowedBooks: any }>();
+type Attendance = {
+    from: string;
+    to: string;
+    daysPresent: number;
+    visits: number;
+    consultations: number;
+    loans: number;
+    openDays: number;
+    rate: number;
+    score: number;
+    weights: { presence: number; consultation: number; loan: number };
+    rank: number | null;
+    cohortSize: number;
+    cohortLabel: string;
+    weeks: { label: string; days: number }[];
+};
+const props = defineProps<{
+    student: any;
+    consultedBooks: any;
+    borrowedBooks: any;
+    attendance: Attendance;
+}>();
+const maxWeek = computed(() =>
+    Math.max(1, ...props.attendance.weeks.map((w) => w.days)),
+);
 const page = usePage();
 const canUpdate = page.props.auth.permissions.includes("students.update");
 const statusLabels: Record<string, string> = {
@@ -86,6 +110,76 @@ const formatDate = (value?: string) => value ? new Date(value).toLocaleDateStrin
                     <div class="dw-card flex items-center gap-3 p-4"><span class="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-950"><AppIcon name="loans" class="h-5 w-5" /></span><span><strong class="block text-xl text-slate-800 dark:text-white">{{ borrowedBooks.total }}</strong><small class="text-slate-500">Livres empruntés</small></span></div>
                     <div class="dw-card flex items-center gap-3 p-4"><span class="flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-50 text-cyan-600 dark:bg-cyan-950"><AppIcon name="scan" class="h-5 w-5" /></span><span><strong class="block text-xl text-slate-800 dark:text-white">{{ student.cards.length }}</strong><small class="text-slate-500">Carte(s) créée(s)</small></span></div>
                 </section>
+
+                <section class="dw-card overflow-hidden">
+                    <div class="flex flex-col gap-2 border-b border-gray-200 p-5 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800">
+                        <div class="flex items-center gap-3">
+                            <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300"><AppIcon name="activity" class="h-5 w-5" /></span>
+                            <div>
+                                <p class="dw-page-kicker">Assiduité · 30 derniers jours</p>
+                                <h2 class="mt-1 font-heading text-lg font-bold text-slate-800 dark:text-white">Fréquentation de la bibliothèque</h2>
+                            </div>
+                        </div>
+                        <Link
+                            v-if="$page.props.auth.permissions.includes('reports.operational')"
+                            :href="route('reports.index', { tab: 'attendance' })"
+                            class="dw-btn-secondary shrink-0 justify-center"
+                        >
+                            <AppIcon name="reports" class="h-4 w-4" /> Rapport global
+                        </Link>
+                    </div>
+
+                    <div class="grid gap-3 p-5 sm:grid-cols-2 xl:grid-cols-4">
+                        <div class="rounded-lg border border-gray-200 p-4 dark:border-gray-800">
+                            <p class="font-heading text-2xl font-bold text-emerald-600 dark:text-emerald-400">{{ attendance.daysPresent }}</p>
+                            <p class="mt-1 text-xs font-semibold text-slate-600 dark:text-slate-300">jours de présence</p>
+                            <p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">sur {{ attendance.openDays }} jours d’ouverture</p>
+                        </div>
+                        <div class="rounded-lg border border-gray-200 p-4 dark:border-gray-800">
+                            <p class="font-heading text-2xl font-bold text-primary-600 dark:text-primary-400">{{ attendance.rate }}%</p>
+                            <p class="mt-1 text-xs font-semibold text-slate-600 dark:text-slate-300">taux d’assiduité</p>
+                            <div class="mt-2 h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                                <div class="h-full rounded-full bg-primary-500" :style="{ width: Math.min(attendance.rate, 100) + '%' }"></div>
+                            </div>
+                        </div>
+                        <div class="rounded-lg border border-gray-200 p-4 dark:border-gray-800">
+                            <p class="font-heading text-2xl font-bold text-slate-800 dark:text-white">{{ attendance.score }}</p>
+                            <p class="mt-1 text-xs font-semibold text-slate-600 dark:text-slate-300">score d’activité</p>
+                            <p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                                {{ attendance.daysPresent }}×{{ attendance.weights.presence }} + {{ attendance.consultations }}×{{ attendance.weights.consultation }} + {{ attendance.loans }}×{{ attendance.weights.loan }}
+                            </p>
+                        </div>
+                        <div class="rounded-lg border border-gray-200 p-4 dark:border-gray-800">
+                            <p class="font-heading text-2xl font-bold text-amber-600 dark:text-amber-400">
+                                <template v-if="attendance.rank">{{ attendance.rank }}<span class="text-base">e</span></template>
+                                <template v-else>—</template>
+                            </p>
+                            <p class="mt-1 text-xs font-semibold text-slate-600 dark:text-slate-300">rang dans son niveau</p>
+                            <p class="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                                <template v-if="attendance.rank">sur {{ attendance.cohortSize }} · {{ attendance.cohortLabel }}</template>
+                                <template v-else>aucune activité sur la période</template>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-gray-200 p-5 dark:border-gray-800">
+                        <p class="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">Présence des 8 dernières semaines</p>
+                        <div class="mt-4 flex items-end gap-2" style="height: 110px">
+                            <div v-for="(week, i) in attendance.weeks" :key="i" class="flex flex-1 flex-col items-center gap-1.5" :title="`${week.label} : ${week.days} jour(s) de présence`">
+                                <span class="text-[11px] font-bold text-slate-600 dark:text-slate-300">{{ week.days || '' }}</span>
+                                <div class="flex w-full items-end" style="height: 70px">
+                                    <div class="w-full rounded-t transition-all" :class="week.days ? 'bg-emerald-500 dark:bg-emerald-600' : 'bg-slate-200 dark:bg-slate-800'" :style="{ height: week.days ? Math.round((week.days / maxWeek) * 100) + '%' : '4px' }"></div>
+                                </div>
+                                <span class="text-[10px] text-slate-500 dark:text-slate-400">{{ week.label }}</span>
+                            </div>
+                        </div>
+                        <p class="mt-4 text-xs text-slate-500 dark:text-slate-400">
+                            Sur la période : {{ attendance.visits }} passage(s), {{ attendance.consultations }} consultation(s), {{ attendance.loans }} prêt(s).
+                            Un jour compte une seule fois, même en cas de plusieurs passages.
+                        </p>
+                    </div>
+                </section>
+
                 <section class="dw-card p-6">
                     <div class="flex items-center gap-3 border-b border-gray-200 pb-4 dark:border-gray-800"><span class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-50 text-primary-600 dark:bg-primary-950"><AppIcon name="user" class="h-5 w-5" /></span><div><p class="dw-page-kicker">Dossier étudiant</p><h2 class="mt-1 font-heading text-lg font-bold text-slate-800 dark:text-white">Informations personnelles</h2></div></div>
                     <dl class="mt-5 grid gap-5 sm:grid-cols-2">
