@@ -71,7 +71,7 @@ const locationTypeLabel = (type: string) =>
                 <Link
                     :href="route('copies.index')"
                     class="text-xs font-bold text-primary-600 hover:text-primary-700 dark:text-primary-400"
-                    >← Retour à l’inventaire</Link
+                    >← Retour aux exemplaires</Link
                 >
                 <p class="dw-page-kicker mt-4">Inventaire physique</p>
                 <h1 class="dw-page-title">Enregistrer un exemplaire</h1>

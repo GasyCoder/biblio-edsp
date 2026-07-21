@@ -169,13 +169,7 @@ const menuGroups = computed(() =>
             label: "Bibliothèque",
             items: [
                 {
-                    label: "Inventaire physique",
-                    icon: "copies",
-                    href: route("copies.index"),
-                    permission: "copies.view",
-                    active: route().current("copies.*"),
-                },
-                {
+                    // L'ouvrage (le titre) précède ses exemplaires (les objets).
                     label: page.props.auth.roles.includes("etudiant")
                         ? "Catalogue"
                         : "Ouvrages",
@@ -185,6 +179,13 @@ const menuGroups = computed(() =>
                         ? "catalog.view"
                         : "books.view",
                     active: route().current("books.*"),
+                },
+                {
+                    label: "Exemplaires",
+                    icon: "copies",
+                    href: route("copies.index"),
+                    permission: "copies.view",
+                    active: route().current("copies.*"),
                 },
                 {
                     label: "Étudiants",

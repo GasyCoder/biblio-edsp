@@ -180,16 +180,16 @@ const printPreview = () =>
 </script>
 
 <template>
-    <Head title="Inventaire physique" />
+    <Head title="Exemplaires" />
     <AuthenticatedLayout>
         <template #header>
             <div class="flex items-end justify-between gap-4">
                 <div>
-                    <p class="dw-page-kicker">Inventaire</p>
-                    <h1 class="dw-page-title">Inventaire physique</h1>
+                    <p class="dw-page-kicker">Inventaire physique</p>
+                    <h1 class="dw-page-title">Exemplaires</h1>
                     <p class="dw-page-description">
-                        Sélectionnez un ou plusieurs exemplaires pour imprimer
-                        leurs QR codes ou les supprimer.
+                        Chaque exemplaire est un objet physique : emplacement,
+                        état, disponibilité et étiquette QR.
                     </p>
                 </div>
                 <Link
