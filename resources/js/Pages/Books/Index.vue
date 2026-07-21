@@ -58,22 +58,31 @@ const setViewMode = (mode: "grid" | "list") => {
 };
 const availableCount = (book: Book) =>
     book.copies.filter((copy) => copy.status === "available").length;
+/**
+ * Une seule expression « disponibles / total » : le nombre d'exemplaires et
+ * la disponibilité sans répéter deux fois le même chiffre.
+ */
 const availabilityBadge = (book: Book) => {
     if (!book.copies_count)
         return {
-            label: "Sans exemplaire",
+            label: "Aucun exemplaire",
+            title: "Cet ouvrage n’a encore aucun exemplaire physique.",
             class: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
         };
     const available = availableCount(book);
-    return available
-        ? {
-              label: `${available} disponible(s)`,
-              class: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
-          }
-        : {
-              label: "Tout est sorti",
-              class: "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
-          };
+    const ratio = `${available}/${book.copies_count}`;
+    if (available === 0)
+        return {
+            label: `${ratio} · tout est sorti`,
+            title: `Aucun des ${book.copies_count} exemplaire(s) n’est disponible.`,
+            class: "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
+        };
+
+    return {
+        label: `${ratio} disponible${available > 1 ? "s" : ""}`,
+        title: `${available} exemplaire(s) disponible(s) sur ${book.copies_count}.`,
+        class: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
+    };
 };
 const canCreate = page.props.auth.permissions.includes("books.create");
 const canUpdate = page.props.auth.permissions.includes("books.update");
@@ -497,8 +506,9 @@ const activeFilterChips = computed(() => {
                     />
                 </label>
                 <span
-                    class="absolute end-2.5 top-2.5 rounded-full px-2.5 py-1 text-[11px] font-bold shadow-sm"
+                    class="absolute end-2.5 top-2.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-bold shadow-sm"
                     :class="availabilityBadge(book).class"
+                    :title="availabilityBadge(book).title"
                     >{{ availabilityBadge(book).label }}</span
                 >
                 <div class="flex flex-1 flex-col gap-1.5 p-4">
@@ -529,13 +539,16 @@ const activeFilterChips = computed(() => {
                         <Link
                             v-if="book.copies_count"
                             :href="route('copies.index', { book: book.id })"
-                            class="rounded bg-primary-50 px-2 py-1 text-[11px] font-bold text-primary-700 transition hover:bg-primary-100 dark:bg-primary-950 dark:text-primary-300"
-                            >{{ book.copies_count }} ex. →</Link
+                            class="inline-flex items-center gap-1 rounded bg-primary-50 px-2 py-1 text-[11px] font-bold text-primary-700 transition hover:bg-primary-100 dark:bg-primary-950 dark:text-primary-300"
+                            >Exemplaires
+                            <AppIcon name="chevron-down" class="h-3 w-3 -rotate-90" /></Link
                         >
-                        <span
-                            v-else
-                            class="rounded bg-slate-100 px-2 py-1 text-[11px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300"
-                            >0 ex.</span
+                        <Link
+                            v-else-if="canUpdate"
+                            :href="route('copies.create')"
+                            class="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-[11px] font-bold text-slate-600 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
+                            >Ajouter
+                            <AppIcon name="chevron-down" class="h-3 w-3 -rotate-90" /></Link
                         >
                     </div>
                 </div>
@@ -690,30 +703,29 @@ const activeFilterChips = computed(() => {
                                 {{ book.isbn || "—" }}
                             </td>
                             <td class="px-5 py-4">
-                                <div class="flex flex-col items-start gap-1.5">
-                                    <span
-                                        class="rounded-full px-2.5 py-1 text-[11px] font-bold"
-                                        :class="availabilityBadge(book).class"
-                                        >{{ availabilityBadge(book).label }}</span
-                                    >
-                                    <Link
-                                        v-if="book.copies_count"
-                                        :href="
-                                            route('copies.index', {
-                                                book: book.id,
-                                            })
-                                        "
-                                        class="text-xs font-bold text-primary-600 hover:underline dark:text-primary-400"
-                                        >{{ book.copies_count }} exemplaire(s)
-                                        →</Link
-                                    >
-                                    <Link
-                                        v-else-if="canUpdate"
-                                        :href="route('copies.create')"
-                                        class="text-xs font-bold text-primary-600 hover:underline dark:text-primary-400"
-                                        >Ajouter un exemplaire →</Link
-                                    >
-                                </div>
+                                <Link
+                                    v-if="book.copies_count"
+                                    :href="route('copies.index', { book: book.id })"
+                                    class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-bold transition hover:brightness-95"
+                                    :class="availabilityBadge(book).class"
+                                    :title="availabilityBadge(book).title"
+                                >
+                                    {{ availabilityBadge(book).label }}
+                                    <AppIcon name="chevron-down" class="h-3 w-3 -rotate-90" />
+                                </Link>
+                                <Link
+                                    v-else-if="canUpdate"
+                                    :href="route('copies.create')"
+                                    class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-600 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
+                                >
+                                    Aucun exemplaire · ajouter
+                                    <AppIcon name="chevron-down" class="h-3 w-3 -rotate-90" />
+                                </Link>
+                                <span
+                                    v-else
+                                    class="whitespace-nowrap rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                                    >Aucun exemplaire</span
+                                >
                             </td>
                             <td class="px-5 py-3">
                                 <div class="flex justify-center gap-1">
