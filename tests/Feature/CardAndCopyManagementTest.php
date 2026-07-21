@@ -226,3 +226,24 @@ it('protects referenced locations and operational copies from deletion', functio
     $this->delete(route('copies.destroy', $copy))->assertSessionHasErrors('copy');
     expect(Location::query()->count())->toBe(1)->and(Copy::query()->count())->toBe(1);
 });
+
+it('filters the inventory by book and exposes the book context', function () {
+    $user = User::factory()->create()->assignRole('secretaire');
+    $target = Book::factory()->create(['title' => 'Droit constitutionnel']);
+    $other = Book::factory()->create(['title' => 'Sciences politiques']);
+    $mine = app(CopyService::class)->create(['book_id' => $target->id]);
+    $theirs = app(CopyService::class)->create(['book_id' => $other->id]);
+
+    $this->actingAs($user)->get(route('copies.index', ['book' => $target->id]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('bookContext.id', $target->id)
+            ->where('bookContext.title', 'Droit constitutionnel')
+            ->where('filters.book', $target->id)
+            ->has('copies.data', 1)
+            ->where('copies.data.0.inventory_number', $mine->inventory_number));
+
+    $this->actingAs($user)->get(route('copies.index'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('bookContext', null)
+            ->has('copies.data', 2));
+});

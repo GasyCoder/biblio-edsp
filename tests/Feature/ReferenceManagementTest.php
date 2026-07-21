@@ -129,7 +129,7 @@ it('stores a cover image and displays the detailed book page', function () {
         ->where('book.cover_url', Storage::disk('public')->url($book->cover_path)));
 });
 
-it('filters books by category publication year and availability', function () {
+it('filters books by category publication year and copy count', function () {
     $user = User::factory()->create()->assignRole('secretaire');
     $law = Category::create(['name' => 'Droit', 'slug' => 'droit', 'inventory_code' => 'DR']);
     $politics = Category::create(['name' => 'Politique', 'slug' => 'politique', 'inventory_code' => 'POL']);
@@ -140,14 +140,30 @@ it('filters books by category publication year and availability', function () {
     $this->actingAs($user)->get(route('books.index', [
         'category' => $law->id,
         'year' => 2024,
-        'availability' => 'available',
+        'copies' => '1',
     ]))->assertInertia(fn (Assert $page) => $page
         ->component('Books/Index')
         ->has('books.data', 1)
         ->where('books.data.0.id', $matching->id)
         ->where('filters.category', $law->id)
-        ->where('filters.availability', 'available')
+        ->where('filters.copies', '1')
         ->has('categories', 2));
+});
+
+it('filters books by copy-count buckets', function () {
+    $user = User::factory()->create()->assignRole('secretaire');
+    $none = Book::factory()->create();
+    $one = Book::factory()->create();
+    app(CopyService::class)->create(['book_id' => $one->id]);
+    $many = Book::factory()->create();
+    collect(range(1, 4))->each(fn () => app(CopyService::class)->create(['book_id' => $many->id]));
+
+    $this->actingAs($user)->get(route('books.index', ['copies' => '0']))
+        ->assertInertia(fn (Assert $page) => $page->has('books.data', 1)->where('books.data.0.id', $none->id));
+    $this->actingAs($user)->get(route('books.index', ['copies' => '1']))
+        ->assertInertia(fn (Assert $page) => $page->has('books.data', 1)->where('books.data.0.id', $one->id));
+    $this->actingAs($user)->get(route('books.index', ['copies' => '3-5']))
+        ->assertInertia(fn (Assert $page) => $page->has('books.data', 1)->where('books.data.0.id', $many->id));
 });
 
 it('filters books by author from the author reference page', function () {

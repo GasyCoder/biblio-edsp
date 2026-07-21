@@ -19,7 +19,8 @@ class BookController extends Controller
         $search = trim($request->string('search')->toString());
         $category = $request->integer('category') ?: null;
         $author = $request->integer('author') ?: null;
-        $availability = $request->string('availability')->toString();
+        $copies = $request->string('copies')->toString();
+        $copies = in_array($copies, ['0', '1', '2', '3-5', '6+'], true) ? $copies : '';
         $year = $request->integer('year') ?: null;
 
         return Inertia::render('Books/Index', [
@@ -35,12 +36,15 @@ class BookController extends Controller
                 ->when($category, fn ($query) => $query->where('category_id', $category))
                 ->when($author, fn ($query) => $query->whereHas('authors', fn ($query) => $query->whereKey($author)))
                 ->when($year, fn ($query) => $query->where('publication_year', $year))
-                ->when($availability === 'no_copies', fn ($query) => $query->doesntHave('copies'))
-                ->when(in_array($availability, ['available', 'in_consultation', 'borrowed'], true), fn ($query) => $query->whereHas('copies', fn ($query) => $query->where('status', $availability)))
+                ->when($copies === '0', fn ($query) => $query->doesntHave('copies'))
+                ->when($copies === '1', fn ($query) => $query->has('copies', '=', 1))
+                ->when($copies === '2', fn ($query) => $query->has('copies', '=', 2))
+                ->when($copies === '3-5', fn ($query) => $query->has('copies', '>=', 3)->has('copies', '<=', 5))
+                ->when($copies === '6+', fn ($query) => $query->has('copies', '>=', 6))
                 ->latest()
-                ->paginate(15)
+                ->paginate(100)
                 ->withQueryString(),
-            'filters' => ['search' => $search, 'category' => $category, 'author' => $author, 'availability' => $availability, 'year' => $year],
+            'filters' => ['search' => $search, 'category' => $category, 'author' => $author, 'copies' => $copies, 'year' => $year],
             'categories' => Category::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'authors' => Author::query()->whereHas('books')->orderBy('display_name')->get(['id', 'display_name']),
             'years' => Book::query()->whereNotNull('publication_year')->distinct()->orderByDesc('publication_year')->pluck('publication_year'),

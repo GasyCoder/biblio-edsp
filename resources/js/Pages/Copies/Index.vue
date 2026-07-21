@@ -17,7 +17,9 @@ const props = defineProps<{
         status: string;
         condition: string;
         location: string;
+        book: number | null;
     };
+    bookContext: { id: number; title: string } | null;
     locations: { id: number; code: string; name: string }[];
     conditionLabels: Record<string, string>;
     statusLabels: Record<string, string>;
@@ -26,6 +28,16 @@ const props = defineProps<{
 const page = usePage();
 const selected = ref<number[]>([]);
 const previewCopy = ref<any | null>(null);
+const viewMode = ref<"grid" | "list">(
+    typeof window !== "undefined" &&
+        window.localStorage.getItem("copies-view-mode") === "list"
+        ? "list"
+        : "grid",
+);
+const setViewMode = (mode: "grid" | "list") => {
+    viewMode.value = mode;
+    window.localStorage.setItem("copies-view-mode", mode);
+};
 const search = ref(props.filters.search);
 const status = ref(props.filters.status);
 const condition = ref(props.filters.condition);
@@ -59,6 +71,7 @@ const applyFilters = () =>
             status: status.value,
             condition: condition.value,
             location: location.value,
+            book: props.filters.book ?? undefined,
         },
         { preserveState: true, replace: true },
     );
@@ -71,6 +84,18 @@ const resetFilters = () => {
     applyFilters();
 };
 
+const clearBookFilter = () =>
+    router.get(
+        route("copies.index"),
+        {
+            search: search.value,
+            status: status.value,
+            condition: condition.value,
+            location: location.value,
+        },
+        { preserveState: true, replace: true },
+    );
+
 const operationStudent = (copy: any) =>
     copy.active_consultation_items?.[0]?.session?.student ??
     copy.active_loan_items?.[0]?.loan?.student ??
@@ -82,9 +107,10 @@ const statusClass: Record<string, string> = {
     in_consultation:
         "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
     borrowed: "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
-    damaged: "bg-orange-50 text-orange-700",
-    lost: "bg-red-50 text-red-700",
-    archived: "bg-slate-100 text-slate-600",
+    damaged:
+        "bg-orange-50 text-orange-700 dark:bg-orange-950 dark:text-orange-300",
+    lost: "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300",
+    archived: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
 };
 
 const toggleAll = () => {
@@ -187,6 +213,46 @@ const printPreview = () =>
             {{ $page.props.errors.copy }}
         </div>
 
+        <div
+            v-if="bookContext"
+            class="mb-4 flex flex-col gap-3 rounded-lg border border-primary-200 bg-primary-50 p-4 dark:border-primary-800 dark:bg-primary-950/40 sm:flex-row sm:items-center sm:justify-between"
+        >
+            <div class="flex items-center gap-3">
+                <span
+                    class="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300"
+                    ><AppIcon name="books" class="h-5 w-5"
+                /></span>
+                <div>
+                    <p
+                        class="text-xs font-bold uppercase tracking-wide text-primary-600 dark:text-primary-400"
+                    >
+                        Exemplaires de l’ouvrage
+                    </p>
+                    <p
+                        class="font-heading font-bold text-slate-800 dark:text-white"
+                    >
+                        {{ bookContext.title }}
+                    </p>
+                </div>
+            </div>
+            <div class="flex shrink-0 items-center gap-2">
+                <Link
+                    :href="route('books.show', bookContext.id)"
+                    class="inline-flex h-9 items-center gap-2 rounded-md border border-primary-300 bg-white px-3 text-xs font-bold text-primary-700 dark:border-primary-700 dark:bg-slate-900 dark:text-primary-300"
+                >
+                    <AppIcon name="eye" class="h-4 w-4" /> Voir la fiche
+                </Link>
+                <button
+                    type="button"
+                    class="inline-flex h-9 items-center gap-2 rounded-md px-3 text-xs font-bold text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-900"
+                    @click="clearBookFilter"
+                >
+                    <AppIcon name="close" class="h-4 w-4" /> Voir tout
+                    l’inventaire
+                </button>
+            </div>
+        </div>
+
         <section class="dw-card mb-5 overflow-hidden">
             <div
                 class="flex flex-col gap-2 border-b border-gray-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800"
@@ -202,10 +268,44 @@ const printPreview = () =>
                         auteur ou emplacement.
                     </p>
                 </div>
-                <span
-                    class="text-xs font-semibold text-slate-500 dark:text-slate-400"
-                    >{{ copies.total }} exemplaire(s)</span
-                >
+                <div class="flex items-center gap-3">
+                    <span
+                        class="text-xs font-semibold text-slate-500 dark:text-slate-400"
+                        >{{ copies.total }} exemplaire(s)</span
+                    >
+                    <div
+                        class="flex rounded-lg border border-gray-200 bg-slate-50 p-1 dark:border-gray-800 dark:bg-slate-900"
+                        role="group"
+                        aria-label="Mode d’affichage"
+                    >
+                        <button
+                            type="button"
+                            class="flex h-8 cursor-pointer items-center gap-1.5 rounded-md px-3 text-xs font-bold transition"
+                            :class="
+                                viewMode === 'grid'
+                                    ? 'bg-white text-primary-700 shadow-sm dark:bg-slate-800 dark:text-primary-300'
+                                    : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
+                            "
+                            :aria-pressed="viewMode === 'grid'"
+                            @click="setViewMode('grid')"
+                        >
+                            <AppIcon name="dashboard" class="h-4 w-4" /> Grille
+                        </button>
+                        <button
+                            type="button"
+                            class="flex h-8 cursor-pointer items-center gap-1.5 rounded-md px-3 text-xs font-bold transition"
+                            :class="
+                                viewMode === 'list'
+                                    ? 'bg-white text-primary-700 shadow-sm dark:bg-slate-800 dark:text-primary-300'
+                                    : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
+                            "
+                            :aria-pressed="viewMode === 'list'"
+                            @click="setViewMode('list')"
+                        >
+                            <AppIcon name="menu" class="h-4 w-4" /> Liste
+                        </button>
+                    </div>
+                </div>
             </div>
             <form
                 class="grid gap-3 p-4 sm:p-5 lg:grid-cols-2 2xl:grid-cols-[minmax(280px,1fr)_190px_170px_210px_auto]"
@@ -346,7 +446,143 @@ const printPreview = () =>
             </button>
         </div>
 
-        <section class="dw-card overflow-x-auto">
+        <div
+            v-if="viewMode === 'grid' && copies.data.length"
+            class="mb-3 flex items-center justify-between"
+        >
+            <label
+                class="flex cursor-pointer items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300"
+            >
+                <input
+                    type="checkbox"
+                    class="h-4 w-4 rounded border-slate-300 text-primary-600"
+                    :checked="allSelected"
+                    @change="toggleAll"
+                />
+                Sélectionner toute la page
+            </label>
+            <span class="text-xs text-slate-500 dark:text-slate-400"
+                >Affichage de {{ copies.from }} à {{ copies.to }}</span
+            >
+        </div>
+
+        <section
+            v-if="viewMode === 'grid'"
+            class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4"
+        >
+            <article
+                v-for="copy in copies.data"
+                :key="copy.id"
+                class="dw-card group flex flex-col overflow-hidden transition hover:-translate-y-0.5 hover:shadow-md"
+                :class="
+                    selected.includes(copy.id)
+                        ? 'ring-2 ring-primary-400 dark:ring-primary-600'
+                        : ''
+                "
+            >
+                <div class="relative h-44 bg-slate-100 dark:bg-slate-900">
+                    <img loading="lazy" decoding="async"
+                        v-if="copy.book.cover_url"
+                        :src="copy.book.cover_url"
+                        :alt="`Couverture de ${copy.book.title}`"
+                        class="h-full w-full object-contain p-3"
+                    />
+                    <div
+                        v-else
+                        class="flex h-full items-center justify-center text-primary-400"
+                    >
+                        <AppIcon name="books" class="h-10 w-10" />
+                    </div>
+                    <label
+                        class="absolute start-2.5 top-2.5 flex h-8 w-8 cursor-pointer items-center justify-center rounded-md bg-white/95 shadow-sm dark:bg-slate-900/95"
+                    >
+                        <input
+                            v-model="selected"
+                            type="checkbox"
+                            :value="copy.id"
+                            class="h-4 w-4 rounded border-slate-300 text-primary-600"
+                            :aria-label="`Sélectionner ${copy.inventory_number}`"
+                        />
+                    </label>
+                    <span
+                        class="absolute end-2.5 top-2.5 rounded-full px-2.5 py-1 text-[11px] font-bold shadow-sm"
+                        :class="statusClass[copy.status]"
+                        >{{ statusLabels[copy.status] }}</span
+                    >
+                </div>
+                <div class="flex flex-1 flex-col gap-1.5 p-4">
+                    <p
+                        class="font-mono text-xs font-bold text-primary-700 dark:text-primary-300"
+                    >
+                        {{ copy.inventory_number }}
+                    </p>
+                    <Link
+                        :href="route('books.show', copy.book.id)"
+                        class="line-clamp-2 text-sm font-semibold text-slate-700 transition hover:text-primary-600 dark:text-slate-200 dark:hover:text-primary-400"
+                    >
+                        {{ copy.book.title }}
+                    </Link>
+                    <p class="mt-auto pt-1 text-xs text-slate-500 dark:text-slate-400">
+                        {{
+                            copy.location
+                                ? `${copy.location.name} · ${copy.location.code}`
+                                : "Non affecté"
+                        }}
+                        · {{ conditionLabels[copy.condition] }}
+                    </p>
+                    <Link
+                        v-if="canUseDesk && operationStudent(copy)"
+                        :href="
+                            route('desk.index', {
+                                q: operationStudent(copy).registration_number,
+                            })
+                        "
+                        class="text-xs font-bold text-primary-600 hover:underline dark:text-primary-400"
+                        >Gérer au comptoir →</Link
+                    >
+                </div>
+                <div
+                    class="flex divide-x divide-gray-200 border-t border-gray-200 dark:divide-gray-800 dark:border-gray-800"
+                >
+                    <button
+                        v-if="canPrint"
+                        class="flex h-10 flex-1 cursor-pointer items-center justify-center gap-1.5 text-xs font-bold text-primary-600 transition hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-950"
+                        title="Afficher le QR code"
+                        @click="previewCopy = copy"
+                    >
+                        <AppIcon name="print" class="h-4 w-4" /> QR
+                    </button>
+                    <Link
+                        v-if="canUpdate"
+                        :href="route('copies.edit', copy.id)"
+                        class="flex h-10 flex-1 items-center justify-center gap-1.5 text-xs font-bold text-amber-600 transition hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-950"
+                        title="Modifier l’exemplaire"
+                    >
+                        <AppIcon name="edit" class="h-4 w-4" /> Modifier
+                    </Link>
+                    <button
+                        v-if="canDelete"
+                        class="flex h-10 flex-1 cursor-pointer items-center justify-center gap-1.5 text-xs font-bold text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950"
+                        title="Supprimer l’exemplaire"
+                        @click="remove(copy)"
+                    >
+                        <AppIcon name="trash" class="h-4 w-4" /> Supprimer
+                    </button>
+                </div>
+            </article>
+            <div
+                v-if="!copies.data.length"
+                class="dw-card col-span-full p-12 text-center text-slate-500 dark:text-slate-400"
+            >
+                {{
+                    activeFilterCount || search
+                        ? "Aucun exemplaire ne correspond aux filtres."
+                        : "Aucun exemplaire enregistré."
+                }}
+            </div>
+        </section>
+
+        <section v-else class="dw-card overflow-x-auto">
             <table class="dw-table min-w-[1100px] text-sm">
                 <thead
                     class="bg-slate-50 text-xs uppercase text-slate-500 dark:text-slate-400"
@@ -404,9 +640,10 @@ const printPreview = () =>
                                     class="flex h-14 w-10 shrink-0 items-center justify-center rounded border border-dashed border-gray-300 bg-gray-50 text-primary-500 dark:border-gray-800 dark:bg-gray-900"
                                     ><AppIcon name="books" class="h-5 w-5"
                                 /></span>
-                                <span
-                                    class="line-clamp-2 font-semibold text-slate-700 dark:text-slate-200"
-                                    >{{ copy.book.title }}</span
+                                <Link
+                                    :href="route('books.show', copy.book.id)"
+                                    class="line-clamp-2 font-semibold text-slate-700 transition hover:text-primary-600 dark:text-slate-200 dark:hover:text-primary-400"
+                                    >{{ copy.book.title }}</Link
                                 >
                             </div>
                         </td>

@@ -32,7 +32,7 @@ const props = defineProps<{
         search: string;
         category: number | null;
         author: number | null;
-        availability: string;
+        copies: string;
         year: number | null;
     };
     categories: { id: number; name: string }[];
@@ -42,10 +42,39 @@ const props = defineProps<{
 const search = ref(props.filters.search);
 const category = ref(props.filters.category ?? "");
 const author = ref(props.filters.author ?? "");
-const availability = ref(props.filters.availability ?? "");
+const copiesFilter = ref(props.filters.copies ?? "");
 const year = ref(props.filters.year ?? "");
 const selected = ref<number[]>([]);
 const page = usePage();
+const viewMode = ref<"grid" | "list">(
+    typeof window !== "undefined" &&
+        window.localStorage.getItem("books-view-mode") === "list"
+        ? "list"
+        : "grid",
+);
+const setViewMode = (mode: "grid" | "list") => {
+    viewMode.value = mode;
+    window.localStorage.setItem("books-view-mode", mode);
+};
+const availableCount = (book: Book) =>
+    book.copies.filter((copy) => copy.status === "available").length;
+const availabilityBadge = (book: Book) => {
+    if (!book.copies_count)
+        return {
+            label: "Sans exemplaire",
+            class: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
+        };
+    const available = availableCount(book);
+    return available
+        ? {
+              label: `${available} disponible(s)`,
+              class: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
+          }
+        : {
+              label: "Tout est sorti",
+              class: "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
+          };
+};
 const canCreate = page.props.auth.permissions.includes("books.create");
 const canUpdate = page.props.auth.permissions.includes("books.update");
 const canDelete = page.props.auth.permissions.includes("catalog.manage");
@@ -84,12 +113,6 @@ const removeSelected = () => {
         },
     });
 };
-const activeFilterCount = computed(
-    () =>
-        [category.value, author.value, availability.value, year.value].filter(
-            Boolean,
-        ).length,
-);
 const submitSearch = () =>
     router.get(
         route("books.index"),
@@ -97,7 +120,7 @@ const submitSearch = () =>
             search: search.value,
             category: category.value,
             author: author.value,
-            availability: availability.value,
+            copies: copiesFilter.value,
             year: year.value,
         },
         { preserveState: true, replace: true },
@@ -106,10 +129,72 @@ const resetFilters = () => {
     search.value = "";
     category.value = "";
     author.value = "";
-    availability.value = "";
+    copiesFilter.value = "";
     year.value = "";
     submitSearch();
 };
+const copiesLabels: Record<string, string> = {
+    "0": "Sans exemplaire",
+    "1": "1 exemplaire",
+    "2": "2 exemplaires",
+    "3-5": "3 à 5 exemplaires",
+    "6+": "6 exemplaires et plus",
+};
+const activeFilterChips = computed(() => {
+    const chips: { key: string; label: string; clear: () => void }[] = [];
+    if (search.value)
+        chips.push({
+            key: "search",
+            label: `« ${search.value} »`,
+            clear: () => {
+                search.value = "";
+                submitSearch();
+            },
+        });
+    if (category.value)
+        chips.push({
+            key: "category",
+            label:
+                props.categories.find((c) => c.id === Number(category.value))
+                    ?.name ?? "Catégorie",
+            clear: () => {
+                category.value = "";
+                submitSearch();
+            },
+        });
+    if (author.value)
+        chips.push({
+            key: "author",
+            label:
+                props.authors.find((a) => a.id === Number(author.value))
+                    ?.display_name ?? "Auteur",
+            clear: () => {
+                author.value = "";
+                submitSearch();
+            },
+        });
+    if (copiesFilter.value)
+        chips.push({
+            key: "copies",
+            label:
+                copiesLabels[String(copiesFilter.value)] ??
+                String(copiesFilter.value),
+            clear: () => {
+                copiesFilter.value = "";
+                submitSearch();
+            },
+        });
+    if (year.value)
+        chips.push({
+            key: "year",
+            label: String(year.value),
+            clear: () => {
+                year.value = "";
+                submitSearch();
+            },
+        });
+    return chips;
+});
 </script>
 <template>
     <Head title="Catalogue" /><AuthenticatedLayout
@@ -189,7 +274,60 @@ const resetFilters = () => {
         </div>
         <section class="dw-card overflow-hidden">
             <div
-                class="border-b border-gray-200 p-4 dark:border-gray-800 sm:p-5"
+                class="flex flex-col gap-2 border-b border-gray-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800"
+            >
+                <div>
+                    <h2
+                        class="font-heading font-bold text-slate-800 dark:text-white"
+                    >
+                        Rechercher dans le catalogue
+                    </h2>
+                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                        Filtrez par titre, auteur, catégorie, disponibilité ou
+                        année.
+                    </p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span
+                        class="text-xs font-semibold text-slate-500 dark:text-slate-400"
+                        >{{ books.total }} ouvrage(s)</span
+                    >
+                    <div
+                        class="flex rounded-lg border border-gray-200 bg-slate-50 p-1 dark:border-gray-800 dark:bg-slate-900"
+                        role="group"
+                        aria-label="Mode d’affichage"
+                    >
+                        <button
+                            type="button"
+                            class="flex h-8 cursor-pointer items-center gap-1.5 rounded-md px-3 text-xs font-bold transition"
+                            :class="
+                                viewMode === 'grid'
+                                    ? 'bg-white text-primary-700 shadow-sm dark:bg-slate-800 dark:text-primary-300'
+                                    : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
+                            "
+                            :aria-pressed="viewMode === 'grid'"
+                            @click="setViewMode('grid')"
+                        >
+                            <AppIcon name="dashboard" class="h-4 w-4" /> Grille
+                        </button>
+                        <button
+                            type="button"
+                            class="flex h-8 cursor-pointer items-center gap-1.5 rounded-md px-3 text-xs font-bold transition"
+                            :class="
+                                viewMode === 'list'
+                                    ? 'bg-white text-primary-700 shadow-sm dark:bg-slate-800 dark:text-primary-300'
+                                    : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
+                            "
+                            :aria-pressed="viewMode === 'list'"
+                            @click="setViewMode('list')"
+                        >
+                            <AppIcon name="menu" class="h-4 w-4" /> Liste
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div
+                class="p-4 sm:p-5"
             >
                 <form
                     class="grid gap-3 lg:grid-cols-2 2xl:grid-cols-[minmax(260px,1fr)_190px_190px_180px_150px_auto]"
@@ -209,6 +347,7 @@ const resetFilters = () => {
                         v-model="category"
                         class="dw-field"
                         aria-label="Filtrer par catégorie"
+                        @change="submitSearch"
                     >
                         <option value="">Toutes les catégories</option>
                         <option
@@ -223,6 +362,7 @@ const resetFilters = () => {
                         v-model="author"
                         class="dw-field"
                         aria-label="Filtrer par auteur"
+                        @change="submitSearch"
                     >
                         <option value="">Tous les auteurs</option>
                         <option
@@ -234,20 +374,23 @@ const resetFilters = () => {
                         </option>
                     </select>
                     <select
-                        v-model="availability"
+                        v-model="copiesFilter"
                         class="dw-field"
-                        aria-label="Filtrer par disponibilité"
+                        aria-label="Filtrer par nombre d’exemplaires"
+                        @change="submitSearch"
                     >
-                        <option value="">Toutes les disponibilités</option>
-                        <option value="available">Disponible</option>
-                        <option value="in_consultation">En consultation</option>
-                        <option value="borrowed">Emprunté</option>
-                        <option value="no_copies">Sans exemplaire</option>
+                        <option value="">Tous les nombres d’exemplaires</option>
+                        <option value="0">Sans exemplaire</option>
+                        <option value="1">1 exemplaire</option>
+                        <option value="2">2 exemplaires</option>
+                        <option value="3-5">3 à 5 exemplaires</option>
+                        <option value="6+">6 exemplaires et plus</option>
                     </select>
                     <select
                         v-model="year"
                         class="dw-field"
                         aria-label="Filtrer par année"
+                        @change="submitSearch"
                     >
                         <option value="">Toutes les années</option>
                         <option v-for="item in years" :key="item" :value="item">
@@ -259,21 +402,202 @@ const resetFilters = () => {
                     </button>
                 </form>
                 <div
-                    v-if="activeFilterCount || search"
+                    v-if="activeFilterChips.length"
                     class="mt-3 flex flex-wrap items-center gap-2"
                 >
-                    <span class="text-xs font-semibold text-slate-500"
-                        >{{ activeFilterCount }} filtre(s) actif(s)</span
+                    <span
+                        class="text-xs font-semibold text-slate-500 dark:text-slate-400"
+                        >Filtres actifs :</span
                     >
                     <button
+                        v-for="chip in activeFilterChips"
+                        :key="chip.key"
                         type="button"
-                        class="text-xs font-bold text-primary-600 hover:text-primary-700"
+                        class="inline-flex items-center gap-1.5 rounded-full bg-primary-50 py-1 pe-2 ps-3 text-xs font-bold text-primary-700 transition hover:bg-primary-100 dark:bg-primary-950 dark:text-primary-300 dark:hover:bg-primary-900"
+                        :title="`Retirer le filtre ${chip.label}`"
+                        @click="chip.clear"
+                    >
+                        {{ chip.label }}
+                        <AppIcon name="close" class="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                        type="button"
+                        class="text-xs font-bold text-slate-500 underline underline-offset-2 hover:text-primary-600 dark:text-slate-400"
                         @click="resetFilters"
                     >
-                        Réinitialiser tous les filtres
+                        Tout réinitialiser
                     </button>
                 </div>
             </div>
+        </section>
+
+        <div
+            v-if="viewMode === 'grid' && books.data.length"
+            class="mb-3 mt-5 flex items-center justify-between"
+        >
+            <label
+                class="flex cursor-pointer items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300"
+            >
+                <input
+                    type="checkbox"
+                    class="h-4 w-4 rounded border-slate-300 text-primary-600"
+                    :checked="allSelected"
+                    @change="toggleAll"
+                />
+                Sélectionner toute la page
+            </label>
+            <span class="text-xs text-slate-500 dark:text-slate-400"
+                >Résultats {{ books.from }}–{{ books.to }} sur
+                {{ books.total }}</span
+            >
+        </div>
+
+        <section
+            v-if="viewMode === 'grid'"
+            class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4"
+            :class="books.data.length ? '' : 'mt-5'"
+        >
+            <article
+                v-for="book in books.data"
+                :key="book.id"
+                class="dw-card group relative flex flex-col overflow-hidden transition hover:-translate-y-0.5 hover:shadow-md"
+                :class="
+                    selected.includes(book.id)
+                        ? 'ring-2 ring-primary-400 dark:ring-primary-600'
+                        : ''
+                "
+            >
+                <Link
+                    :href="route('books.show', book.id)"
+                    class="relative block h-52 bg-slate-100 dark:bg-slate-900"
+                    :aria-label="`Voir les détails de ${book.title}`"
+                >
+                    <img loading="lazy" decoding="async"
+                        v-if="book.cover_url"
+                        :src="book.cover_url"
+                        :alt="`Couverture de ${book.title}`"
+                        class="h-full w-full object-contain p-3"
+                    />
+                    <div
+                        v-else
+                        class="flex h-full items-center justify-center text-primary-400"
+                    >
+                        <AppIcon name="books" class="h-10 w-10" />
+                    </div>
+                </Link>
+                <label
+                    class="absolute start-2.5 top-2.5 flex h-8 w-8 cursor-pointer items-center justify-center rounded-md bg-white/95 shadow-sm dark:bg-slate-900/95"
+                >
+                    <input
+                        v-model="selected"
+                        type="checkbox"
+                        :value="book.id"
+                        class="h-4 w-4 rounded border-slate-300 text-primary-600"
+                        :aria-label="`Sélectionner ${book.title}`"
+                    />
+                </label>
+                <span
+                    class="absolute end-2.5 top-2.5 rounded-full px-2.5 py-1 text-[11px] font-bold shadow-sm"
+                    :class="availabilityBadge(book).class"
+                    >{{ availabilityBadge(book).label }}</span
+                >
+                <div class="flex flex-1 flex-col gap-1.5 p-4">
+                    <Link
+                        :href="route('books.show', book.id)"
+                        class="line-clamp-2 text-sm font-semibold text-slate-700 transition hover:text-primary-600 dark:text-slate-200 dark:hover:text-primary-400"
+                        >{{ book.title }}</Link
+                    >
+                    <p
+                        class="line-clamp-1 text-xs text-slate-500 dark:text-slate-400"
+                    >
+                        {{
+                            book.authors
+                                .map((a) => a.display_name)
+                                .join(", ") || "Auteur inconnu"
+                        }}
+                    </p>
+                    <div class="mt-auto flex flex-wrap items-center gap-1.5 pt-1.5">
+                        <span
+                            class="rounded bg-primary-50 px-2 py-1 text-[11px] font-bold text-primary-700 dark:bg-primary-950 dark:text-primary-300"
+                            >{{ book.category?.name || "Non classé" }}</span
+                        >
+                        <span
+                            v-if="book.publication_year"
+                            class="rounded bg-slate-100 px-2 py-1 text-[11px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                            >{{ book.publication_year }}</span
+                        >
+                        <Link
+                            v-if="book.copies_count"
+                            :href="route('copies.index', { book: book.id })"
+                            class="rounded bg-primary-50 px-2 py-1 text-[11px] font-bold text-primary-700 transition hover:bg-primary-100 dark:bg-primary-950 dark:text-primary-300"
+                            >{{ book.copies_count }} ex. →</Link
+                        >
+                        <span
+                            v-else
+                            class="rounded bg-slate-100 px-2 py-1 text-[11px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                            >0 ex.</span
+                        >
+                    </div>
+                </div>
+                <div
+                    class="flex divide-x divide-gray-200 border-t border-gray-200 dark:divide-gray-800 dark:border-gray-800"
+                >
+                    <Link
+                        :href="route('books.show', book.id)"
+                        class="flex h-10 flex-1 items-center justify-center gap-1.5 text-xs font-bold text-primary-600 transition hover:bg-primary-50 dark:text-primary-400 dark:hover:bg-primary-950"
+                        title="Voir les détails"
+                    >
+                        <AppIcon name="eye" class="h-4 w-4" /> Voir
+                    </Link>
+                    <Link
+                        v-if="canUpdate"
+                        :href="route('books.edit', book.id)"
+                        class="flex h-10 flex-1 items-center justify-center gap-1.5 text-xs font-bold text-amber-600 transition hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-950"
+                        title="Modifier l’ouvrage"
+                    >
+                        <AppIcon name="edit" class="h-4 w-4" /> Modifier
+                    </Link>
+                    <button
+                        v-if="canDelete"
+                        class="flex h-10 flex-1 cursor-pointer items-center justify-center gap-1.5 text-xs font-bold text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950"
+                        title="Supprimer l’ouvrage"
+                        @click="remove(book)"
+                    >
+                        <AppIcon name="trash" class="h-4 w-4" /> Supprimer
+                    </button>
+                </div>
+            </article>
+            <div
+                v-if="!books.data.length"
+                class="dw-card col-span-full p-12 text-center text-slate-500 dark:text-slate-400"
+            >
+                Aucun ouvrage trouvé.
+            </div>
+        </section>
+
+        <div
+            v-if="viewMode === 'grid' && books.links.length > 3"
+            class="mt-5 flex flex-wrap justify-center gap-1"
+        >
+            <template v-for="link in books.links" :key="link.label"
+                ><Link
+                    v-if="link.url"
+                    :href="link.url"
+                    preserve-state
+                    :class="
+                        link.active
+                            ? 'border border-primary-600 bg-primary-600 text-white shadow-sm'
+                            : 'border border-gray-300 bg-white text-slate-600 hover:border-primary-300 hover:text-primary-600 dark:border-gray-800 dark:bg-gray-950 dark:text-slate-300 dark:hover:border-primary-700 dark:hover:text-primary-400'
+                    "
+                    class="min-w-9 rounded-md px-3 py-2 text-center text-xs font-semibold transition-colors"
+                    v-html="link.label" /><span
+                    v-else
+                    class="min-w-9 rounded-md border border-gray-200 px-3 py-2 text-center text-xs font-semibold text-slate-400 dark:border-gray-900 dark:text-slate-600"
+                    v-html="link.label"
+            /></template>
+        </div>
+
+        <section v-if="viewMode === 'list'" class="dw-card mt-5 overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="dw-table min-w-[1200px] text-sm">
                     <thead
@@ -294,11 +618,8 @@ const resetFilters = () => {
                             </th>
                             <th class="px-5 py-3 text-start">Catégorie</th>
                             <th class="px-5 py-3 text-start">Édition</th>
-                            <th class="px-5 py-3 text-start">
-                                N° d’enregistrement
-                            </th>
                             <th class="px-5 py-3 text-start">ISBN</th>
-                            <th class="px-5 py-3 text-center">Ex.</th>
+                            <th class="px-5 py-3 text-start">Exemplaires</th>
                             <th class="px-5 py-3 text-center">Actions</th>
                         </tr>
                     </thead>
@@ -363,34 +684,36 @@ const resetFilters = () => {
                                         .join(" · ") || "—"
                                 }}
                             </td>
-                            <td class="px-5 py-4">
-                                <div
-                                    v-if="book.copies.length"
-                                    class="flex max-w-xs flex-wrap gap-1"
-                                >
-                                    <span
-                                        v-for="copy in book.copies"
-                                        :key="copy.id"
-                                        class="rounded bg-primary-50 px-2 py-1 font-mono text-[11px] font-bold text-primary-700 dark:bg-primary-900/30 dark:text-primary-300"
-                                        >{{ copy.inventory_number }}</span
-                                    >
-                                </div>
-                                <span
-                                    v-else
-                                    class="text-slate-500 dark:text-slate-400"
-                                    >Aucun</span
-                                >
-                            </td>
                             <td
-                                class="px-5 py-4 font-mono text-xs text-slate-500"
+                                class="px-5 py-4 font-mono text-xs text-slate-500 dark:text-slate-400"
                             >
                                 {{ book.isbn || "—" }}
                             </td>
-                            <td class="px-5 py-4 text-center">
-                                <span
-                                    class="rounded-full bg-primary-50 px-2.5 py-1 text-xs font-bold text-primary-700 dark:bg-primary-950 dark:text-primary-300"
-                                    >{{ book.copies_count }}</span
-                                >
+                            <td class="px-5 py-4">
+                                <div class="flex flex-col items-start gap-1.5">
+                                    <span
+                                        class="rounded-full px-2.5 py-1 text-[11px] font-bold"
+                                        :class="availabilityBadge(book).class"
+                                        >{{ availabilityBadge(book).label }}</span
+                                    >
+                                    <Link
+                                        v-if="book.copies_count"
+                                        :href="
+                                            route('copies.index', {
+                                                book: book.id,
+                                            })
+                                        "
+                                        class="text-xs font-bold text-primary-600 hover:underline dark:text-primary-400"
+                                        >{{ book.copies_count }} exemplaire(s)
+                                        →</Link
+                                    >
+                                    <Link
+                                        v-else-if="canUpdate"
+                                        :href="route('copies.create')"
+                                        class="text-xs font-bold text-primary-600 hover:underline dark:text-primary-400"
+                                        >Ajouter un exemplaire →</Link
+                                    >
+                                </div>
                             </td>
                             <td class="px-5 py-3">
                                 <div class="flex justify-center gap-1">
@@ -424,7 +747,7 @@ const resetFilters = () => {
                         </tr>
                         <tr v-if="!books.data.length">
                             <td
-                                colspan="8"
+                                colspan="7"
                                 class="px-5 py-16 text-center text-slate-500 dark:text-slate-400"
                             >
                                 Aucun ouvrage trouvé.

@@ -29,9 +29,11 @@ class CopyController extends Controller
         $status = $request->string('status')->toString();
         $condition = $request->string('condition')->toString();
         $location = $request->string('location')->toString();
+        $book = $request->integer('book') ?: null;
 
         $status = in_array($status, array_column(CopyStatus::cases(), 'value'), true) ? $status : '';
         $condition = in_array($condition, array_column(CopyCondition::cases(), 'value'), true) ? $condition : '';
+        $bookContext = $book ? Book::query()->find($book, ['id', 'title']) : null;
 
         return Inertia::render('Copies/Index', [
             'copies' => Copy::query()
@@ -41,6 +43,7 @@ class CopyController extends Controller
                     'activeConsultationItems.session.student:id,registration_number,first_name,last_name',
                     'activeLoanItems.loan.student:id,registration_number,first_name,last_name',
                 ])
+                ->when($book, fn ($query) => $query->where('book_id', $book))
                 ->when($search, fn ($query) => $query->where(function ($query) use ($search) {
                     $query->where('inventory_number', 'like', "%{$search}%")
                         ->orWhere('barcode_value', 'like', "%{$search}%")
@@ -54,9 +57,10 @@ class CopyController extends Controller
                 ->when($location === 'unassigned', fn ($query) => $query->whereNull('location_id'))
                 ->when(ctype_digit($location), fn ($query) => $query->where('location_id', (int) $location))
                 ->latest()
-                ->paginate(20)
+                ->paginate(100)
                 ->withQueryString(),
-            'filters' => ['search' => $search, 'status' => $status, 'condition' => $condition, 'location' => $location],
+            'filters' => ['search' => $search, 'status' => $status, 'condition' => $condition, 'location' => $location, 'book' => $book],
+            'bookContext' => $bookContext,
             'locations' => Location::query()->where('is_active', true)->orderBy('code')->get(['id', 'code', 'name']),
             'conditionLabels' => collect(CopyCondition::cases())->mapWithKeys(fn ($case) => [$case->value => $case->label()]),
             'statusLabels' => collect(CopyStatus::cases())->mapWithKeys(fn ($case) => [$case->value => $case->label()]),
