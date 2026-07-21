@@ -13,6 +13,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -133,7 +134,7 @@ class StudentCardController extends Controller
     {
         $card->load('student.academicLevel', 'student.academicProgram');
 
-        return view('print.student-card', ['card' => $card, 'codeSvg' => $card->symbology === BarcodeSymbology::Qr ? $barcodes->qrSvg($card->card_number, 220) : $barcodes->code128Svg($card->card_number), 'embedded' => request()->boolean('embedded')]);
+        return view('print.student-card', ['card' => $card, 'codeSvg' => $card->symbology === BarcodeSymbology::Qr ? $barcodes->qrSvg($card->card_number, 220) : $barcodes->code128Svg($card->card_number), 'embedded' => request()->boolean('embedded'), 'branding' => $this->cardBranding()]);
     }
 
     public function printBulk(Request $request, BarcodeService $barcodes): View
@@ -142,6 +143,19 @@ class StudentCardController extends Controller
         $order = array_flip($data['ids']);
         $cards = StudentCard::query()->whereKey($data['ids'])->with(['student.academicLevel', 'student.academicProgram'])->get()->sortBy(fn (StudentCard $card) => $order[$card->id])->values();
 
-        return view('print.student-cards', ['cards' => $cards, 'codes' => $cards->mapWithKeys(fn (StudentCard $card) => [$card->id => $barcodes->qrSvg($card->card_number, 220)])]);
+        return view('print.student-cards', ['cards' => $cards, 'codes' => $cards->mapWithKeys(fn (StudentCard $card) => [$card->id => $barcodes->qrSvg($card->card_number, 220)]), 'branding' => $this->cardBranding()]);
+    }
+
+    /** @return array{name: string, school: string, institution: string, logo_url: ?string} */
+    private function cardBranding(): array
+    {
+        $logoPath = Setting::getValue('logo_path');
+
+        return [
+            'name' => Setting::getValue('library_name', 'Bibliothèque EDSP'),
+            'school' => Setting::getValue('school_name', 'École de Droit et Sciences Politiques'),
+            'institution' => Setting::getValue('institution_name', 'Université de Mahajanga'),
+            'logo_url' => $logoPath ? Storage::disk('public')->url($logoPath) : null,
+        ];
     }
 }
