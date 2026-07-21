@@ -196,3 +196,38 @@ it('lists absences per student with partial-attendance nuance', function () {
             ->where('absences.students.total', 1)
             ->where('absences.students.data.0.id', $partial->id));
 });
+
+it('exports presences and absences as flat tables', function () {
+    $staff = User::factory()->create()->assignRole('secretaire');
+    $level = \App\Models\AcademicLevel::create(['name' => 'Licence 2', 'code' => 'L2', 'sort_order' => 2, 'is_active' => true]);
+    $student = Student::factory()->create(['status' => 'active', 'level_id' => $level->id, 'last_name' => 'RAKOTO']);
+    app(VisitService::class)->checkIn($student, $staff);
+
+    // Présences : impression HTML
+    $this->actingAs($staff)->get(route('reports.print', ['tab' => 'presence']))
+        ->assertOk()
+        ->assertSee('Liste des présences')
+        ->assertSee('N° passage')
+        ->assertSee('RAKOTO');
+
+    // Présences : xlsx réel avec la bonne feuille
+    $response = $this->actingAs($staff)->get(route('reports.export.xlsx', ['tab' => 'presence']));
+    $response->assertOk();
+    $path = tempnam(sys_get_temp_dir(), 'presences-test-').'.xlsx';
+    file_put_contents($path, $response->streamedContent());
+    $book = \PhpOffice\PhpSpreadsheet\IOFactory::load($path);
+    expect($book->getSheetNames())->toContain('Présences')
+        ->and($book->getActiveSheet()->getCell('A1')->getValue())->toBe('N° passage');
+    unlink($path);
+
+    // Absences : impression HTML avec les colonnes attendues
+    $this->actingAs($staff)->get(route('reports.print', ['tab' => 'absences']))
+        ->assertOk()
+        ->assertSee('Liste des absences')
+        ->assertSee('Jours d’absence', false);
+
+    // Absences : PDF réel
+    $pdf = $this->actingAs($staff)->get(route('reports.export.pdf', ['tab' => 'absences']));
+    $pdf->assertOk()->assertHeader('Content-Type', 'application/pdf');
+    expect($pdf->getContent())->toStartWith('%PDF-');
+});

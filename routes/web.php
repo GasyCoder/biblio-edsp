@@ -107,6 +107,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/visits-print', [VisitController::class, 'print'])->middleware('permission:reports.operational|reports.export')->name('visits.print');
     Route::get('/loans', [LoanController::class, 'index'])->middleware('permission:loans.view|loans.view_own')->name('loans.index');
     Route::get('/reports', [ReportController::class, 'index'])->middleware('permission:reports.operational|reports.statistics')->name('reports.index');
+    Route::get('/reports/export/xlsx', [ReportController::class, 'exportExcel'])->middleware('permission:reports.operational|reports.export')->name('reports.export.xlsx');
+    Route::get('/reports/export/pdf', [ReportController::class, 'exportPdf'])->middleware('permission:reports.operational|reports.export')->name('reports.export.pdf');
+    Route::get('/reports/print', [ReportController::class, 'print'])->middleware('permission:reports.operational|reports.export')->name('reports.print');
     Route::get('/reports/attendance', [AttendanceReportController::class, 'index'])->middleware('permission:reports.operational|reports.statistics')->name('reports.attendance');
     Route::get('/reports/attendance/export/xlsx', [AttendanceReportController::class, 'exportExcel'])->middleware('permission:reports.operational|reports.export')->name('reports.attendance.xlsx');
     Route::get('/reports/attendance/export/pdf', [AttendanceReportController::class, 'exportPdf'])->middleware('permission:reports.operational|reports.export')->name('reports.attendance.pdf');

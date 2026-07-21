@@ -98,11 +98,26 @@ const apply = (tab: Tab = props.tab) =>
         replace: true,
     });
 
+// Présences et Absences exportent la liste affichée (tableau brut) ;
+// Assiduité exporte son rapport analytique.
+const isTableTab = computed(
+    () => props.tab === "presence" || props.tab === "absences",
+);
+const canExport = computed(
+    () => isTableTab.value || props.tab === "attendance",
+);
 const exportUrl = (format: "xlsx" | "pdf") =>
     route(
-        format === "xlsx" ? "reports.attendance.xlsx" : "reports.attendance.pdf",
+        isTableTab.value
+            ? format === "xlsx"
+                ? "reports.export.xlsx"
+                : "reports.export.pdf"
+            : format === "xlsx"
+              ? "reports.attendance.xlsx"
+              : "reports.attendance.pdf",
         query(),
     );
+const printUrl = computed(() => route("reports.print", query()));
 
 const groupByLabel = computed(
     () =>
@@ -177,7 +192,16 @@ const timeLabel = (value?: string | null) =>
                         tout sur une seule page, avec une période commune.
                     </p>
                 </div>
-                <div class="flex flex-wrap gap-2">
+                <div v-if="canExport" class="flex flex-wrap gap-2">
+                    <a
+                        v-if="isTableTab"
+                        :href="printUrl"
+                        target="_blank"
+                        rel="noopener"
+                        class="dw-btn-secondary justify-center"
+                    >
+                        <AppIcon name="print" class="h-4 w-4" /> Imprimer
+                    </a>
                     <a :href="exportUrl('xlsx')" class="dw-btn-secondary justify-center">
                         <AppIcon name="download" class="h-4 w-4" /> Excel
                     </a>

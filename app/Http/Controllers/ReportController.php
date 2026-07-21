@@ -15,12 +15,19 @@ use App\Models\Visit;
 use App\Services\AttendanceReport;
 use App\Services\AttendanceScore;
 use Carbon\Carbon;
+use Dompdf\Dompdf;
+use Dompdf\Options;
+use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
 class ReportController extends Controller
 {
@@ -79,6 +86,147 @@ class ReportController extends Controller
             'scoreWeights' => AttendanceScore::weights(),
             ...$payload,
         ]);
+    }
+
+    /**
+     * Export tableau (liste brute) de l'onglet courant : Présences ou Absences.
+     * L'onglet Assiduité garde son export analytique dédié.
+     */
+    public function exportExcel(Request $request): BinaryFileResponse
+    {
+        $table = $this->table($request);
+        $spreadsheet = new Spreadsheet;
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle($table['sheet']);
+        $sheet->fromArray($table['columns'], null, 'A1');
+        $sheet->getStyle('A1:'.$this->columnLetter(count($table['columns'])).'1')->getFont()->setBold(true);
+        $sheet->freezePane('A2');
+
+        foreach ($table['rows'] as $index => $row) {
+            $sheet->fromArray(array_values($row), null, 'A'.($index + 2));
+        }
+        foreach (range(1, count($table['columns'])) as $position) {
+            $sheet->getColumnDimension($this->columnLetter($position))->setAutoSize(true);
+        }
+
+        $path = tempnam(sys_get_temp_dir(), $table['file'].'-').'.xlsx';
+        (new Xlsx($spreadsheet))->save($path);
+
+        return response()->download($path, $table['file'].'-'.now()->format('Ymd-His').'.xlsx')->deleteFileAfterSend(true);
+    }
+
+    public function exportPdf(Request $request): HttpResponse
+    {
+        $table = $this->table($request);
+        $options = new Options;
+        $options->set('isRemoteEnabled', false);
+        $dompdf = new Dompdf($options);
+        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->loadHtml(view('reports.table', $table + ['embedded' => true])->render());
+        $dompdf->render();
+
+        return response($dompdf->output(), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$table['file'].'-'.now()->format('Ymd-His').'.pdf"',
+        ]);
+    }
+
+    public function print(Request $request): View
+    {
+        return view('reports.table', $this->table($request));
+    }
+
+    /**
+     * Construit le tableau à plat correspondant à l'onglet demandé.
+     *
+     * @return array<string, mixed>
+     */
+    private function table(Request $request): array
+    {
+        $validated = $request->validate([
+            'tab' => ['nullable', Rule::in(self::TABS)],
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date', 'after_or_equal:from'],
+            'group_by' => ['nullable', Rule::in(['level', 'mention', 'program'])],
+            'level_id' => ['nullable', 'integer'],
+            'mention_id' => ['nullable', 'integer'],
+            'program_id' => ['nullable', 'integer'],
+            'academic_year' => ['nullable', 'string', 'max:20'],
+            'search' => ['nullable', 'string', 'max:100'],
+            'status' => ['nullable', 'in:active,closed'],
+            'never_only' => ['nullable', 'boolean'],
+        ]);
+
+        $filters = AttendanceReport::normalize($validated);
+        $from = Carbon::parse($filters['from'])->startOfDay();
+        $to = Carbon::parse($filters['to'])->endOfDay();
+        $period = 'Période du '.$from->format('d/m/Y').' au '.$to->format('d/m/Y');
+        $groupLabel = $this->attendance->groupByLabel($filters['group_by']);
+
+        if (($validated['tab'] ?? null) === 'absences') {
+            $rows = $this->attendance->absenceRows(
+                $filters,
+                trim((string) ($validated['search'] ?? '')),
+                (bool) ($validated['never_only'] ?? false),
+            );
+
+            return [
+                'title' => 'Liste des absences',
+                'subtitle' => $period,
+                'context' => 'Jours d’absence = jours d’ouverture − jours de présence. Regroupement : '.$groupLabel.'.',
+                'sheet' => 'Absences',
+                'file' => 'absences-edsp',
+                'columns' => ['N° bibliothèque', 'Nom et prénoms', $groupLabel, 'Jours présents', 'Jours d’absence', 'Taux d’absence', 'Statut'],
+                'numeric' => [3, 4, 5],
+                'rows' => $rows->map(fn (array $row) => [
+                    $row['registration_number'],
+                    $row['name'],
+                    $row['group'],
+                    $row['daysPresent'],
+                    $row['absenceDays'],
+                    $row['absenceRate'].' %',
+                    $row['neverCame'] ? 'Jamais venu' : 'Venu partiellement',
+                ])->all(),
+            ];
+        }
+
+        $visits = $this->presenceQuery($from, $to, $validated)->get();
+
+        return [
+            'title' => 'Liste des présences',
+            'subtitle' => $period,
+            'context' => 'Registre des passages enregistrés au comptoir.',
+            'sheet' => 'Présences',
+            'file' => 'presences-edsp',
+            'columns' => ['N° passage', 'N° bibliothèque', 'Matricule', 'Nom et prénoms', 'Entrée', 'Sortie', 'Durée', 'Consultations', 'Statut'],
+            'numeric' => [7],
+            'rows' => $visits->map(fn (Visit $visit) => [
+                $visit->visit_number,
+                $visit->student?->registration_number,
+                $visit->student?->academic_number ?: '—',
+                trim(($visit->student?->last_name ?? '').' '.($visit->student?->first_name ?? '')),
+                $visit->checked_in_at?->format('d/m/Y H:i'),
+                $visit->checked_out_at?->format('d/m/Y H:i') ?: '—',
+                $this->duration($visit),
+                $visit->consultation_sessions_count,
+                $visit->checked_out_at ? 'Sorti' : 'Présent',
+            ])->all(),
+        ];
+    }
+
+    private function duration(Visit $visit): string
+    {
+        if (! $visit->checked_in_at || ! $visit->checked_out_at) {
+            return '—';
+        }
+        $minutes = max(0, $visit->checked_in_at->diffInMinutes($visit->checked_out_at));
+
+        return $minutes < 60 ? $minutes.' min' : intdiv($minutes, 60).' h '.($minutes % 60).' min';
+    }
+
+    private function columnLetter(int $position): string
+    {
+        return \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($position);
     }
 
     /** @return array<string, mixed> */
@@ -173,12 +321,18 @@ class ReportController extends Controller
      * @param  array<string, mixed>  $validated
      * @return array<string, mixed>
      */
-    private function presence(Carbon $from, Carbon $to, array $validated): array
+    /**
+     * Requête des passages, partagée par l'affichage paginé et les exports.
+     *
+     * @param  array<string, mixed>  $validated
+     * @return Builder<Visit>
+     */
+    private function presenceQuery(Carbon $from, Carbon $to, array $validated): Builder
     {
         $search = trim((string) ($validated['search'] ?? ''));
         $status = $validated['status'] ?? '';
 
-        $visits = Visit::query()
+        return Visit::query()
             ->whereBetween('checked_in_at', [$from, $to])
             ->when($status === 'active', fn (Builder $query) => $query->whereNull('checked_out_at'))
             ->when($status === 'closed', fn (Builder $query) => $query->whereNotNull('checked_out_at'))
@@ -190,11 +344,14 @@ class ReportController extends Controller
                         ->orWhere('last_name', 'like', "%{$search}%")
                         ->orWhere('first_name', 'like', "%{$search}%"));
             }))
-            ->with(['student:id,registration_number,last_name,first_name,photo_path', 'checkedInBy:id,name', 'checkedOutBy:id,name'])
+            ->with(['student:id,registration_number,academic_number,last_name,first_name,photo_path', 'checkedInBy:id,name', 'checkedOutBy:id,name'])
             ->withCount('consultationSessions')
-            ->latest('checked_in_at')
-            ->paginate(50)
-            ->withQueryString();
+            ->latest('checked_in_at');
+    }
+
+    private function presence(Carbon $from, Carbon $to, array $validated): array
+    {
+        $visits = $this->presenceQuery($from, $to, $validated)->paginate(50)->withQueryString();
 
         $visits->getCollection()->transform(fn (Visit $visit) => [
             'id' => $visit->id,

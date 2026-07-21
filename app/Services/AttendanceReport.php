@@ -128,6 +128,42 @@ class AttendanceReport
      */
     public function absences(array $filters, string $search = '', bool $neverOnly = false, int $perPage = 50): array
     {
+        $rows = $this->absenceRows($filters, $search, $neverOnly);
+        $page = LengthAwarePaginator::resolveCurrentPage();
+
+        return [
+            'openDays' => $this->openDays($filters),
+            'neverCame' => $rows->filter(fn (array $row) => $row['neverCame'])->count(),
+            'students' => (new LengthAwarePaginator(
+                $rows->forPage($page, $perPage)->values(),
+                $rows->count(),
+                $perPage,
+                $page,
+                ['path' => LengthAwarePaginator::resolveCurrentPath()]
+            ))->withQueryString(),
+        ];
+    }
+
+    private function openDays(array $filters): int
+    {
+        return (int) Visit::query()
+            ->whereBetween('checked_in_at', [
+                Carbon::parse($filters['from'])->startOfDay(),
+                Carbon::parse($filters['to'])->endOfDay(),
+            ])
+            ->selectRaw('count(distinct date(checked_in_at)) as total')
+            ->value('total');
+    }
+
+    /**
+     * Lignes d'absence complètes (sans pagination), pour l'affichage comme
+     * pour les exports.
+     *
+     * @param  array<string, mixed>  $filters  filtres déjà normalisés
+     * @return Collection<int, array<string, mixed>>
+     */
+    public function absenceRows(array $filters, string $search = '', bool $neverOnly = false): Collection
+    {
         $from = Carbon::parse($filters['from'])->startOfDay();
         $to = Carbon::parse($filters['to'])->endOfDay();
         $groupBy = $filters['group_by'];
@@ -180,20 +216,7 @@ class AttendanceReport
             ->sortByDesc('absenceDays')
             ->values();
 
-        $page = LengthAwarePaginator::resolveCurrentPage();
-        $paginator = new LengthAwarePaginator(
-            $rows->forPage($page, $perPage)->values(),
-            $rows->count(),
-            $perPage,
-            $page,
-            ['path' => LengthAwarePaginator::resolveCurrentPath()]
-        );
-
-        return [
-            'openDays' => $openDays,
-            'neverCame' => $rows->filter(fn (array $row) => $row['neverCame'])->count(),
-            'students' => $paginator->withQueryString(),
-        ];
+        return $rows;
     }
 
     public function granularityLabel(string $granularity): string
