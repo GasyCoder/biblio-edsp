@@ -59,6 +59,11 @@ class RolePermissionSeeder extends Seeder
             fn (string $permission) => Permission::findOrCreate($permission, 'web'),
         );
 
+        // DatabaseSeeder utilise WithoutModelEvents : l'invalidation automatique du
+        // cache de permissions (sur l'event `saved`) ne se déclenche pas ici, donc le
+        // cache en mémoire resterait périmé (vide) pour syncPermissions() ci-dessous.
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
         foreach (self::ROLE_PERMISSIONS as $roleName => $rolePermissions) {
             Role::findOrCreate($roleName, 'web')->syncPermissions(
                 $roleName === 'superadmin' ? $permissions : $rolePermissions,
