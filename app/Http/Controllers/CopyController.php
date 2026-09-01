@@ -57,7 +57,7 @@ class CopyController extends Controller
                 ->when($location === 'unassigned', fn ($query) => $query->whereNull('location_id'))
                 ->when(ctype_digit($location), fn ($query) => $query->where('location_id', (int) $location))
                 ->latest()
-                ->paginate(100)
+                ->paginate(500)
                 ->withQueryString(),
             'filters' => ['search' => $search, 'status' => $status, 'condition' => $condition, 'location' => $location, 'book' => $book],
             'bookContext' => $bookContext,
@@ -113,7 +113,7 @@ class CopyController extends Controller
 
     public function destroyBulk(Request $request): RedirectResponse
     {
-        $data = $request->validate(['ids' => ['required', 'array', 'min:1', 'max:100'], 'ids.*' => ['integer', 'distinct', 'exists:copies,id']]);
+        $data = $request->validate(['ids' => ['required', 'array', 'min:1', 'max:500'], 'ids.*' => ['integer', 'distinct', 'exists:copies,id']]);
         $copies = Copy::query()->whereKey($data['ids'])->withCount('consultationItems')->get();
 
         $protected = $copies->first(fn (Copy $copy) => in_array($copy->status, [CopyStatus::InConsultation, CopyStatus::Borrowed], true) || $copy->consultation_items_count > 0);
@@ -135,7 +135,7 @@ class CopyController extends Controller
 
     public function printBulk(Request $request, BarcodeService $barcodes): View
     {
-        $data = $request->validate(['ids' => ['required', 'array', 'min:1', 'max:100'], 'ids.*' => ['integer', 'distinct', 'exists:copies,id']]);
+        $data = $request->validate(['ids' => ['required', 'array', 'min:1', 'max:500'], 'ids.*' => ['integer', 'distinct', 'exists:copies,id']]);
         $order = array_flip($data['ids']);
         $copies = Copy::query()->whereKey($data['ids'])->with('book')->get()->sortBy(fn (Copy $copy) => $order[$copy->id])->values();
 
@@ -144,7 +144,7 @@ class CopyController extends Controller
 
     public function downloadPdf(Request $request, BarcodeService $barcodes): HttpResponse
     {
-        $data = $request->validate(['ids' => ['required', 'array', 'min:1', 'max:100'], 'ids.*' => ['integer', 'distinct', 'exists:copies,id']]);
+        $data = $request->validate(['ids' => ['required', 'array', 'min:1', 'max:500'], 'ids.*' => ['integer', 'distinct', 'exists:copies,id']]);
         $order = array_flip($data['ids']);
         $copies = Copy::query()->whereKey($data['ids'])->with('book')->get()->sortBy(fn (Copy $copy) => $order[$copy->id])->values();
         $html = view('print.copy-labels-pdf', ['copies' => $copies, 'codes' => $copies->mapWithKeys(fn (Copy $copy) => [$copy->id => $barcodes->qrPngDataUri($copy->barcode_value)])])->render();
